@@ -1,0 +1,7 @@
+.player-wrapper {
+    border: 3px solid blue;/* Player ratio: 100 / (1280 / 720) */
+  }
+  
+  .react-player {
+    border: 6px solid pink
+  }
