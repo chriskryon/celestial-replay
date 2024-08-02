@@ -220,7 +220,7 @@ function Player() {
               Start
             </Button>
             <Button
-              className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-3 w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={onOpenChange}
             >
               Criar Nova Stack

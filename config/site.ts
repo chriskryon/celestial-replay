@@ -29,7 +29,7 @@ export const siteConfig = {
     {
       label: "Advanced Plus",
       href: "/reactplayer",
-    }
+    },
   ],
   links: {
     github: "https://github.com/nextui-org/nextui",
