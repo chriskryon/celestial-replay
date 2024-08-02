@@ -55,7 +55,9 @@ function Player() {
       const newStack = { name: stackName, videos: parsedVideos };
 
       setStacks([...stacks, newStack]);
-      window.localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
+      }
       setStackName("");
       setVideoInput("");
     }
@@ -106,66 +108,52 @@ function Player() {
     }
   };
 
+  const getSavedStacks = () => {
+    if (typeof window !== "undefined") {
+      return Object.entries(window.localStorage)
+        .filter(([key, value]) => {
+          if (key === "theme" || key === "ally-supports-cache") {
+            return false;
+          }
+
+          try {
+            const parsedValue = JSON.parse(value);
+
+            return (
+              Array.isArray(parsedValue) &&
+              parsedValue.every(
+                (item) =>
+                  typeof item === "object" &&
+                  "url" in item &&
+                  "repetitions" in item,
+              )
+            );
+          } catch (error) {
+            return false; // Não é um JSON válido
+          }
+        })
+        .map(([stackName, stackValue]) => (
+          <li key={stackName} className="mr-2 mb-2">
+            <Button variant="ghost" onClick={() => handleLoadStack(stackValue)}>
+              {stackName}
+            </Button>
+          </li>
+        ));
+    } else {
+      return null; // Ou um componente de carregamento/placeholder, se desejar
+    }
+  };
+
   return (
     <>
-      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5 z-10">
-        <div className="absolute inset-0 z-0">
-          <Image
-            alt="Fundo de estrelas"
-            className="opacity-50"
-            layout="fill"
-            objectFit="cover"
-            src="/bg.jpg" // Substitua pelo caminho da sua imagem
-          />
-        </div>
+      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
         <div className="">
           <h4 className="text-left text-small font-medium">My Saved Stacks</h4>
           <p className="text-left text-small text-default-400">
             Just click on some button to play automatically.
           </p>
           <ul className="flex flex-wrap items-start justify-left">
-            {" "}
-            {/* Adiciona classes para flexbox */}
-            {Object.entries(window.localStorage)
-              .filter(([key, value]) => {
-                if (key === "theme" || key === "ally-supports-cache") {
-                  return false;
-                }
-
-                try {
-                  const parsedValue = JSON.parse(value);
-
-                  return (
-                    Array.isArray(parsedValue) &&
-                    parsedValue.every(
-                      (item) =>
-                        typeof item === "object" &&
-                        "url" in item &&
-                        "repetitions" in item,
-                    )
-                  );
-                } catch (error) {
-                  return false; // Não é um JSON válido
-                }
-              })
-              .map(
-                (
-                  [stackName, stackValue], // Desestrutura o par [chave, valor]
-                ) => (
-                  <li key={stackName} className="mr-2 mb-2">
-                    {" "}
-                    {/* Adiciona classes para margens */}
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleLoadStack(stackValue)}
-                    >
-                      {" "}
-                      {/* Muda para variant="ghost" */}
-                      {stackName} {/* Exibe o nome da stack */}
-                    </Button>
-                  </li>
-                ),
-              )}
+            {getSavedStacks()}
           </ul>
         </div>
         {/* esquerda */}
@@ -231,8 +219,15 @@ function Player() {
             >
               Start
             </Button>
+            <Button
+              className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onOpenChange}
+            >
+              Criar Nova Stack
+            </Button>
           </div>
         </div>
+
       </div>
 
       {/* teste */}

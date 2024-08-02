@@ -20,7 +20,7 @@ export default function Home() {
         {" "}
         {/* Adiciona z-index para ficar acima da imagem */}
         <h1 className={title()}>Celestial</h1>
-        <h1 className={title({ color: "violet" })}>Replay</h1>
+        <h1 className={title({ color: "blue" })}>Replay</h1>
         <br />
         <h2 className={subtitle({ class: "mt-4" })}>
           Loop your favorite videos infinitely.
