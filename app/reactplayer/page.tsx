@@ -4,19 +4,32 @@
 import { useEffect, useRef, useState } from "react";
 import { Input, Textarea } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@nextui-org/modal";
 import ReactPlayer from "react-player";
+import { Accordion, AccordionItem } from "@nextui-org/accordion";
+import { Divider } from "@nextui-org/divider";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
-  const [videos, setVideos] = useState<{ url: string; repetitions: number; }[]>([]);
+  const [videos, setVideos] = useState<{ url: string; repetitions: number }[]>(
+    []
+  );
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [currentRepetitions, setCurrentRepetitions] = useState(0);
   const playerRef = useRef(null);
 
   const [stackName, setStackName] = useState("");
-  const [stacks, setStacks] = useState<{ name: string; videos: { url: string; repetitions: number }[] }[]>(
-    []
-  );
+  const [stacks, setStacks] = useState<
+    { name: string; videos: { url: string; repetitions: number }[] }[]
+  >([]);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
 
   useEffect(() => {
     // Carrega as stacks salvas no localStorage ao montar o componente
@@ -45,22 +58,15 @@ function Player() {
     }
   };
 
-  const handleLoadStack = (stackName: string) => {
-    const storedVideos = localStorage.getItem(stackName);
-    if (storedVideos) {
-      const parsedVideos = JSON.parse(storedVideos);
+  const handleLoadStack = (stackValue: string) => {
+    try {
+      const parsedVideos = JSON.parse(stackValue);
       setVideos(parsedVideos);
       setCurrentVideoIndex(0);
       setCurrentRepetitions(parsedVideos[0]?.repetitions || 0);
-
-      // Carrega o conteúdo da stack no textarea
-      const videoInputFromStack = parsedVideos
-        .map((video) => `${video.url};${video.repetitions}`)
-        .join("\n");
-      setVideoInput(videoInputFromStack);
-
-      // Inicia a reprodução automaticamente
-      handleButtonClick(); // Chama a função que inicia a reprodução
+    } catch (error) {
+      console.error("Erro ao carregar a stack:", error);
+      // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
     }
   };
 
@@ -71,7 +77,6 @@ function Player() {
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
         const repetitions = parseInt(repetitionsStr, 10) || 1;
-
         return { url, repetitions };
       });
 
@@ -96,84 +101,163 @@ function Player() {
   };
 
   return (
-    <div className="container flex flex-col items-center space-y-4">
-      {currentRepetitions > 0 && (
-        <>
-          <ReactPlayer
-            ref={playerRef}
-            controls
-            config={{
-              youtube: {
-                playerVars: { autoplay: 1 },
-              },
-              facebook: {
-                appId: "12345",
-              },
-            }}
-            playing={true}
-            url={videos[currentVideoIndex]?.url}
-            onEnded={handleVideoEnded}
-          />
-          <p className="">
-            Remaining Repetitions: {currentRepetitions} of{" "}
-            {videos[currentVideoIndex]?.repetitions}
+    <>
+      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
+        <div className="">
+          <h4 className="text-left text-small font-medium">My Saved Stacks</h4>
+          <p className="text-left text-small text-default-400">
+            Just click on some button to play automatically.
           </p>
-        </>
-      )}
-      <Textarea
-        fullWidth
-        className="w-full max-w-xl"
-        color={"default"}
-        errorMessage={"error"}
-        label="Lista de vídeos (URL;Repetições por linha)"
-        placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
-        value={videoInput}
-        onChange={(e) => setVideoInput(e.target.value)}
-      />
+          <ul className="flex flex-wrap items-start justify-left">
+            {" "}
+            {/* Adiciona classes para flexbox */}
+            {Object.entries(localStorage)
+              .filter(([key, value]) => {
+                if (key === "theme" || key === "ally-supports-cache") {
+                  return false;
+                }
 
-      <Button
-        className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
-        color="primary"
-        onClick={handleButtonClick}
-      >
-        Iniciar
-      </Button>
+                try {
+                  const parsedValue = JSON.parse(value);
+                  return (
+                    Array.isArray(parsedValue) &&
+                    parsedValue.every(
+                      (item) =>
+                        typeof item === "object" &&
+                        "url" in item &&
+                        "repetitions" in item
+                    )
+                  );
+                } catch (error) {
+                  return false; // Não é um JSON válido
+                }
+              })
+              .map(
+                (
+                  [stackName, stackValue] // Desestrutura o par [chave, valor]
+                ) => (
+                  <li key={stackName} className="mr-2 mb-2">
+                    {" "}
+                    {/* Adiciona classes para margens */}
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleLoadStack(stackValue)}
+                    >
+                      {" "}
+                      {/* Muda para variant="ghost" */}
+                      {stackName} {/* Exibe o nome da stack */}
+                    </Button>
+                  </li>
+                )
+              )}
+          </ul>
+        </div>
+        {/* esquerda */}
+        <div className="">
+          <div className="bg-[#27272A] rounded-md">
+            {" "}
+            {/* Div esquerda */}
+            {/* Conteúdo da div esquerda */}
+            {currentRepetitions > 0 && (
+              <>
+                <ReactPlayer
+                  ref={playerRef}
+                  controls
+                  config={{
+                    youtube: {
+                      playerVars: { autoplay: 1 },
+                    },
+                    facebook: {
+                      appId: "12345",
+                    },
+                  }}
+                  playing={true}
+                  url={videos[currentVideoIndex]?.url}
+                  onEnded={handleVideoEnded}
+                  width={"100%"}
+                  height={"200px"}
+                />
+              </>
+            )}
+          </div>
+        </div>
 
-    <Input
-        type="text"
-        label="Nome da Stack"
-        value={stackName}
-        onChange={(e) => setStackName(e.target.value)}
-      />
-
-      <Textarea
-        fullWidth
-        className="w-full max-w-xl"
-        color={"default"}
-        errorMessage={"error"}
-        label="Criar Stack (URL;Repetições por linha)"
-        placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
-        value={videoInput}
-        onChange={(e) => setVideoInput(e.target.value)}
-      />
-
-      <Button onClick={handleCreateStack}>Criar Stack</Button>
-
-      <div>
-        <h2>Stacks Salvas:</h2>
-        <ul>
-          {Object.keys(localStorage)
-            .filter((key) => key !== "theme" && key !== "ally-supports-cache")
-            .map((stackName) => (
-              <li key={stackName}>
-                <Button onClick={() => handleLoadStack(stackName)}>
-                  {stackName}
-                </Button>
-              </li>
-            ))}
-        </ul>
+        <div className="col-span-3 row-span-3 col-start-3 row-start-2">
+          <div className="">
+            {" "}
+            {/* Div direita */}
+            {/* Conteúdo da div direita */}
+            {currentRepetitions > 0 && (
+              <p className="">
+                Remaining Repetitions: {currentRepetitions} of{" "}
+                {videos[currentVideoIndex]?.repetitions}
+              </p>
+            )}
+            <Textarea
+              fullWidth
+              className=""
+              color={"default"}
+              errorMessage={"error"}
+              label="url;repetitions (per line)"
+              placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
+              value={videoInput}
+              onChange={(e) => setVideoInput(e.target.value)}
+            />
+            <Button
+              className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              color="primary"
+              onClick={handleButtonClick}
+            >
+              Iniciar
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* teste */}
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Criar Nova Stack</ModalHeader>
+              <ModalBody>
+                <Input
+                  type="text"
+                  label="Nome da Stack"
+                  value={stackName}
+                  onChange={(e) => setStackName(e.target.value)}
+                />
+
+                <Textarea
+                  fullWidth
+                  className="w-full max-w-xl"
+                  color={"default"}
+                  errorMessage={"error"}
+                  label="Criar Stack (URL;Repetições por linha)"
+                  placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
+                  value={videoInput}
+                  onChange={(e) => setVideoInput(e.target.value)}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Fechar
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={() => {
+                    handleCreateStack();
+                    onClose();
+                  }}
+                >
+                  Criar Stack
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
   );
 }
 
