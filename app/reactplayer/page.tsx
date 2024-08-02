@@ -29,11 +29,13 @@ function Player() {
   const { isOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
 
   useEffect(() => {
-    // Carrega as stacks salvas no localStorage ao montar o componente
-    const storedStacks = localStorage.getItem("videoStacks");
+    // Verifica se está no ambiente do navegador (client-side)
+    if (typeof window !== "undefined") {
+      const storedStacks = localStorage.getItem("videoStacks");
 
-    if (storedStacks) {
-      setStacks(JSON.parse(storedStacks));
+      if (storedStacks) {
+        setStacks(JSON.parse(storedStacks));
+      }
     }
   }, []);
 
