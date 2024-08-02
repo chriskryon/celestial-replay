@@ -12,6 +12,7 @@ import {
   useDisclosure,
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
+import Image from "next/image";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
@@ -107,7 +108,16 @@ function Player() {
 
   return (
     <>
-      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
+      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5 z-10">
+        <div className="absolute inset-0 z-0">
+          <Image
+            alt="Fundo de estrelas"
+            className="opacity-50"
+            layout="fill"
+            objectFit="cover"
+            src="/bg.jpg" // Substitua pelo caminho da sua imagem
+          />
+        </div>
         <div className="">
           <h4 className="text-left text-small font-medium">My Saved Stacks</h4>
           <p className="text-left text-small text-default-400">
