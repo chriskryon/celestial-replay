@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -13,13 +12,11 @@ import {
   useDisclosure,
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
-import { Accordion, AccordionItem } from "@nextui-org/accordion";
-import { Divider } from "@nextui-org/divider";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
   const [videos, setVideos] = useState<{ url: string; repetitions: number }[]>(
-    []
+    [],
   );
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [currentRepetitions, setCurrentRepetitions] = useState(0);
@@ -29,11 +26,12 @@ function Player() {
   const [stacks, setStacks] = useState<
     { name: string; videos: { url: string; repetitions: number }[] }[]
   >([]);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
+  const { isOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
 
   useEffect(() => {
     // Carrega as stacks salvas no localStorage ao montar o componente
     const storedStacks = localStorage.getItem("videoStacks");
+
     if (storedStacks) {
       setStacks(JSON.parse(storedStacks));
     }
@@ -47,10 +45,12 @@ function Player() {
         .map((video) => {
           const [url, repetitionsStr] = video.split(";");
           const repetitions = parseInt(repetitionsStr, 10) || 1;
+
           return { url, repetitions };
         });
 
       const newStack = { name: stackName, videos: parsedVideos };
+
       setStacks([...stacks, newStack]);
       localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
       setStackName("");
@@ -61,10 +61,12 @@ function Player() {
   const handleLoadStack = (stackValue: string) => {
     try {
       const parsedVideos = JSON.parse(stackValue);
+
       setVideos(parsedVideos);
       setCurrentVideoIndex(0);
       setCurrentRepetitions(parsedVideos[0]?.repetitions || 0);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Erro ao carregar a stack:", error);
       // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
     }
@@ -77,6 +79,7 @@ function Player() {
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
         const repetitions = parseInt(repetitionsStr, 10) || 1;
+
         return { url, repetitions };
       });
 
@@ -119,13 +122,14 @@ function Player() {
 
                 try {
                   const parsedValue = JSON.parse(value);
+
                   return (
                     Array.isArray(parsedValue) &&
                     parsedValue.every(
                       (item) =>
                         typeof item === "object" &&
                         "url" in item &&
-                        "repetitions" in item
+                        "repetitions" in item,
                     )
                   );
                 } catch (error) {
@@ -134,7 +138,7 @@ function Player() {
               })
               .map(
                 (
-                  [stackName, stackValue] // Desestrutura o par [chave, valor]
+                  [stackName, stackValue], // Desestrutura o par [chave, valor]
                 ) => (
                   <li key={stackName} className="mr-2 mb-2">
                     {" "}
@@ -148,7 +152,7 @@ function Player() {
                       {stackName} {/* Exibe o nome da stack */}
                     </Button>
                   </li>
-                )
+                ),
               )}
           </ul>
         </div>
@@ -171,11 +175,11 @@ function Player() {
                       appId: "12345",
                     },
                   }}
+                  height={"200px"}
                   playing={true}
                   url={videos[currentVideoIndex]?.url}
-                  onEnded={handleVideoEnded}
                   width={"100%"}
-                  height={"200px"}
+                  onEnded={handleVideoEnded}
                 />
               </>
             )}
@@ -222,8 +226,8 @@ function Player() {
               <ModalHeader>Criar Nova Stack</ModalHeader>
               <ModalBody>
                 <Input
-                  type="text"
                   label="Nome da Stack"
+                  type="text"
                   value={stackName}
                   onChange={(e) => setStackName(e.target.value)}
                 />

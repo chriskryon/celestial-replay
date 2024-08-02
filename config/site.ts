@@ -7,15 +7,11 @@ export const siteConfig = {
     {
       label: "Home",
       href: "/",
-    }, 
+    },
     {
       label: "Default",
       href: "/default",
-    }, 
-    {
-      label: "Advanced",
-      href: "/advanced",
-    }, 
+    },
     {
       label: "Advanced Plus",
       href: "/reactplayer",
@@ -26,6 +22,14 @@ export const siteConfig = {
       label: "Home",
       href: "/",
     },
+    {
+      label: "Default",
+      href: "/default",
+    },
+    {
+      label: "Advanced Plus",
+      href: "/reactplayer",
+    }
   ],
   links: {
     github: "https://github.com/nextui-org/nextui",

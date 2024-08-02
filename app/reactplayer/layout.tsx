@@ -1,12 +1,13 @@
-export default function ReactPlayerLayout({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) {
-    return (
-      <section className="w-full flex flex-col items-center  gap-4 py-8 md:py-10">
-          {children}
-      </section>
-    );
-  }
-  
+export default function TestLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
+      <div className="container max-w-2xl text-center justify-center">
+        {children}
+      </div>
+    </section>
+  );
+}
