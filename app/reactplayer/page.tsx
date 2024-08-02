@@ -32,7 +32,7 @@ function Player() {
   useEffect(() => {
     // Verifica se está no ambiente do navegador (client-side)
     if (typeof window !== "undefined") {
-      const storedStacks = localStorage.getItem("videoStacks");
+      const storedStacks = window.localStorage.getItem("videoStacks");
 
       if (storedStacks) {
         setStacks(JSON.parse(storedStacks));
@@ -55,7 +55,7 @@ function Player() {
       const newStack = { name: stackName, videos: parsedVideos };
 
       setStacks([...stacks, newStack]);
-      localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
+      window.localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
       setStackName("");
       setVideoInput("");
     }
@@ -126,7 +126,7 @@ function Player() {
           <ul className="flex flex-wrap items-start justify-left">
             {" "}
             {/* Adiciona classes para flexbox */}
-            {Object.entries(localStorage)
+            {Object.entries(window.localStorage)
               .filter(([key, value]) => {
                 if (key === "theme" || key === "ally-supports-cache") {
                   return false;
