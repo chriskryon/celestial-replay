@@ -157,9 +157,14 @@ function Player() {
           </ul>
         </div>
         {/* esquerda */}
+        <h4 className="text-left text-small font-medium mt-5">
+          Multiple Videos Repeat
+        </h4>
+        <p className="text-left text-small text-default-400 mb-1">
+          Template: VIDEO_URL;REPETITIONS
+        </p>
         <div className="">
           <div className="bg-[#27272A] rounded-md">
-            {" "}
             {/* Div esquerda */}
             {/* Conteúdo da div esquerda */}
             {currentRepetitions > 0 && (
@@ -212,7 +217,7 @@ function Player() {
               color="primary"
               onClick={handleButtonClick}
             >
-              Iniciar
+              Start
             </Button>
           </div>
         </div>

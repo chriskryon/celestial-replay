@@ -50,7 +50,10 @@ function YoutubeViewApp() {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5 flex flex-col items-center space-y-4">
+      <h4 className="text-left text-small font-medium mt-5">
+        Single Video Repeat
+      </h4>
       {videoUrl && ( // Only render ReactPlayer when videoUrl is set
         <ReactPlayer
           ref={playerRef}
@@ -68,16 +71,16 @@ function YoutubeViewApp() {
         className="w-full max-w-xl"
         color={error ? "danger" : "default"}
         errorMessage={error}
-        label="URL do vídeo do YouTube"
+        label="URL of the video"
         placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-        value={videoUrlInput} // Bind to the input field state
+        value={videoUrlInput}
         onChange={(e) => setVideoUrlInput(e.target.value)}
       />
 
       <Input
         fullWidth
         className="w-full max-w-xl"
-        label="Quantidade de Repetições"
+        label="Number of repetitions"
         type="number"
         value={repetitions.toString()}
         onChange={(e) => setRepetitions(parseInt(e.target.value, 10) || 0)}
@@ -95,7 +98,7 @@ function YoutubeViewApp() {
         disabled={error !== null || repetitions <= 0}
         onClick={handlePlay}
       >
-        Iniciar
+        Start
       </Button>
     </div>
   );
