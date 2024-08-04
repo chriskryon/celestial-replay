@@ -216,7 +216,7 @@ function StackDetailsPage() {
                 <TableCell>{url.repetitions}</TableCell>
                 <TableCell>
                   <div className="relative flex items-center gap-2">
-                    <Tooltip content="Editar URL">
+                    <Tooltip content="Edit URL">
                       <Button
                         className="text-lg text-default-400 cursor-pointer active:opacity-50"
                         variant="light" // Or any other variant that suits your design
@@ -225,7 +225,7 @@ function StackDetailsPage() {
                         <EditIcon />
                       </Button>
                     </Tooltip>
-                    <Tooltip color="danger" content="Deletar URL">
+                    <Tooltip color="danger" content="Delete URL">
                       <Button
                         className="text-lg text-default-400 cursor-pointer active:opacity-50"
                         variant="light"

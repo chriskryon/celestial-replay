@@ -83,21 +83,6 @@ function StatisticsPage() {
         />
       </div>
 
-      {/* <Switch
-        isSelected={showTotalRepetitions}
-        onChange={() => setShowTotalRepetitions(!showTotalRepetitions)}
-      >
-        <div className="flex flex-col gap-1">
-          <p className="text-medium">
-            {showTotalRepetitions
-              ? "Exibir Repetições Totais"
-              : "Exibir Última Reprodução"}
-          </p>
-        </div>
-      </Switch> */}
-
-      {console.table(tableData)}
-
       <Table aria-label="Tabela de Histórico">
         <TableHeader>
           <TableColumn>URL</TableColumn>
