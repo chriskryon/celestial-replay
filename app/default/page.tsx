@@ -117,6 +117,21 @@ function YoutubeViewApp() {
         <ReactPlayer
           ref={playerRef}
           controls
+          config={{
+            youtube: {
+              playerVars: { autoplay: 1 },
+            },
+            soundcloud: {
+              options: {
+                auto_play: true,
+              },
+            },
+            vimeo: {
+              playerOptions: {
+                autoplay: true,
+              },
+            },
+          }}
           height="300px"
           playing={isPlaying}
           url={videoUrl}

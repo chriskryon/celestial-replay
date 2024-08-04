@@ -193,6 +193,16 @@ function Player() {
                     youtube: {
                       playerVars: { autoplay: 1 },
                     },
+                    soundcloud: {
+                      options: {
+                        auto_play: true,
+                      },
+                    },
+                    vimeo: {
+                      playerOptions: {
+                        autoplay: true,
+                      },
+                    },
                   }}
                   height={"200px"}
                   playing={true}
