@@ -194,7 +194,7 @@ function YoutubeViewApp() {
         disabled={error !== null || repetitionsInput <= 0 || !isReady}
         onClick={handlePlay}
       >
-        {isReady ? "Play" : "Waiting for a valid link"}
+        {isReady ? "Play" : "Waiting for a valid link"} {/* Texto condicional */}
       </Button>
       {error && <Alert message={error} />}
     </div>

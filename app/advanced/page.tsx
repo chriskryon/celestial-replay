@@ -16,6 +16,7 @@ import { Divider } from "@nextui-org/divider";
 
 import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
+import validateInputs from "../utils/validateUrls";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
@@ -39,18 +40,7 @@ function Player() {
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
 
   useEffect(() => {
-    // Valida todas as URLs quando o videoInput muda
-    if (videoInput) {
-      const urls = videoInput
-        .split("\n")
-        .map((line) => line.split(";")[0])
-        .filter(Boolean);
-      const allValid = urls.every((url) => ReactPlayer.canPlay(url));
-
-      setAreAllUrlsValid(allValid);
-    } else {
-      setAreAllUrlsValid(false);
-    }
+    setAreAllUrlsValid(validateInputs(videoInput)); // Use a função utilitária
   }, [videoInput]);
 
   useEffect(() => {
@@ -258,7 +248,7 @@ function Player() {
               disabled={!areAllUrlsValid}
               onClick={handleButtonClick}
             >
-              {areAllUrlsValid ? "Start" : "Waiting for valid URLs"}
+              {areAllUrlsValid ? "Start" : "Waiting for valid input"}
             </Button>
             <Button
               className="mt-3 w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
@@ -300,13 +290,16 @@ function Player() {
                   Close
                 </Button>
                 <Button
-                  color="primary"
+                  color={validateInputs(videoInput) ? "primary" : "danger"}
+                  disabled={!validateInputs(videoInput)}
                   onPress={() => {
                     handleCreateStack();
                     onClose();
                   }}
                 >
-                  Create Stack
+                  {validateInputs(videoInput)
+                    ? "Create Stack"
+                    : "Waiting for valid input"}
                 </Button>
               </ModalFooter>
             </>
