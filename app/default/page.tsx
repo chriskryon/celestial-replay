@@ -70,9 +70,11 @@ function YoutubeViewApp() {
   const handleEnded = () => {
     if (remainingRepetitions > 1) {
       setRemainingRepetitions(remainingRepetitions - 1);
-      if (playerRef.current) {
-        (playerRef.current as any).getInternalPlayer().playVideo();
-      }
+      setIsPlaying(false); // Pausar o vídeo
+      setTimeout(() => setIsPlaying(true), 1); 
+      // if (playerRef.current) {
+      //   (playerRef.current as any).getInternalPlayer().playVideo();
+      // }
     } else {
       setRemainingRepetitions(0);
       setIsPlaying(false);
@@ -117,6 +119,25 @@ function YoutubeViewApp() {
         <ReactPlayer
           ref={playerRef}
           controls
+          config={{
+            youtube: {
+              playerVars: { autoplay: 0 },
+            },
+            facebook: {
+              appId: '513502334686034',  // Substitua com seu ID de aplicativo do Facebook, se necessário
+              autoplay: false,
+            },
+            soundcloud: {
+              options: {
+                auto_play: false,
+              },
+            },
+            vimeo: {
+              playerOptions: {
+                autoplay: false,
+              },
+            },
+          }}
           height="300px"
           playing={isPlaying}
           url={videoUrl}
