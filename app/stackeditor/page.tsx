@@ -227,7 +227,7 @@ function StackDetailsPage() {
                     </Tooltip>
                     <Tooltip color="danger" content="Delete URL">
                       <Button
-                        className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                        className="text-lg text-red-500 cursor-pointer active:opacity-50"
                         variant="light"
                         onClick={() => handleDelete(index)}
                       >
