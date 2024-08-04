@@ -73,11 +73,11 @@ function StatisticsPage() {
         <Calendar
           aria-label="Selecione uma data"
           value={selectedDate}
-          onChange={(date) => setSelectedDate(date)} // Certifique-se de que onChange retorna um CalendarDate
+          onChange={(date) => setSelectedDate(date)}
         />
       </div>
 
-      <Switch
+      {/* <Switch
         isSelected={showTotalRepetitions}
         onChange={() => setShowTotalRepetitions(!showTotalRepetitions)}
       >
@@ -88,9 +88,8 @@ function StatisticsPage() {
               : "Exibir Última Reprodução"}
           </p>
         </div>
-      </Switch>
+      </Switch> */}
 
-      <p>{JSON.stringify(tableData)}</p>
       <Table aria-label="Tabela de Histórico">
         <TableHeader>
           <TableColumn>URL</TableColumn>
