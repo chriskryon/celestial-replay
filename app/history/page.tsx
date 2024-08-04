@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableHeader,
@@ -9,7 +9,6 @@ import {
   TableCell,
 } from "@nextui-org/table";
 import { Calendar } from "@nextui-org/calendar";
-import { Switch } from "@nextui-org/switch";
 import { DateValue, toCalendarDate } from "@internationalized/date";
 
 function StatisticsPage() {
@@ -32,18 +31,23 @@ function StatisticsPage() {
     }
   }, []);
 
-  const filteredHistory = selectedDate
-    ? playbackHistory.filter((item) => {
-        const itemDate = new Date(item.lastPlayed);
-        const selectedCalendarDate = toCalendarDate(selectedDate); // Converte DateValue para CalendarDate
+  const filteredHistory = useMemo(() => {
+    if (!selectedDate) {
+      return playbackHistory;
+    }
 
-        return (
-          itemDate.getDate() === selectedCalendarDate.day &&
-          itemDate.getMonth() === selectedCalendarDate.month - 1 && // Lembre-se que o mês em CalendarDate começa em 1 (janeiro)
-          itemDate.getFullYear() === selectedCalendarDate.year
-        );
-      })
-    : playbackHistory;
+    const selectedCalendarDate = toCalendarDate(selectedDate);
+
+    return playbackHistory.filter((item) => {
+      const itemDate = new Date(item.lastPlayed);
+
+      return (
+        itemDate.getDate() === selectedCalendarDate.day &&
+        itemDate.getMonth() + 1 === selectedCalendarDate.month &&
+        itemDate.getFullYear() === selectedCalendarDate.year
+      );
+    });
+  }, [selectedDate, playbackHistory]);
 
   const totalRepetitionsByUrl = playbackHistory.reduce(
     (acc, item) => {
@@ -71,12 +75,12 @@ function StatisticsPage() {
       <h1>History</h1>
 
       <div className="flex justify-center gap-x-4 mb-4">
-        {/* <Calendar
+        <Calendar
           aria-label="Selecione uma data"
           value={selectedDate}
           onChange={(date) => setSelectedDate(date)}
           // maxValue={toCalendarDate(tod)}
-        /> */}
+        />
       </div>
 
       {/* <Switch
@@ -92,6 +96,8 @@ function StatisticsPage() {
         </div>
       </Switch> */}
 
+      {console.table(tableData)}
+
       <Table aria-label="Tabela de Histórico">
         <TableHeader>
           <TableColumn>URL</TableColumn>
@@ -99,8 +105,8 @@ function StatisticsPage() {
           <TableColumn>Última Reprodução</TableColumn>
         </TableHeader>
         <TableBody emptyContent={"No rows to display."}>
-          {filteredHistory.map((item) => (
-            <TableRow key={item.url}>
+          {filteredHistory.map((item, index) => (
+            <TableRow key={index}>
               <TableCell className="text-tiny truncate">{item.url}</TableCell>
               <TableCell>{totalRepetitionsByUrl[item.url]}</TableCell>
               <TableCell>
