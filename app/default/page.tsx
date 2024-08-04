@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import ReactPlayer from "react-player";
 import { Input } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
+import React from "react";
 
 function YoutubeViewApp() {
   const [videoUrlInput, setVideoUrlInput] = useState("");
@@ -12,28 +13,55 @@ function YoutubeViewApp() {
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const playerRef = useRef(null);
+  const [repetitionsInput, setRepetitionsInput] = useState(1);
+  const [urlInput, setUrlInput] = useState("");
+  const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
+  // useEffect(() => {
+  //   if (videoUrl) {
+  //     setRemainingRepetitions(repetitions);
+  //   }
+  // }, [urlInput, repetitionsInput]); // Dependency array includes videoUrl
+
+  const validUrl = (value: string) =>
+    value.match(
+      /[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi,
+    );
+
+  const isInvalid = React.useMemo(() => {
+    if (urlInput === "") return false;
+
+    if (validUrl(urlInput)) {
+      const result = !ReactPlayer.canPlay(urlInput);
+
+      setError(result ? "Sorry, we can not play this video link." : null);
+
+      return result;
+    } else {
+      setError("Invalid URL format");
+
+      return true;
+    }
+  }, [urlInput]);
 
   useEffect(() => {
-    if (videoUrl) {
-      // Only validate if videoUrl is set
-      const urlMatch = videoUrl.match(
-        /(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
-      );
-
-      if (urlMatch) {
-        setError(null);
-      } else {
-        setError("URL inválida. Insira uma URL do YouTube válida.");
-      }
-
-      setRemainingRepetitions(repetitions);
+    if (!isPlaying && ReactPlayer.canPlay(urlInput)) {
+      setError(null);
+      setVideoUrl(urlInput);
     }
-  }, [videoUrl, repetitions]); // Dependency array includes videoUrl
+  }, [urlInput]);
+
+  useEffect(() => {
+    setIsRepetitionsInvalid(isNaN(repetitionsInput) || repetitionsInput <= 0);
+  }, [repetitionsInput]);
 
   const handlePlay = () => {
-    if (repetitions > 0) {
-      setVideoUrl(videoUrlInput); // Set videoUrl when play is clicked
+    if (repetitionsInput > 0 && urlInput) {
+      setVideoUrl(urlInput);
+      setRemainingRepetitions(repetitionsInput);
       setIsPlaying(true);
+    } else {
+      console.log("Invalid input. Enter a URL.");
+      setError("Invalid input. Enter a URL.");
     }
   };
 
@@ -83,21 +111,31 @@ function YoutubeViewApp() {
       <Input
         fullWidth
         className="w-full max-w-xl"
-        color={error ? "danger" : "default"}
+        color={isInvalid ? "danger" : "default"}
         errorMessage={error}
+        isInvalid={isInvalid}
         label="URL of the video"
         placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-        value={videoUrlInput}
-        onChange={(e) => setVideoUrlInput(e.target.value)}
+        value={urlInput}
+        onChange={(e) => {
+          setUrlInput(e.target.value);
+        }}
       />
 
       <Input
         fullWidth
         className="w-full max-w-xl"
+        color={isRepetitionsInvalid ? "danger" : "default"}
+        isInvalid={isRepetitionsInvalid}
+        errorMessage={
+          isRepetitionsInvalid
+            ? "Invalid input. Enter a positive number."
+            : undefined
+        } // Conditional error message
         label="Number of repetitions"
         type="number"
-        value={repetitions.toString()}
-        onChange={(e) => setRepetitions(parseInt(e.target.value, 10) || 0)}
+        value={repetitionsInput.toString()}
+        onChange={(e) => setRepetitionsInput(parseInt(e.target.value, 10) || 1)}
       />
 
       {isPlaying && remainingRepetitions > 0 && (
@@ -109,7 +147,7 @@ function YoutubeViewApp() {
       <Button
         className="w-full max-w-xl"
         color="primary"
-        disabled={error !== null || repetitions <= 0}
+        disabled={error !== null || repetitionsInput <= 0}
         onClick={handlePlay}
       >
         Start

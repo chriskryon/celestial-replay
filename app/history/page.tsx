@@ -13,6 +13,7 @@ import { Switch } from "@nextui-org/switch";
 import { DateValue, toCalendarDate } from "@internationalized/date";
 
 function StatisticsPage() {
+  const today = new Date();
   const [playbackHistory, setPlaybackHistory] = useState<
     { url: string; count: number; lastPlayed: string }[]
   >([]);
@@ -74,6 +75,7 @@ function StatisticsPage() {
           aria-label="Selecione uma data"
           value={selectedDate}
           onChange={(date) => setSelectedDate(date)}
+          // maxValue={toCalendarDate(tod)}
         />
       </div>
 
@@ -96,7 +98,7 @@ function StatisticsPage() {
           <TableColumn>Repetitions</TableColumn>
           <TableColumn>Última Reprodução</TableColumn>
         </TableHeader>
-        <TableBody>
+        <TableBody emptyContent={"No rows to display."}>
           {filteredHistory.map((item) => (
             <TableRow key={item.url}>
               <TableCell>{item.url}</TableCell>
