@@ -264,7 +264,7 @@ function Player() {
               className="mt-3 w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={onOpenChange}
             >
-              Criar Nova Stack
+              Create new stack
             </Button>
           </div>
         </div>
@@ -275,10 +275,10 @@ function Player() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Criar Nova Stack</ModalHeader>
+              <ModalHeader>Create new stack</ModalHeader>
               <ModalBody>
                 <Input
-                  label="Nome da Stack"
+                  label="Stack name"
                   type="text"
                   value={stackName}
                   onChange={(e) => setStackName(e.target.value)}
@@ -289,7 +289,7 @@ function Player() {
                   className="w-full max-w-xl"
                   color={"default"}
                   errorMessage={"error"}
-                  label="Criar Stack (URL;Repetições por linha)"
+                  label="Stack template (URL;Repetitions) by line"
                   placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
                   value={videoInput}
                   onChange={(e) => setVideoInput(e.target.value)}
@@ -297,7 +297,7 @@ function Player() {
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
-                  Fechar
+                  Close
                 </Button>
                 <Button
                   color="primary"
@@ -306,7 +306,7 @@ function Player() {
                     onClose();
                   }}
                 >
-                  Criar Stack
+                  Create Stack
                 </Button>
               </ModalFooter>
             </>
