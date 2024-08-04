@@ -12,10 +12,10 @@ import {
   useDisclosure,
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
+import { Divider } from "@nextui-org/divider";
 
 import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
-import Toast from "@/components/toast";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
@@ -117,37 +117,61 @@ function Player() {
       </div> */}
       <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
         <div className="">
-          <h4 className="text-left text-small font-medium">My Saved Stacks</h4>
-          <p className="text-left text-small text-default-400">
+          <h4 className="text-left text-lg font-medium mt-5">Advanced Plus</h4>
+          <Divider />
+          {stacks.length > 0 && <></>}
+
+          {/* Instructions for the User */}
+          <div className="text-left mb-4">
+            <p className="text-white text-sm">
+              <b>Play Saved Stacks:</b> Click on a stack button below, if any,
+              to start playback.
+              <br />
+              <b>Create New Stack:</b> Click <b>Create New Stack</b> and enter
+              video URLs and repetitions.
+              <br />
+              <b>Multiple Videos (No Save):</b> Enter video URLs and repetitions
+              in the textarea, then click Start.
+            </p>
+          </div>
+
+          <h4 className="text-left text-small font-medium mt-5">
+            My Saved Stacks
+          </h4>
+          <p className="text-left text-small text-default-400 mb-3">
             Just click on some button to play automatically.
           </p>
           <div>
-            <h2>Stacks Salvas:</h2>
-            {stacks.length > 0 && (
-              <ul className="flex flex-wrap items-start justify-left">
-                {stacks.map((stack) => {
-                  const lastDashIndex = stack.name.lastIndexOf("-");
-                  const displayName =
-                    lastDashIndex !== -1
-                      ? stack.name.substring(0, lastDashIndex)
-                      : stack.name;
+            {stacks.length === 0 ? (
+              <p>No stacks saved yet.</p>
+            ) : (
+              <>
+                <ul className="flex flex-wrap items-start justify-left">
+                  {stacks.map((stack) => {
+                    const lastDashIndex = stack.name.lastIndexOf("-");
+                    const displayName =
+                      lastDashIndex !== -1
+                        ? stack.name.substring(0, lastDashIndex)
+                        : stack.name;
 
-                  return (
-                    <li key={stack.name} className="mr-2 mb-2">
-                      <Button
-                        variant="ghost"
-                        onClick={() =>
-                          handleLoadStack(JSON.stringify(stack.videos))
-                        }
-                      >
-                        {displayName}
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
+                    return (
+                      <li key={stack.name} className="mr-2 mb-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
+                            handleLoadStack(JSON.stringify(stack.videos))
+                          }
+                        >
+                          {displayName}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
             )}
           </div>
+          <Divider />
         </div>
         {/* esquerda */}
         <h4 className="text-left text-small font-medium mt-5">

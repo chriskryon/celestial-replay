@@ -4,6 +4,7 @@ import ReactPlayer from "react-player";
 import { Input } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React from "react";
+import { Divider } from "@nextui-org/divider";
 
 import Alert from "@/components/alert";
 
@@ -94,9 +95,24 @@ function YoutubeViewApp() {
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
-      <h4 className="text-left text-small font-medium mt-5">
+      <h4 className="text-left text-lg font-medium mt-5">
         Single Video Repeat
       </h4>
+
+      <div className="text-center mb-4">
+        <p className="text-white">
+          Paste the video URL in the field below and set how many times you want
+          you want to repeat it.
+        </p>
+        <p className="text-sm text-gray-500">
+          YouTube, Facebook, SoundCloud, Streamable, Vimeo, Mux, Wistia, Twitch,
+          DailyMotion, Vidyard, Kaltura, HLS streams, DASH streams, videos and
+          audio supported.
+        </p>
+      </div>
+
+      <Divider />
+
       {videoUrl && ( // Only render ReactPlayer when videoUrl is set
         <ReactPlayer
           ref={playerRef}
