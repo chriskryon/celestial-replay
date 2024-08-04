@@ -71,7 +71,7 @@ function YoutubeViewApp() {
     if (remainingRepetitions > 1) {
       setRemainingRepetitions(remainingRepetitions - 1);
       setIsPlaying(false); // Pausar o vídeo
-      setTimeout(() => setIsPlaying(true), 1); 
+      setTimeout(() => setIsPlaying(true), 1);
       // if (playerRef.current) {
       //   (playerRef.current as any).getInternalPlayer().playVideo();
       // }
@@ -124,8 +124,7 @@ function YoutubeViewApp() {
               playerVars: { autoplay: 0 },
             },
             facebook: {
-              appId: '513502334686034',  // Substitua com seu ID de aplicativo do Facebook, se necessário
-              autoplay: false,
+              appId: "513502334686034", // Substitua com seu ID de aplicativo do Facebook, se necessário
             },
             soundcloud: {
               options: {
