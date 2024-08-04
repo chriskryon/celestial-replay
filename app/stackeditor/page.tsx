@@ -157,7 +157,7 @@ function StackDetailsPage() {
   };
 
   return (
-    <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5 flex flex-col items-center space-y-4">
+    <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
       <Dropdown>
         <DropdownTrigger>
           <Button color="primary" variant="bordered">

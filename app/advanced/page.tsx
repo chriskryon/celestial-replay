@@ -15,6 +15,7 @@ import ReactPlayer from "react-player";
 
 import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
+import Toast from "@/components/toast";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
@@ -111,7 +112,10 @@ function Player() {
 
   return (
     <>
-      <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
+      {/* <div>
+      <Toast message="Stack criada com sucesso!" />
+      </div> */}
+      <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
         <div className="">
           <h4 className="text-left text-small font-medium">My Saved Stacks</h4>
           <p className="text-left text-small text-default-400">

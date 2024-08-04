@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import { Link } from "@nextui-org/link";
 import clsx from "clsx";
+import Image from "next/image";
 
 import { Providers } from "./providers";
 
@@ -39,8 +40,17 @@ export default function RootLayout({
         className={clsx(
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable,
+          "relative",
         )}
       >
+        <Image
+          alt="Background Image"
+          layout="fill"
+          objectFit="cover"
+          src="/bg.jpg"
+          className="opacity-50" /* Define a opacidade (50% neste exemplo) */
+          quality={100} /* Opcional: ajusta a qualidade da imagem (0-100) */
+        />
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
           <div className="relative flex flex-col h-screen">
             <Navbar />

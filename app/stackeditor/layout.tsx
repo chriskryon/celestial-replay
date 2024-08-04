@@ -5,7 +5,7 @@ export default function TableLayout({
 }) {
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-      <div className="container max-w-2xl text-center justify-center">
+      <div className="container max-w-6xl text-center justify-center">
         {children}
       </div>
     </section>

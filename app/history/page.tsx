@@ -67,7 +67,7 @@ function StatisticsPage() {
     : filteredHistory; // Histórico filtrado por data
 
   return (
-    <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
+    <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
       <h1>History</h1>
 
       <div className="flex justify-center gap-x-4 mb-4">
@@ -101,7 +101,7 @@ function StatisticsPage() {
         <TableBody emptyContent={"No rows to display."}>
           {filteredHistory.map((item) => (
             <TableRow key={item.url}>
-              <TableCell>{item.url}</TableCell>
+              <TableCell className="text-tiny truncate">{item.url}</TableCell>
               <TableCell>{totalRepetitionsByUrl[item.url]}</TableCell>
               <TableCell>
                 {new Date(item.lastPlayed).toLocaleString()}

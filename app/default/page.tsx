@@ -5,6 +5,8 @@ import { Input } from "@nextui-org/input";
 import { Button } from "@nextui-org/button";
 import React from "react";
 
+import Alert from "@/components/alert";
+
 function YoutubeViewApp() {
   const [videoUrlInput, setVideoUrlInput] = useState("");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -60,7 +62,6 @@ function YoutubeViewApp() {
       setRemainingRepetitions(repetitionsInput);
       setIsPlaying(true);
     } else {
-      console.log("Invalid input. Enter a URL.");
       setError("Invalid input. Enter a URL.");
     }
   };
@@ -92,7 +93,7 @@ function YoutubeViewApp() {
   };
 
   return (
-    <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5 flex flex-col items-center space-y-4">
+    <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
       <h4 className="text-left text-small font-medium mt-5">
         Single Video Repeat
       </h4>
@@ -152,6 +153,7 @@ function YoutubeViewApp() {
       >
         Start
       </Button>
+      {error && <Alert message={error} />}
     </div>
   );
 }
