@@ -36,7 +36,7 @@ export const siteConfig = {
     },
     {
       label: "Advanced Plus",
-      href: "/reactplayer",
+      href: "/advanced",
     },
     {
       label: "Stack Editor",
