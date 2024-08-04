@@ -33,19 +33,17 @@ function StatisticsPage() {
   }, []);
 
   const filteredHistory = selectedDate
-  ? playbackHistory.filter((item) => {
-      const itemDate = new Date(item.lastPlayed);
-      const selectedCalendarDate = toCalendarDate(selectedDate);
-      const itemCalendarDate = toCalendarDate(itemDate); // Converter para CalendarDate
+    ? playbackHistory.filter((item) => {
+        const itemDate = new Date(item.lastPlayed);
+        const selectedCalendarDate = toCalendarDate(selectedDate); // Converte DateValue para CalendarDate
 
-      return (
-        itemCalendarDate.day === selectedCalendarDate.day &&
-        itemCalendarDate.month === selectedCalendarDate.month && 
-        itemCalendarDate.year === selectedCalendarDate.year
-      );
-    })
-  : playbackHistory;
-
+        return (
+          itemDate.getDate() === selectedCalendarDate.day &&
+          itemDate.getMonth() === selectedCalendarDate.month - 1 && // Lembre-se que o mês em CalendarDate começa em 1 (janeiro)
+          itemDate.getFullYear() === selectedCalendarDate.year
+        );
+      })
+    : playbackHistory;
 
   const totalRepetitionsByUrl = playbackHistory.reduce(
     (acc, item) => {
