@@ -14,8 +14,16 @@ export const siteConfig = {
     },
     {
       label: "Advanced Plus",
-      href: "/reactplayer",
-    }
+      href: "/advanced",
+    },
+    {
+      label: "Stack Editor",
+      href: "/stackeditor",
+    },
+    {
+      label: "History",
+      href: "/history",
+    },
   ],
   navMenuItems: [
     {
@@ -29,6 +37,14 @@ export const siteConfig = {
     {
       label: "Advanced Plus",
       href: "/reactplayer",
+    },
+    {
+      label: "Stack Editor",
+      href: "/stackeditor",
+    },
+    {
+      label: "History",
+      href: "/history",
     },
   ],
   links: {

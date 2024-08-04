@@ -14,7 +14,8 @@ function YoutubeViewApp() {
   const playerRef = useRef(null);
 
   useEffect(() => {
-    if (videoUrl) { // Only validate if videoUrl is set
+    if (videoUrl) {
+      // Only validate if videoUrl is set
       const urlMatch = videoUrl.match(
         /(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
       );
@@ -46,6 +47,19 @@ function YoutubeViewApp() {
       setRemainingRepetitions(0);
       setIsPlaying(false);
       setVideoUrl(null); // Clear videoUrl after all repetitions
+      if (videoUrl) {
+        updatePlaybackStatistics(videoUrl);
+      }
+    }
+  };
+
+  const updatePlaybackStatistics = (url: string) => {
+    if (typeof window !== "undefined") {
+      let stats = JSON.parse(localStorage.getItem("celestial-stats") || "[]");
+
+      stats.push({ url, lastPlayed: new Date().toISOString() });
+
+      localStorage.setItem("celestial-stats", JSON.stringify(stats));
     }
   };
 

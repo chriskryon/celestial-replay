@@ -12,7 +12,9 @@ import {
   useDisclosure,
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
-import Image from "next/image";
+
+import { createStack } from "../utils/createStack";
+import fetchValidStacks from "../utils/fetchValidStacks";
 
 function Player() {
   const [videoInput, setVideoInput] = useState("");
@@ -26,38 +28,21 @@ function Player() {
   const [stackName, setStackName] = useState("");
   const [stacks, setStacks] = useState<
     { name: string; videos: { url: string; repetitions: number }[] }[]
-  >([]);
+  >(
+    typeof window !== "undefined" ? fetchValidStacks() : [], // Carrega as stacks válidas no estado inicial
+  );
+
   const { isOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
 
   useEffect(() => {
-    // Verifica se está no ambiente do navegador (client-side)
     if (typeof window !== "undefined") {
-      const storedStacks = window.localStorage.getItem("videoStacks");
-
-      if (storedStacks) {
-        setStacks(JSON.parse(storedStacks));
-      }
+      setStacks(fetchValidStacks());
     }
   }, []);
 
   const handleCreateStack = () => {
     if (stackName && videoInput) {
-      const parsedVideos = videoInput
-        .split("\n")
-        .filter(Boolean)
-        .map((video) => {
-          const [url, repetitionsStr] = video.split(";");
-          const repetitions = parseInt(repetitionsStr, 10) || 1;
-
-          return { url, repetitions };
-        });
-
-      const newStack = { name: stackName, videos: parsedVideos };
-
-      setStacks([...stacks, newStack]);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(stackName, JSON.stringify(parsedVideos)); // Salva com o nome da stack
-      }
+      createStack(stackName, videoInput);
       setStackName("");
       setVideoInput("");
     }
@@ -106,41 +91,21 @@ function Player() {
         (playerRef.current as any).getInternalPlayer().playVideo();
       }
     }
+
+    const currentVideoUrl = videos[currentVideoIndex]?.url;
+
+    if (currentVideoUrl) {
+      updatePlaybackStatistics(currentVideoUrl);
+    }
   };
 
-  const getSavedStacks = () => {
+  const updatePlaybackStatistics = (url: string) => {
     if (typeof window !== "undefined") {
-      return Object.entries(window.localStorage)
-        .filter(([key, value]) => {
-          if (key === "theme" || key === "ally-supports-cache") {
-            return false;
-          }
+      let stats = JSON.parse(localStorage.getItem("celestial-stats") || "[]");
 
-          try {
-            const parsedValue = JSON.parse(value);
+      stats.push({ url, lastPlayed: new Date().toISOString() });
 
-            return (
-              Array.isArray(parsedValue) &&
-              parsedValue.every(
-                (item) =>
-                  typeof item === "object" &&
-                  "url" in item &&
-                  "repetitions" in item,
-              )
-            );
-          } catch (error) {
-            return false; // Não é um JSON válido
-          }
-        })
-        .map(([stackName, stackValue]) => (
-          <li key={stackName} className="mr-2 mb-2">
-            <Button variant="ghost" onClick={() => handleLoadStack(stackValue)}>
-              {stackName}
-            </Button>
-          </li>
-        ));
-    } else {
-      return null; // Ou um componente de carregamento/placeholder, se desejar
+      localStorage.setItem("celestial-stats", JSON.stringify(stats));
     }
   };
 
@@ -152,9 +117,33 @@ function Player() {
           <p className="text-left text-small text-default-400">
             Just click on some button to play automatically.
           </p>
-          <ul className="flex flex-wrap items-start justify-left">
-            {getSavedStacks()}
-          </ul>
+          <div>
+            <h2>Stacks Salvas:</h2>
+            {stacks.length > 0 && (
+              <ul className="flex flex-wrap items-start justify-left">
+                {stacks.map((stack) => {
+                  const lastDashIndex = stack.name.lastIndexOf("-");
+                  const displayName =
+                    lastDashIndex !== -1
+                      ? stack.name.substring(0, lastDashIndex)
+                      : stack.name;
+
+                  return (
+                    <li key={stack.name} className="mr-2 mb-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          handleLoadStack(JSON.stringify(stack.videos))
+                        }
+                      >
+                        {displayName}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
         {/* esquerda */}
         <h4 className="text-left text-small font-medium mt-5">
@@ -175,9 +164,6 @@ function Player() {
                   config={{
                     youtube: {
                       playerVars: { autoplay: 1 },
-                    },
-                    facebook: {
-                      appId: "12345",
                     },
                   }}
                   height={"200px"}
@@ -227,7 +213,6 @@ function Player() {
             </Button>
           </div>
         </div>
-
       </div>
 
       {/* teste */}

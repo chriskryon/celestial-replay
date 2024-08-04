@@ -1,0 +1,116 @@
+"use client";
+import { useState, useEffect } from "react";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableColumn,
+  TableRow,
+  TableCell,
+} from "@nextui-org/table";
+import { Calendar } from "@nextui-org/calendar";
+import { Switch } from "@nextui-org/switch";
+import { DateValue, toCalendarDate } from "@internationalized/date";
+
+function StatisticsPage() {
+  const [playbackHistory, setPlaybackHistory] = useState<
+    { url: string; count: number; lastPlayed: string }[]
+  >([]);
+  const [selectedDate, setSelectedDate] = useState<
+    DateValue | null | undefined
+  >(null);
+  const [showTotalRepetitions, setShowTotalRepetitions] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedHistory = localStorage.getItem("celestial-stats");
+
+      if (storedHistory) {
+        setPlaybackHistory(JSON.parse(storedHistory));
+      }
+    }
+  }, []);
+
+  const filteredHistory = selectedDate
+    ? playbackHistory.filter((item) => {
+        const itemDate = new Date(item.lastPlayed);
+        const selectedCalendarDate = toCalendarDate(selectedDate); // Converte DateValue para CalendarDate
+
+        return (
+          itemDate.getDate() === selectedCalendarDate.day &&
+          itemDate.getMonth() === selectedCalendarDate.month - 1 && // Lembre-se que o mês em CalendarDate começa em 1 (janeiro)
+          itemDate.getFullYear() === selectedCalendarDate.year
+        );
+      })
+    : playbackHistory;
+
+  const totalRepetitionsByUrl = playbackHistory.reduce(
+    (acc, item) => {
+      if (acc[item.url]) {
+        acc[item.url]++;
+      } else {
+        acc[item.url] = 1;
+      }
+
+      return acc;
+    },
+    {} as { [url: string]: number },
+  );
+
+  // Monta os dados da tabela com base no estado do switch
+  const tableData = showTotalRepetitions
+    ? Object.entries(totalRepetitionsByUrl).map(([url, count]) => ({
+        url,
+        count,
+      })) // URLs únicas com total de repetições
+    : filteredHistory; // Histórico filtrado por data
+
+  return (
+    <div className="bg-[#27272A] rounded-md bg-opacity-30 p-5">
+      <h1>History</h1>
+
+      <div className="flex justify-center gap-x-4 mb-4">
+        <Calendar
+          aria-label="Selecione uma data"
+          value={selectedDate}
+          onChange={(date) => setSelectedDate(date)} // Certifique-se de que onChange retorna um CalendarDate
+        />
+      </div>
+
+      <Switch
+        isSelected={showTotalRepetitions}
+        onChange={() => setShowTotalRepetitions(!showTotalRepetitions)}
+      >
+        <div className="flex flex-col gap-1">
+          <p className="text-medium">
+            {showTotalRepetitions
+              ? "Exibir Repetições Totais"
+              : "Exibir Última Reprodução"}
+          </p>
+        </div>
+      </Switch>
+
+      <p>{JSON.stringify(tableData)}</p>
+      <Table aria-label="Tabela de Histórico">
+        <TableHeader>
+          <TableColumn>URL</TableColumn>
+          <TableColumn>Repetitions</TableColumn>
+          <TableColumn>Última Reprodução</TableColumn>
+        </TableHeader>
+        <TableBody>
+          {filteredHistory.map((item) => (
+            <TableRow key={item.url}>
+              <TableCell>{item.url}</TableCell>
+              <TableCell>{totalRepetitionsByUrl[item.url]}</TableCell>
+              <TableCell>
+                {new Date(item.lastPlayed).toLocaleString()}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+export default StatisticsPage;
