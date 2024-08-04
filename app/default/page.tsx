@@ -19,6 +19,7 @@ function YoutubeViewApp() {
   const [repetitionsInput, setRepetitionsInput] = useState(1);
   const [urlInput, setUrlInput] = useState("");
   const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   // useEffect(() => {
   //   if (videoUrl) {
   //     setRemainingRepetitions(repetitions);
@@ -95,6 +96,11 @@ function YoutubeViewApp() {
     }
   };
 
+  const handleReady = () => {
+    setIsReady(true)
+    console.log("Vìdeo pronto para execução")
+  }
+
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
       <h4 className="text-left text-lg font-medium mt-5">
@@ -142,6 +148,7 @@ function YoutubeViewApp() {
           url={videoUrl}
           width="100%"
           onEnded={handleEnded}
+          onReady={handleReady}
         />
       )}
 
@@ -183,11 +190,11 @@ function YoutubeViewApp() {
 
       <Button
         className="w-full max-w-xl"
-        color="primary"
-        disabled={error !== null || repetitionsInput <= 0}
+        color={isReady ? "primary" : "danger"}
+        disabled={error !== null || repetitionsInput <= 0 || !isReady}
         onClick={handlePlay}
       >
-        Start
+        {isReady ? "Play" : "Waiting for a valid link"}
       </Button>
       {error && <Alert message={error} />}
     </div>

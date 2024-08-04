@@ -32,8 +32,26 @@ function Player() {
   >(
     typeof window !== "undefined" ? fetchValidStacks() : [], // Carrega as stacks válidas no estado inicial
   );
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const { isOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
+
+  const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
+
+  useEffect(() => {
+    // Valida todas as URLs quando o videoInput muda
+    if (videoInput) {
+      const urls = videoInput
+        .split("\n")
+        .map((line) => line.split(";")[0])
+        .filter(Boolean);
+      const allValid = urls.every((url) => ReactPlayer.canPlay(url));
+
+      setAreAllUrlsValid(allValid);
+    } else {
+      setAreAllUrlsValid(false);
+    }
+  }, [videoInput]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -82,15 +100,13 @@ function Player() {
   const handleVideoEnded = () => {
     if (currentRepetitions > 1) {
       setCurrentRepetitions((prev) => prev - 1);
-      if (playerRef.current) {
-        (playerRef.current as any).getInternalPlayer().playVideo();
-      }
+      setIsPlaying(false); // Pausar o vídeo
+      setTimeout(() => setIsPlaying(true), 1);
     } else {
       setCurrentVideoIndex((prev) => prev + 1);
       setCurrentRepetitions(videos[currentVideoIndex + 1]?.repetitions || 0);
-      if (playerRef.current) {
-        (playerRef.current as any).getInternalPlayer().playVideo();
-      }
+      setIsPlaying(false); // Pausar o vídeo
+      setTimeout(() => setIsPlaying(true), 1);
     }
 
     const currentVideoUrl = videos[currentVideoIndex]?.url;
@@ -205,7 +221,7 @@ function Player() {
                     },
                   }}
                   height={"200px"}
-                  playing={true}
+                  playing={isPlaying}
                   url={videos[currentVideoIndex]?.url}
                   width={"100%"}
                   onEnded={handleVideoEnded}
@@ -238,10 +254,11 @@ function Player() {
             />
             <Button
               className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              color="primary"
+              color={areAllUrlsValid ? "primary" : "danger"}
+              disabled={!areAllUrlsValid}
               onClick={handleButtonClick}
             >
-              Start
+              {areAllUrlsValid ? "Start" : "Waiting for valid URLs"}
             </Button>
             <Button
               className="mt-3 w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
