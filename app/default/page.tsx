@@ -103,7 +103,7 @@ function YoutubeViewApp() {
       <div className="text-center mb-4">
         <p className="text-white">
           Paste the video URL in the field below and set how many times you want
-          you want to repeat it.
+          to repeat it.
         </p>
         <p className="text-sm text-gray-500">
           YouTube, Facebook, SoundCloud, Streamable, Vimeo, Mux, Wistia, Twitch,
