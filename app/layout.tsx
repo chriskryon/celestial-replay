@@ -10,6 +10,8 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
 
+import { Analytics } from '@vercel/analytics/react';
+
 export const metadata: Metadata = {
   title: {
     default: siteConfig.name,
@@ -56,6 +58,7 @@ export default function RootLayout({
             <Navbar />
             <main className="container mx-auto max-w-7xl pt-1 px-6 flex-grow">
               {children}
+              <Analytics />
             </main>
             <footer className="w-full flex items-center justify-center py-3">
               <Link
