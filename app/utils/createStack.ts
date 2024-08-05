@@ -23,7 +23,7 @@ export function createStack(stackName: string, videoInput: string) {
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
 
-        return { url, repetitions: parseInt(repetitionsStr, 10) || 1 };
+        return { url, repetitions: parseInt(repetitionsStr, 10) };
       });
 
     // Validar os vídeos com Zod

@@ -2,7 +2,10 @@ import { z } from "zod";
 
 const videoSchema = z.object({
   url: z.string().url(),
-  repetitions: z.number().int().positive(),
+  repetitions: z
+    .number()
+    .int()
+    .min(1, { message: "Repetitions must be at least 0" }),
 });
 
 export function editStack(

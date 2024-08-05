@@ -20,11 +20,6 @@ function YoutubeViewApp() {
   const [urlInput, setUrlInput] = useState("");
   const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  // useEffect(() => {
-  //   if (videoUrl) {
-  //     setRemainingRepetitions(repetitions);
-  //   }
-  // }, [urlInput, repetitionsInput]); // Dependency array includes videoUrl
 
   const validUrl = (value: string) =>
     value.match(
@@ -71,15 +66,12 @@ function YoutubeViewApp() {
   const handleEnded = () => {
     if (remainingRepetitions > 1) {
       setRemainingRepetitions(remainingRepetitions - 1);
-      setIsPlaying(false); // Pausar o vídeo
+      setIsPlaying(false);
       setTimeout(() => setIsPlaying(true), 1);
-      // if (playerRef.current) {
-      //   (playerRef.current as any).getInternalPlayer().playVideo();
-      // }
     } else {
       setRemainingRepetitions(0);
       setIsPlaying(false);
-      setVideoUrl(null); // Clear videoUrl after all repetitions
+      setVideoUrl(null);
       if (videoUrl) {
         updatePlaybackStatistics(videoUrl);
       }
@@ -97,9 +89,9 @@ function YoutubeViewApp() {
   };
 
   const handleReady = () => {
-    setIsReady(true)
-    console.log("Vìdeo pronto para execução")
-  }
+    setIsReady(true);
+    console.log("Vìdeo pronto para execução");
+  };
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
@@ -194,7 +186,8 @@ function YoutubeViewApp() {
         disabled={error !== null || repetitionsInput <= 0 || !isReady}
         onClick={handlePlay}
       >
-        {isReady ? "Play" : "Waiting for a valid link"} {/* Texto condicional */}
+        {isReady ? "Play" : "Waiting for a valid link"}{" "}
+        {/* Texto condicional */}
       </Button>
       {error && <Alert message={error} />}
     </div>

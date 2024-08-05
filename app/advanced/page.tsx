@@ -18,6 +18,8 @@ import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
 
+import Toast from "@/components/toast";
+
 function Player() {
   const [videoInput, setVideoInput] = useState("");
   const [videos, setVideos] = useState<{ url: string; repetitions: number }[]>(
@@ -39,6 +41,14 @@ function Player() {
 
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
 
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastColor, setToastColor] = useState("success");
+
+  const handleCloseToast = () => {
+    setShowToast(false);
+  };
+
   useEffect(() => {
     setAreAllUrlsValid(validateInputs(videoInput)); // Use a função utilitária
   }, [videoInput]);
@@ -51,7 +61,19 @@ function Player() {
 
   const handleCreateStack = () => {
     if (stackName && videoInput) {
-      createStack(stackName, videoInput);
+      const result = createStack(stackName, videoInput);
+
+      if (result.success) {
+        setShowToast(true);
+        setToastColor("success");
+        setToastMessage(`Stack ${stackName} created.`);
+      } else {
+        setShowToast(true);
+        setToastColor("danger");
+        setToastMessage(
+          `Error while creating stack ${stackName}: ${result.error}`,
+        );
+      }
       setStackName("");
       setVideoInput("");
     }
@@ -118,9 +140,13 @@ function Player() {
 
   return (
     <>
-      {/* <div>
-      <Toast message="Stack criada com sucesso!" />
-      </div> */}
+      <Toast
+        color={toastColor as "success" | "danger" | undefined}
+        isVisible={showToast}
+        message={toastMessage}
+        onClose={handleCloseToast}
+      />
+
       <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
         <div className="">
           <h4 className="text-left text-lg font-medium mt-5">Advanced Plus</h4>

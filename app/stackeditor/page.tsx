@@ -104,7 +104,11 @@ function StackDetailsPage() {
       );
 
       if (success) {
-        setUrlData(success.updatedVideos);
+        if (success.updatedVideos) {
+          setUrlData(success.updatedVideos);
+        } else {
+          setUrlData([]);
+        }
       } else {
       }
 
