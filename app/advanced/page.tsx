@@ -67,6 +67,7 @@ function Player() {
         setShowToast(true);
         setToastColor("success");
         setToastMessage(`Stack ${stackName} created.`);
+        setStacks(fetchValidStacks());
       } else {
         setShowToast(true);
         setToastColor("danger");

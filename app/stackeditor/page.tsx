@@ -26,7 +26,7 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@nextui-org/modal";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import ReactPlayer from "react-player";
 
 import fetchValidStacks from "../utils/fetchValidStacks";
@@ -70,7 +70,6 @@ function StackDetailsPage() {
     } else {
       setUrlError(null);
     }
-
   }, [editingUrl, editingRepetitions]);
 
   // Estado para controlar o modal de exclusão
@@ -281,7 +280,12 @@ function StackDetailsPage() {
         <TableBody>
           {urlData.map((url, index) => {
             return (
-              <TableRow key={`${selectedStack}_key=${nanoid(9)}`}>
+              <TableRow
+                key={`${selectedStack}_key=${customAlphabet(
+                  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                  9,
+                )}`}
+              >
                 <TableCell>{url.url}</TableCell>
                 <TableCell>{url.repetitions}</TableCell>
                 <TableCell>

@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import ReactPlayer from "react-player";
 import { z } from "zod";
 
@@ -44,7 +44,11 @@ export function createStack(stackName: string, videoInput: string) {
 
     const uniqueVideos = Object.values(groupedVideos);
 
-    const stackId = `${stackName}-${nanoid(9)}`;
+    const nanoidCustom = customAlphabet(
+      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+      9,
+    );
+    const stackId = `${stackName}-${nanoidCustom()}`;
 
     if (typeof window !== "undefined") {
       window.localStorage.setItem(stackId, JSON.stringify(uniqueVideos));
