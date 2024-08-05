@@ -43,6 +43,15 @@ function YoutubeViewApp() {
   }, [urlInput]);
 
   useEffect(() => {
+    if (typeof window !== "undefined" && videoUrl) {
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [videoUrl]);
+
+  useEffect(() => {
     if (!isPlaying && ReactPlayer.canPlay(urlInput)) {
       setError(null);
       setVideoUrl(urlInput);
