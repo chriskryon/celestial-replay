@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -53,8 +53,12 @@ function StackDetailsPage() {
   const [editingRepetitions, setEditingRepetitions] = useState(0);
   const [isEditingUrlValid, setIsEditingUrlValid] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
-  const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
+  // const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
   const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
+
+  const isRepetitionsInvalid = useMemo(() => {
+    return editingRepetitions <= 0;
+  }, [editingRepetitions]);
 
   useEffect(() => {
     const isValidUrl = ReactPlayer.canPlay(editingUrl);
@@ -67,12 +71,7 @@ function StackDetailsPage() {
       setUrlError(null);
     }
 
-    setIsRepetitionsInvalid(editingRepetitions <= 0);
   }, [editingUrl, editingRepetitions]);
-
-  useEffect(() => {
-    setIsRepetitionsInvalid(editingRepetitions <= 0);
-  }, [editingRepetitions]);
 
   // Estado para controlar o modal de exclusão
   const {
@@ -123,7 +122,6 @@ function StackDetailsPage() {
     setEditingRepetitions(urlData[index].repetitions);
 
     setIsEditingUrlValid(ReactPlayer.canPlay(urlData[index].url));
-    setIsRepetitionsInvalid(urlData[index].repetitions <= 0);
 
     onOpen();
   };
@@ -357,7 +355,7 @@ function StackDetailsPage() {
                       ? "success"
                       : "danger"
                   }
-                  disabled={!isEditingUrlValid || isRepetitionsInvalid}
+                  isDisabled={!isEditingUrlValid || isRepetitionsInvalid}
                   onPress={handleSaveEdit}
                 >
                   {!isEditingUrlValid || isRepetitionsInvalid}

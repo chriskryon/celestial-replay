@@ -284,7 +284,7 @@ function Player() {
             <Button
               className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
               color={areAllUrlsValid ? "primary" : "danger"}
-              disabled={!areAllUrlsValid}
+              isDisabled={!areAllUrlsValid}
               onClick={handleButtonClick}
             >
               {areAllUrlsValid ? "Start" : "Waiting for valid input"}
