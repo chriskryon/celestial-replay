@@ -174,7 +174,7 @@ function Player() {
               <AccordionItem
                 key="1"
                 aria-label="My Saved Stacks"
-                title="My Saved Stacks"
+                title={<h3 className="text-sm">My saved stacks</h3>}
               >
                 {stacks.length === 0 ? (
                   <p>No stacks saved yet.</p>

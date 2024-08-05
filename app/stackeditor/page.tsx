@@ -52,7 +52,9 @@ function StackDetailsPage() {
   const [editingUrl, setEditingUrl] = useState("");
   const [editingRepetitions, setEditingRepetitions] = useState(0);
   const [isEditingUrlValid, setIsEditingUrlValid] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Estado para a mensagem de erro
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
+  const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
 
   useEffect(() => {
     const isValid = ReactPlayer.canPlay(editingUrl);
@@ -60,11 +62,15 @@ function StackDetailsPage() {
     setIsEditingUrlValid(isValid);
 
     if (!isValid) {
-      setError("Unsupported URL or player."); // Define a mensagem de erro se inválido
+      setUrlError("Unsupported URL or player."); // Define a mensagem de erro se inválido
     } else {
-      setError(null); // Limpa o erro se válido
+      setUrlError(null); // Limpa o erro se válido
     }
   }, [editingUrl]);
+
+  useEffect(() => {
+    setIsRepetitionsInvalid(editingRepetitions <= 0);
+  }, [editingRepetitions]);
 
   // Estado para controlar o modal de exclusão
   const {
@@ -84,16 +90,25 @@ function StackDetailsPage() {
     }
   }, [selectedStack]);
 
+  const handleDeleteStack = () => {
+    if (selectedStack) {
+      setDeleteType("stack");
+      openDeleteModal();
+    }
+  };
+
   const handleLoadStack = (stackId: string) => {
     try {
-      const storedData = localStorage.getItem(stackId);
+      if (typeof window !== "undefined") {
+        const storedData = localStorage.getItem(stackId);
 
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
 
-        setUrlData(parsedData);
-      } else {
-        setUrlData([]);
+          setUrlData(parsedData);
+        } else {
+          setUrlData([]);
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar detalhes da stack:", error);
@@ -141,88 +156,119 @@ function StackDetailsPage() {
   };
 
   const handleDelete = (index: number) => {
+    setDeleteType("row");
     setItemToDeleteIndex(index);
     openDeleteModal();
   };
 
   const confirmDelete = () => {
-    if (itemToDeleteIndex !== null && selectedStack) {
-      const result = deleteVideoFromStack(selectedStack, itemToDeleteIndex);
+    if (deleteType === "row") {
+      if (itemToDeleteIndex !== null && selectedStack) {
+        const result = deleteVideoFromStack(selectedStack, itemToDeleteIndex);
 
-      if (result.success) {
-        if (result.stackDeleted) {
-          // Atualiza o estado stacks para refletir a exclusão
-          const updatedStacks = stacks.filter(
-            (stack) => stack.name !== selectedStack,
-          );
+        if (result.success) {
+          if (result.stackDeleted) {
+            // Atualiza o estado stacks para refletir a exclusão
+            const updatedStacks = stacks.filter(
+              (stack) => stack.name !== selectedStack,
+            );
 
-          setStacks(updatedStacks);
+            setStacks(updatedStacks);
 
-          // Limpa a tabela e o selectedStack
-          setUrlData([]);
-          setSelectedStack(null);
-          console.log("Tive que apagar a stack");
+            // Limpa a tabela e o selectedStack
+            setUrlData([]);
+            setSelectedStack(null);
+            console.log("Tive que apagar a stack");
+          } else {
+            console.log("Exclui a linha com sucesso");
+            // Atualiza o estado urlData para refletir as mudanças na tabela
+            setUrlData(result.updatedData);
+          }
         } else {
-          console.log("Exclui a linha com sucesso");
-          // Atualiza o estado urlData para refletir as mudanças na tabela
-          setUrlData(result.updatedData);
+          // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
+          console.error(result.error); // Exibe o erro no console (opcional)
         }
-      } else {
-        // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
-        console.error(result.error); // Exibe o erro no console (opcional)
-      }
 
-      setItemToDeleteIndex(null);
+        setItemToDeleteIndex(null);
+      }
+    } else if (deleteType === "stack") {
+      if (selectedStack && typeof window !== "undefined") {
+        localStorage.removeItem(selectedStack);
+
+        const updatedStacks = stacks.filter(
+          (stack) => stack.name !== selectedStack,
+        );
+
+        setStacks(updatedStacks);
+
+        setUrlData([]);
+        setSelectedStack(null);
+        console.log("Stack excluída com sucesso!");
+      }
     }
     onDeleteModalClose();
   };
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
-      <Dropdown>
-        <DropdownTrigger>
-          <Button color="primary" variant="bordered">
-            {selectedStack || "Select a Stack"}
-          </Button>
-        </DropdownTrigger>
-        <DropdownMenu
-          disallowEmptySelection
-          aria-label="Stack Menu"
-          selectedKeys={selectedStack ? [selectedStack] : []}
-          selectionMode="single"
-          onSelectionChange={(keys) => {
-            if (keys.currentKey) {
-              const selectedStackName = keys.currentKey;
+      <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex justify-center items-center w-full max-w-xl">
+        <Dropdown>
+          <DropdownTrigger>
+            <Button color="primary" variant="bordered">
+              {selectedStack || "Select a Stack"}
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            disallowEmptySelection
+            aria-label="Stack Menu"
+            selectedKeys={selectedStack ? [selectedStack] : []}
+            selectionMode="single"
+            onSelectionChange={(keys) => {
+              if (keys.currentKey) {
+                const selectedStackName = keys.currentKey;
 
-              setSelectedStack(selectedStackName);
+                setSelectedStack(selectedStackName);
 
-              const selectedStack = stacks.find(
-                (stack) => stack.name === selectedStackName,
+                const selectedStack = stacks.find(
+                  (stack) => stack.name === selectedStackName,
+                );
+
+                setUrlData(selectedStack?.videos || []);
+              }
+            }}
+          >
+            {stacks.map((stack) => {
+              const lastDashIndex = stack.name.lastIndexOf("-");
+              const displayName =
+                lastDashIndex !== -1
+                  ? stack.name.substring(0, lastDashIndex)
+                  : stack.name;
+
+              return (
+                <DropdownItem
+                  key={stack.name}
+                  textValue={displayName}
+                  value={stack.name}
+                >
+                  {displayName}
+                </DropdownItem>
               );
+            })}
+          </DropdownMenu>
+        </Dropdown>
 
-              setUrlData(selectedStack?.videos || []);
-            }
-          }}
-        >
-          {stacks.map((stack) => {
-            const lastDashIndex = stack.name.lastIndexOf("-");
-            const displayName =
-              lastDashIndex !== -1
-                ? stack.name.substring(0, lastDashIndex)
-                : stack.name;
-
-            return (
-              <DropdownItem
-                key={stack.name}
-                textValue={displayName}
-                value={stack.name}
-              >
-                {displayName}
-              </DropdownItem>
-            );
-          })}
-        </DropdownMenu>
-      </Dropdown>
+        {selectedStack && (
+          <Tooltip color="danger" content="Delete Stack">
+            <Button
+              className="text-lg text-red-500 border border-red-500 cursor-pointer active:opacity-50 ml-2"
+              variant="light"
+              onClick={handleDeleteStack}
+            >
+              <DeleteIcon />
+            </Button>
+          </Tooltip>
+        )}
+      </div>
       <Table aria-label="Tabela de URLs">
         <TableHeader>
           <TableColumn>URL</TableColumn>
@@ -270,20 +316,29 @@ function StackDetailsPage() {
               <ModalHeader>Editar Vídeo</ModalHeader>
               <ModalBody>
                 <Input
-                  color={isEditingUrlValid ? "success" : "danger"} // Cor verde se válido, vermelho se inválido
-                  errorMessage={error} // Exibe a mensagem de erro
-                  isInvalid={!isEditingUrlValid} // Define isInvalid para controlar o estilo de erro
+                  color={isEditingUrlValid ? "success" : "danger"}
+                  errorMessage={urlError}
+                  isInvalid={!isEditingUrlValid}
                   label="URL"
                   type="text"
                   value={editingUrl}
                   onChange={(e) => setEditingUrl(e.target.value)}
                 />
                 <Input
-                  label="Repetitions"
+                  fullWidth
+                  className="w-full max-w-xl"
+                  color={isRepetitionsInvalid ? "danger" : "success"}
+                  errorMessage={
+                    isRepetitionsInvalid
+                      ? "Invalid input. Enter a positive number."
+                      : undefined
+                  }
+                  isInvalid={isRepetitionsInvalid}
+                  label="Number of repetitions"
                   type="number"
                   value={editingRepetitions.toString()}
                   onChange={(e) =>
-                    setEditingRepetitions(parseInt(e.target.value, 10) || 0)
+                    setEditingRepetitions(parseInt(e.target.value, 10))
                   }
                 />
               </ModalBody>
@@ -292,12 +347,18 @@ function StackDetailsPage() {
                   Cancel
                 </Button>
                 <Button
-                  color={isEditingUrlValid ? "success" : "danger"}
+                  color={
+                    isEditingUrlValid && isRepetitionsInvalid
+                      ? "success"
+                      : "danger"
+                  }
                   disabled={!isEditingUrlValid}
                   onPress={handleSaveEdit}
                 >
                   {" "}
-                  {isEditingUrlValid ? "Save" : "Waiting for valid input"}
+                  {isEditingUrlValid && isRepetitionsInvalid
+                    ? "Save"
+                    : "Waiting for valid input"}
                 </Button>
               </ModalFooter>
             </>
@@ -309,9 +370,16 @@ function StackDetailsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Confirmar Exclusão</ModalHeader>
+              <ModalHeader>
+                Delete {deleteType == "row" ? "Row" : "Stack"}
+              </ModalHeader>
               <ModalBody>
-                <p>Are you sure?</p>
+                <p>
+                  Are you sure to delete this{" "}
+                  {deleteType == "row"
+                    ? "row"
+                    : `stack named ${selectedStack}?`}
+                </p>
               </ModalBody>
               <ModalFooter>
                 <Button color="default" variant="light" onPress={onClose}>

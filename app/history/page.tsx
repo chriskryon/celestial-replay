@@ -85,14 +85,14 @@ function StatisticsPage() {
 
       <Table aria-label="Tabela de Histórico">
         <TableHeader>
-          <TableColumn>URL</TableColumn>
+          <TableColumn className="w-1/6">URL</TableColumn>
           <TableColumn>Repetitions</TableColumn>
           <TableColumn>Última Reprodução</TableColumn>
         </TableHeader>
         <TableBody emptyContent={"No rows to display."}>
           {filteredHistory.map((item, index) => (
             <TableRow key={index}>
-              <TableCell className="text-tiny truncate">{item.url}</TableCell>
+              <TableCell>{item.url}</TableCell>
               <TableCell>{totalRepetitionsByUrl[item.url]}</TableCell>
               <TableCell>
                 {new Date(item.lastPlayed).toLocaleString()}
