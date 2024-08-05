@@ -13,6 +13,7 @@ import {
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
 import { Divider } from "@nextui-org/divider";
+import { Accordion, AccordionItem } from "@nextui-org/accordion";
 
 import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
@@ -46,6 +47,7 @@ function Player() {
   const [toastColor, setToastColor] = useState("success");
 
   const handleCloseToast = () => {
+    console.log("fechando")
     setShowToast(false);
   };
 
@@ -100,7 +102,7 @@ function Player() {
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
         const repetitions = parseInt(repetitionsStr, 10) || 0;
-
+        console.log(repetitions)
         return { url, repetitions };
       });
 
@@ -140,12 +142,12 @@ function Player() {
 
   return (
     <>
-      <Toast
+      {/* <Toast
         color={toastColor as "success" | "danger" | undefined}
         isVisible={showToast}
         message={toastMessage}
         onClose={handleCloseToast}
-      />
+      /> */}
 
       <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
         <div className="">
@@ -167,45 +169,55 @@ function Player() {
             </p>
           </div>
 
-          <h4 className="text-left text-small font-medium mt-5">
-            My Saved Stacks
-          </h4>
-          <p className="text-left text-small text-default-400 mb-3">
-            Just click on some button to play automatically.
-          </p>
           <div>
-            {stacks.length === 0 ? (
-              <p>No stacks saved yet.</p>
-            ) : (
-              <>
-                <ul className="flex flex-wrap items-start justify-left">
-                  {stacks.map((stack) => {
-                    const lastDashIndex = stack.name.lastIndexOf("-");
-                    const displayName =
-                      lastDashIndex !== -1
-                        ? stack.name.substring(0, lastDashIndex)
-                        : stack.name;
+            <Accordion variant="splitted">
+              <AccordionItem
+                key="1"
+                aria-label="My Saved Stacks"
+                title="My Saved Stacks"
+              >
+                {stacks.length === 0 ? (
+                  <p>No stacks saved yet.</p>
+                ) : (
+                  <>
+                    <p className="text-left text-small text-default-400 mb-3">
+                      Just click on some button to play automatically.
+                    </p>
+                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                      {stacks.map((stack) => {
+                        const lastDashIndex = stack.name.lastIndexOf("-");
+                        const displayName =
+                          lastDashIndex !== -1
+                            ? stack.name.substring(0, lastDashIndex)
+                            : stack.name;
 
-                    return (
-                      <li key={stack.name} className="mr-2 mb-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() =>
-                            handleLoadStack(JSON.stringify(stack.videos))
-                          }
-                        >
-                          {displayName}
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </>
-            )}
+                        return (
+                          <div
+                            key={stack.name}
+                            className="flex justify-center items-center h-12"
+                          >
+                            {" "}
+                            {/* Adiciona altura fixa e centraliza verticalmente */}
+                            <Button
+                              className="w-full h-full" // Ocupa toda a largura e altura da célula
+                              variant="ghost"
+                              onClick={() =>
+                                handleLoadStack(JSON.stringify(stack.videos))
+                              }
+                            >
+                              {displayName}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+              </AccordionItem>
+            </Accordion>
           </div>
-          <Divider />
+          <Divider className="mt-5"/>
         </div>
-        {/* esquerda */}
         <h4 className="text-left text-small font-medium mt-5">
           Multiple Videos Repeat
         </h4>
@@ -214,8 +226,6 @@ function Player() {
         </p>
         <div className="">
           <div className="bg-[#27272A] rounded-md">
-            {/* Div esquerda */}
-            {/* Conteúdo da div esquerda */}
             {currentRepetitions > 0 && (
               <>
                 <ReactPlayer
@@ -250,8 +260,6 @@ function Player() {
         <div className="col-span-3 row-span-3 col-start-3 row-start-2">
           <div className="">
             {" "}
-            {/* Div direita */}
-            {/* Conteúdo da div direita */}
             {currentRepetitions > 0 && (
               <p className="">
                 Remaining Repetitions: {currentRepetitions} of{" "}

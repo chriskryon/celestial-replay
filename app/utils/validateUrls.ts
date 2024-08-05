@@ -11,7 +11,7 @@ const videoSchema = z.object({
   repetitions: z
     .number()
     .int()
-    .min(3, { message: "Repetitions must be at least 1" }),
+    .min(1, { message: "Repetitions must be at least 1" }),
 });
 
 export default function validateInputs(videoInput: string): boolean {
