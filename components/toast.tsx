@@ -33,7 +33,8 @@ const Toast: React.FC<ToastProps> = ({
   }, [isVisible, onClose]); // Executa o efeito sempre que isVisible ou onClose mudarem
 
   return (
-    isVisible && (
+    <>
+      isVisible && (
       <div
         className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#171717] p-4 rounded-lg shadow-lg z-50 border ${borderColor}`}
         role="alert"
@@ -52,7 +53,8 @@ const Toast: React.FC<ToastProps> = ({
           </div>
         </div>
       </div>
-    )
+      )
+    </>
   );
 };
 
