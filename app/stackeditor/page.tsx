@@ -26,12 +26,12 @@ import {
   ModalFooter,
   useDisclosure,
 } from "@nextui-org/modal";
-import { customAlphabet } from "nanoid";
 import ReactPlayer from "react-player";
 
 import fetchValidStacks from "../utils/fetchValidStacks";
 import { editStack } from "../utils/editStack";
 import { deleteVideoFromStack } from "../utils/deleteVideoFromStack";
+import generateNanoid from "../utils/generateId";
 
 import { EditIcon } from "./EditIcon";
 import { DeleteIcon } from "./DeleteIcon";
@@ -55,6 +55,8 @@ function StackDetailsPage() {
   const [urlError, setUrlError] = useState<string | null>(null);
   // const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
   const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
+  const [isEditingStackName, setIsEditingStackName] = useState(false);
+  const [newStackName, setNewStackName] = useState("");
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
@@ -89,6 +91,37 @@ function StackDetailsPage() {
       setUrlData([]);
     }
   }, [selectedStack]);
+
+  const handleEditStackName = () => {
+    setIsEditingStackName(true);
+    setNewStackName(selectedStack || ""); // Definir o novo nome com o valor atual
+  };
+
+  const handleSaveStackName = () => {
+    if (selectedStack && newStackName.trim() !== "") {
+      const storedData = localStorage.getItem(selectedStack);
+
+      if (storedData) {
+        localStorage.removeItem(selectedStack);
+        const newName = `${newStackName.trim()}-${generateNanoid()}`;
+
+        console.log(newName);
+
+        localStorage.setItem(newName, storedData);
+
+        // Atualizar a lista de stacks
+        setStacks(
+          stacks.map((stack) =>
+            stack.name === selectedStack ? { ...stack, name: newName } : stack,
+          ),
+        );
+
+        // Atualizar o stack selecionado
+        setSelectedStack(newName);
+      }
+    }
+    setIsEditingStackName(false);
+  };
 
   const handleDeleteStack = () => {
     if (selectedStack) {
@@ -260,15 +293,42 @@ function StackDetailsPage() {
         </Dropdown>
 
         {selectedStack && (
-          <Tooltip color="danger" content="Delete Stack">
-            <Button
-              className="text-lg text-red-500 border border-red-500 cursor-pointer active:opacity-50 ml-2"
-              variant="light"
-              onClick={handleDeleteStack}
-            >
-              <DeleteIcon />
-            </Button>
-          </Tooltip>
+          <div className="flex items-center ml-2">
+            {!isEditingStackName && (
+              <Tooltip color="primary" content="Edit Stack Name">
+                <Button
+                  className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                  variant="light"
+                  onClick={handleEditStackName}
+                >
+                  <EditIcon />
+                </Button>
+              </Tooltip>
+            )}
+
+            {isEditingStackName && (
+              <div className="flex">
+                <Input
+                  className="mr-2"
+                  type="text"
+                  value={newStackName}
+                  onChange={(e) => setNewStackName(e.target.value)}
+                />
+                <Button color="success" onClick={handleSaveStackName}>
+                  Save
+                </Button>
+              </div>
+            )}
+            <Tooltip color="danger" content="Delete Stack">
+              <Button
+                className="text-lg text-red-500 border border-red-500 cursor-pointer active:opacity-50 ml-2"
+                variant="light"
+                onClick={handleDeleteStack}
+              >
+                <DeleteIcon />
+              </Button>
+            </Tooltip>
+          </div>
         )}
       </div>
       <Table aria-label="Tabela de URLs">
@@ -280,12 +340,7 @@ function StackDetailsPage() {
         <TableBody>
           {urlData.map((url, index) => {
             return (
-              <TableRow
-                key={`${selectedStack}_key=${customAlphabet(
-                  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-                  9,
-                )}`}
-              >
+              <TableRow key={`${selectedStack}_key=${generateNanoid()}`}>
                 <TableCell>{url.url}</TableCell>
                 <TableCell>{url.repetitions}</TableCell>
                 <TableCell>

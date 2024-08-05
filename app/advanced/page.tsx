@@ -189,7 +189,7 @@ function Player() {
                     <p className="text-left text-small text-default-400 mb-3">
                       Just click on some button to play automatically.
                     </p>
-                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-1">
                       {stacks.map((stack) => {
                         const lastDashIndex = stack.name.lastIndexOf("-");
                         const displayName =
@@ -198,14 +198,11 @@ function Player() {
                             : stack.name;
 
                         return (
-                          <div
-                            key={stack.name}
-                            className="flex justify-center items-center h-12"
-                          >
+                          <div key={stack.name} className="flex">
                             {" "}
-                            {/* Adiciona altura fixa e centraliza verticalmente */}
+                            {/* Remove justify-center e items-center */}
                             <Button
-                              className="w-full h-full" // Ocupa toda a largura e altura da célula
+                              className="w-full h-full flex items-center justify-center break-words text-sm px-4 py-2 truncate overflow-hidden"
                               variant="ghost"
                               onClick={() =>
                                 handleLoadStack(JSON.stringify(stack.videos))
