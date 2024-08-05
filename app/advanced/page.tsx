@@ -102,7 +102,7 @@ function Player() {
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
         const repetitions = parseInt(repetitionsStr, 10) || 0;
-        console.log(repetitions)
+
         return { url, repetitions };
       });
 
@@ -114,12 +114,12 @@ function Player() {
   const handleVideoEnded = () => {
     if (currentRepetitions > 1) {
       setCurrentRepetitions((prev) => prev - 1);
-      setIsPlaying(false); // Pausar o vídeo
+      setIsPlaying(false);
       setTimeout(() => setIsPlaying(true), 1);
     } else {
       setCurrentVideoIndex((prev) => prev + 1);
       setCurrentRepetitions(videos[currentVideoIndex + 1]?.repetitions || 0);
-      setIsPlaying(false); // Pausar o vídeo
+      setIsPlaying(false);
       setTimeout(() => setIsPlaying(true), 1);
     }
 

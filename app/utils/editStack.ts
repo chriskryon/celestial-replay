@@ -16,6 +16,7 @@ export function editStack(
   newRepetitions: number | null = null,
 ) {
   if (typeof window !== "undefined") {
+    console.log(stackId, url, newUrl, repetitions, newRepetitions);
     const storedData = localStorage.getItem(stackId);
 
     if (storedData) {
@@ -33,6 +34,12 @@ export function editStack(
           }
 
           if (newRepetitions !== null && newRepetitions !== repetitions) {
+            if (newRepetitions < 1) {
+              return {
+                success: false,
+                error: "New repetitions must be at least 1",
+              };
+            }
             videos[videoIndex].repetitions = newRepetitions;
           }
 

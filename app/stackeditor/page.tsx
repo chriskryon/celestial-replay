@@ -27,6 +27,7 @@ import {
   useDisclosure,
 } from "@nextui-org/modal";
 import { nanoid } from "nanoid";
+import ReactPlayer from "react-player";
 
 import fetchValidStacks from "../utils/fetchValidStacks";
 import { editStack } from "../utils/editStack";
@@ -50,6 +51,20 @@ function StackDetailsPage() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editingUrl, setEditingUrl] = useState("");
   const [editingRepetitions, setEditingRepetitions] = useState(0);
+  const [isEditingUrlValid, setIsEditingUrlValid] = useState(false);
+  const [error, setError] = useState<string | null>(null); // Estado para a mensagem de erro
+
+  useEffect(() => {
+    const isValid = ReactPlayer.canPlay(editingUrl);
+
+    setIsEditingUrlValid(isValid);
+
+    if (!isValid) {
+      setError("Unsupported URL or player."); // Define a mensagem de erro se inválido
+    } else {
+      setError(null); // Limpa o erro se válido
+    }
+  }, [editingUrl]);
 
   // Estado para controlar o modal de exclusão
   const {
@@ -105,9 +120,11 @@ function StackDetailsPage() {
 
       if (success) {
         if (success.updatedVideos) {
+          console.log("Deu certo");
           setUrlData(success.updatedVideos);
         } else {
-          setUrlData([]);
+          console.log(`Deu o erro: ${success.error}`);
+          // setUrlData([]);
         }
       } else {
       }
@@ -253,6 +270,9 @@ function StackDetailsPage() {
               <ModalHeader>Editar Vídeo</ModalHeader>
               <ModalBody>
                 <Input
+                  color={isEditingUrlValid ? "success" : "danger"} // Cor verde se válido, vermelho se inválido
+                  errorMessage={error} // Exibe a mensagem de erro
+                  isInvalid={!isEditingUrlValid} // Define isInvalid para controlar o estilo de erro
                   label="URL"
                   type="text"
                   value={editingUrl}
@@ -271,9 +291,13 @@ function StackDetailsPage() {
                 <Button color="danger" variant="light" onPress={onClose}>
                   Cancel
                 </Button>
-                <Button color="primary" onPress={handleSaveEdit}>
+                <Button
+                  color={isEditingUrlValid ? "success" : "danger"}
+                  disabled={!isEditingUrlValid}
+                  onPress={handleSaveEdit}
+                >
                   {" "}
-                    Save
+                  {isEditingUrlValid ? "Save" : "Waiting for valid input"}
                 </Button>
               </ModalFooter>
             </>
