@@ -98,6 +98,7 @@ function YoutubeViewApp() {
       <h4 className="text-left text-lg font-medium mt-5">
         Single Video Repeat
       </h4>
+      <Divider />
 
       <div className="text-center mb-4">
         <p className="text-white">

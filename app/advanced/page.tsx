@@ -19,8 +19,6 @@ import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
 
-import Toast from "@/components/toast";
-
 function Player() {
   const [videoInput, setVideoInput] = useState("");
   const [videos, setVideos] = useState<{ url: string; repetitions: number }[]>(
@@ -47,7 +45,7 @@ function Player() {
   const [toastColor, setToastColor] = useState("success");
 
   const handleCloseToast = () => {
-    console.log("fechando")
+    console.log("fechando");
     setShowToast(false);
   };
 
@@ -149,23 +147,30 @@ function Player() {
         onClose={handleCloseToast}
       /> */}
 
-      <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5">
+      <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 space-y-4">
         <div className="">
-          <h4 className="text-left text-lg font-medium mt-5">Advanced Plus</h4>
+          <h4 className="text-center text-lg font-medium mt-5 mb-4">
+            Advanced Plus
+          </h4>
           <Divider />
           {stacks.length > 0 && <></>}
 
           {/* Instructions for the User */}
-          <div className="text-left mb-4">
-            <p className="text-white text-sm">
+          <div className="text-left mt-4">
+            <p className="text-white mb-1">
+              <b>Instructions:</b>
+            </p>
+            <p className="text-white mb-1">
               <b>Play Saved Stacks:</b> Click on a stack button below, if any,
               to start playback.
-              <br />
+            </p>
+            <p className="text-white mb-1">
               <b>Create New Stack:</b> Click <b>Create New Stack</b> and enter
               video URLs and repetitions.
-              <br />
+            </p>
+            <p className="text-white mb-5">
               <b>Multiple Videos (No Save):</b> Enter video URLs and repetitions
-              in the textarea, then click Start.
+              in the textarea, then click <code>Start</code>.
             </p>
           </div>
 
@@ -216,7 +221,7 @@ function Player() {
               </AccordionItem>
             </Accordion>
           </div>
-          <Divider className="mt-5"/>
+          <Divider className="mt-5" />
         </div>
         <h4 className="text-left text-small font-medium mt-5">
           Multiple Videos Repeat
