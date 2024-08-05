@@ -57,16 +57,18 @@ function StackDetailsPage() {
   const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
 
   useEffect(() => {
-    const isValid = ReactPlayer.canPlay(editingUrl);
+    const isValidUrl = ReactPlayer.canPlay(editingUrl);
 
-    setIsEditingUrlValid(isValid);
+    setIsEditingUrlValid(isValidUrl);
 
-    if (!isValid) {
-      setUrlError("Unsupported URL or player."); // Define a mensagem de erro se inválido
+    if (!isValidUrl) {
+      setUrlError("Unsupported URL or player.");
     } else {
-      setUrlError(null); // Limpa o erro se válido
+      setUrlError(null);
     }
-  }, [editingUrl]);
+
+    setIsRepetitionsInvalid(editingRepetitions <= 0);
+  }, [editingUrl, editingRepetitions]);
 
   useEffect(() => {
     setIsRepetitionsInvalid(editingRepetitions <= 0);
@@ -119,6 +121,9 @@ function StackDetailsPage() {
     setEditingIndex(index);
     setEditingUrl(urlData[index].url);
     setEditingRepetitions(urlData[index].repetitions);
+
+    setIsEditingUrlValid(ReactPlayer.canPlay(urlData[index].url));
+    setIsRepetitionsInvalid(urlData[index].repetitions <= 0);
 
     onOpen();
   };
@@ -348,15 +353,15 @@ function StackDetailsPage() {
                 </Button>
                 <Button
                   color={
-                    isEditingUrlValid && isRepetitionsInvalid
+                    isEditingUrlValid && !isRepetitionsInvalid
                       ? "success"
                       : "danger"
                   }
-                  disabled={!isEditingUrlValid}
+                  disabled={!isEditingUrlValid || isRepetitionsInvalid}
                   onPress={handleSaveEdit}
                 >
-                  {" "}
-                  {isEditingUrlValid && isRepetitionsInvalid
+                  {!isEditingUrlValid || isRepetitionsInvalid}
+                  {isEditingUrlValid && !isRepetitionsInvalid
                     ? "Save"
                     : "Waiting for valid input"}
                 </Button>
