@@ -1,6 +1,18 @@
-// utils/validateUrls.ts
-
+import { z } from "zod";
 import ReactPlayer from "react-player";
+
+const videoSchema = z.object({
+  url: z
+    .string()
+    .url()
+    .refine((url) => ReactPlayer.canPlay(url), {
+      message: "Unsupported URL or player.",
+    }),
+  repetitions: z
+    .number()
+    .int()
+    .min(3, { message: "Repetitions must be at least 1" }),
+});
 
 export default function validateInputs(videoInput: string): boolean {
   if (!videoInput) return false;
@@ -10,13 +22,13 @@ export default function validateInputs(videoInput: string): boolean {
   for (const line of lines) {
     const [url, repetitionsStr] = line.split(";");
 
-    if (!ReactPlayer.canPlay(url)) {
-      return false;
-    }
+    try {
+      videoSchema.parse({ url, repetitions: parseInt(repetitionsStr, 10) });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error("Erro de validação:", error.issues[0].message); // Ou exibir a mensagem para o usuário
+      }
 
-    const repetitions = parseInt(repetitionsStr, 10);
-
-    if (isNaN(repetitions) || repetitions < 1) {
       return false;
     }
   }

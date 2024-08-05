@@ -77,7 +77,7 @@ function Player() {
       .filter(Boolean)
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
-        const repetitions = parseInt(repetitionsStr, 10) || 1;
+        const repetitions = parseInt(repetitionsStr, 10) || 0;
 
         return { url, repetitions };
       });

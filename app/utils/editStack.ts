@@ -1,3 +1,10 @@
+import { z } from "zod";
+
+const videoSchema = z.object({
+  url: z.string().url(),
+  repetitions: z.number().int().positive(),
+});
+
 export function editStack(
   stackId: string,
   url: string | null = null,
@@ -12,41 +19,47 @@ export function editStack(
       try {
         const parsedVideos = JSON.parse(storedData);
 
-        const videoIndex = parsedVideos.findIndex(
-          (video: { url: string | null }) => video.url === url,
-        );
-        console.log("VideoIndex", videoIndex)
+        // Validar os vídeos com Zod
+        const videos = z.array(videoSchema).parse(parsedVideos);
+
+        const videoIndex = videos.findIndex((video) => video.url === url);
 
         if (videoIndex !== -1) {
-          if (newUrl !== url) {
-            parsedVideos[videoIndex].url = newUrl;
+          if (newUrl !== null && newUrl !== url) {
+            videos[videoIndex].url = newUrl;
           }
 
-          if (newRepetitions !== repetitions) {
-            parsedVideos[videoIndex].repetitions = newRepetitions;
+          if (newRepetitions !== null && newRepetitions !== repetitions) {
+            videos[videoIndex].repetitions = newRepetitions;
           }
 
-          localStorage.setItem(stackId, JSON.stringify(parsedVideos));
+          localStorage.setItem(stackId, JSON.stringify(videos));
 
-          return { success: true, updatedVideos: parsedVideos };
+          return { success: true, updatedVideos: videos };
         } else {
           console.error("URL não encontrada na stack.");
 
-          return false; // Indica que a URL não foi encontrada
+          return { success: false, error: "URL not found in stack" };
         }
       } catch (error) {
-        console.error("Erro ao editar a stack:", error);
+        if (error instanceof z.ZodError) {
+          console.error("Erro de validação Zod:", error.issues[0].message);
 
-        return false; // Indica que houve um erro na edição
+          return { success: false, error: error.issues[0].message };
+        } else {
+          console.error("Erro ao editar a stack:", error);
+
+          return { success: false, error: "Error editing stack" };
+        }
       }
     } else {
       console.error("Stack não encontrada.");
 
-      return false; // Indica que a stack não foi encontrada
+      return { success: false, error: "Stack not found" };
     }
   } else {
     console.error("Ambiente não é o navegador.");
 
-    return false; // Indica que a função não pode ser executada no servidor
+    return { success: false, error: "Environment is not the browser" };
   }
 }

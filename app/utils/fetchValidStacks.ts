@@ -1,4 +1,7 @@
-function fetchValidStacks(): { name: string; videos: { url: string; repetitions: number }[] }[] {
+function fetchValidStacks(): {
+  name: string;
+  videos: { url: string; repetitions: number }[];
+}[] {
   if (typeof window !== "undefined") {
     return Object.entries(window.localStorage)
       .filter(([key, value]) => {
@@ -8,11 +11,14 @@ function fetchValidStacks(): { name: string; videos: { url: string; repetitions:
 
         try {
           const parsedValue = JSON.parse(value);
+
           return (
             Array.isArray(parsedValue) &&
             parsedValue.every(
               (item) =>
-                typeof item === "object" && "url" in item && "repetitions" in item
+                typeof item === "object" &&
+                "url" in item &&
+                "repetitions" in item,
             )
           );
         } catch (error) {
