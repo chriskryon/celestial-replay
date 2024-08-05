@@ -184,7 +184,7 @@ function YoutubeViewApp() {
       <Button
         className="w-full max-w-xl"
         color={isReady ? "primary" : "danger"}
-        disabled={error !== null || repetitionsInput <= 0 || !isReady}
+        isDisabled={error !== null || repetitionsInput <= 0 || !isReady}
         onClick={handlePlay}
       >
         {isReady ? "Play" : "Waiting for a valid link"}{" "}

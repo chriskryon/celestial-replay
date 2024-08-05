@@ -380,7 +380,7 @@ function StackDetailsPage() {
                 <p>
                   Are you sure to delete this{" "}
                   {deleteType == "row"
-                    ? "row"
+                    ? "row?"
                     : `stack named ${selectedStack}?`}
                 </p>
               </ModalBody>

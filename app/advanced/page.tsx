@@ -330,7 +330,7 @@ function Player() {
                 </Button>
                 <Button
                   color={validateInputs(videoInput) ? "primary" : "danger"}
-                  disabled={!validateInputs(videoInput)}
+                  isDisabled={!validateInputs(videoInput)}
                   onPress={() => {
                     handleCreateStack();
                     onClose();
