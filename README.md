@@ -1,53 +1,33 @@
-# Next.js & NextUI Template
+## Celestial Replay 🚀 - Rediscover Your Favorite Moments 🔁
 
-This is a template for creating applications using Next.js 14 (app directory) and NextUI (v2).
+**Celestial Replay** is a fun and engaging video replay tool built with Next.js and NextUI, perfect for hobbyists who love to relive their favorite video moments. Whether you want to focus on specific content, create a calming atmosphere, or curate unique video playlists, Celestial Replay has you covered!
 
-[Try it on CodeSandbox](https://githubbox.com/nextui-org/next-app-template)
+**Key Features:**
 
-## Technologies Used
+* **Single Video Repeat:** Loop a single video continuously, ideal for meditation, focus, or simply enjoying your favorite content on repeat.
+* **Advanced+ Playlists:** Craft and save custom video playlists with tailored repetition settings. Create personalized experiences and curate your own video journeys.
+* **Stack Editor:** Easily manage and fine-tune your saved video stacks. Update URLs, adjust repetitions, and ensure your playlists are always perfect.
+* **History Tracking:** Keep track of your video replays, including view counts and timestamps, allowing you to explore your viewing habits over time.
 
-- [Next.js 14](https://nextjs.org/docs/getting-started)
-- [NextUI v2](https://nextui.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Framer Motion](https://www.framer.com/motion/)
-- [next-themes](https://github.com/pacocoursey/next-themes)
+**Tech Stack:**
 
-## How to Use
+* [Next.js 14](https://nextjs.org/docs/getting-started): A powerful React framework for building modern web applications.
+* [NextUI v2](https://nextui.org/): A beautiful and customizable React UI library.
+* [Zod](https://zod.dev/): A robust schema validation library for ensuring data integrity. 🔒
+* [React Player](https://www.npmjs.com/package/react-player): A versatile React component for seamless video playback from various platforms. 📺
+* [Tailwind CSS](https://tailwindcss.com/): A utility-first CSS framework for rapid UI development.
+* [Tailwind Variants](https://tailwind-variants.org): A plugin for Tailwind CSS that provides additional utility classes for styling based on component states.
+* [TypeScript](https://www.typescriptlang.org/): A typed superset of JavaScript that enhances code quality and maintainability.
+* [Framer Motion](https://www.framer.com/motion/): An animation library for React that makes creating smooth and interactive animations a breeze.
+* [next-themes](https://github.com/pacocoursey/next-themes): A library for easily managing light and dark themes in Next.js applications. 🌓
 
-### Use the template with create-next-app
 
-To create a new project based on this template using `create-next-app`, run the following command:
+##How to Use
 
-```bash
-npx create-next-app -e https://github.com/nextui-org/next-app-template
-```
+### Install dependencies, then, run
 
-### Install dependencies
-
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+You can use one of them `npm`, `yarn`, `pnpm`, `bun`. Example using `npm`:
 
 ```bash
 npm install
-```
-
-### Run the development server
-
-```bash
 npm run dev
-```
-
-### Setup pnpm (optional)
-
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
-
-```bash
-public-hoist-pattern[]=*@nextui-org/*
-```
-
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
-
-## License
-
-Licensed under the [MIT license](https://github.com/nextui-org/next-app-template/blob/main/LICENSE).
