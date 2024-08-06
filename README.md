@@ -22,7 +22,7 @@
 * [next-themes](https://github.com/pacocoursey/next-themes): A library for easily managing light and dark themes in Next.js applications. 🌓
 
 
-##How to Use
+## How to Use
 
 ### Install dependencies, then, run
 
