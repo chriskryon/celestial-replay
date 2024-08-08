@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableHeader,
@@ -57,6 +57,8 @@ function StackDetailsPage() {
   const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
   const [isEditingStackName, setIsEditingStackName] = useState(false);
   const [newStackName, setNewStackName] = useState("");
+  const newStackNameInputRef = useRef<HTMLInputElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
@@ -94,11 +96,23 @@ function StackDetailsPage() {
 
   const handleEditStackName = () => {
     setIsEditingStackName(true);
-    setNewStackName(selectedStack || ""); // Definir o novo nome com o valor atual
+    setNewStackName(selectedStack || "");
+    setTimeout(() => {
+      newStackNameInputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleCancelEditStackName = () => {
+    setIsEditingStackName(false);
+    setNewStackName(selectedStack || ""); // Reset to original name
   };
 
   const handleSaveStackName = () => {
-    if (selectedStack && newStackName.trim() !== "") {
+    if (
+      selectedStack &&
+      newStackName.trim() !== "" &&
+      newStackName.trim() !== selectedStack
+    ) {
       const storedData = localStorage.getItem(selectedStack);
 
       if (storedData) {
@@ -119,6 +133,8 @@ function StackDetailsPage() {
         // Atualizar o stack selecionado
         setSelectedStack(newName);
       }
+    } else {
+      console.log("Não houve alteração no nome da stack");
     }
     setIsEditingStackName(false);
   };
@@ -246,91 +262,118 @@ function StackDetailsPage() {
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
-      <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex justify-center items-center w-full max-w-xl">
-        <Dropdown>
-          <DropdownTrigger>
-            <Button color="primary" variant="bordered">
-              {selectedStack || "Select a Stack"}
-            </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            disallowEmptySelection
-            aria-label="Stack Menu"
-            selectedKeys={selectedStack ? [selectedStack] : []}
-            selectionMode="single"
-            onSelectionChange={(keys) => {
-              if (keys.currentKey) {
-                const selectedStackName = keys.currentKey;
+      <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex flex-col space-y-4 w-full">
+        <div className="flex items-center justify-between">
+          {/* Dropdown principal para seleção de stack */}
+          <Dropdown onOpenChange={setIsDropdownOpen}>
+            <DropdownTrigger>
+              <Button
+                className="w-full mr-3"
+                color="primary"
+                variant="bordered"
+              >
+                {selectedStack || "Select a Stack"}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              disallowEmptySelection
+              aria-label="Stack Menu"
+              selectedKeys={selectedStack ? [selectedStack] : []}
+              selectionMode="single"
+              onSelectionChange={(keys) => {
+                if (keys.currentKey) {
+                  const selectedStackName = keys.currentKey;
 
-                setSelectedStack(selectedStackName);
+                  setSelectedStack(selectedStackName);
 
-                const selectedStack = stacks.find(
-                  (stack) => stack.name === selectedStackName,
+                  const selectedStackData = stacks.find(
+                    (stack) => stack.name === selectedStackName,
+                  );
+
+                  setUrlData(selectedStackData?.videos || []);
+
+                  setIsEditingStackName(false);
+                }
+              }}
+            >
+              {stacks.map((stack) => {
+                const lastDashIndex = stack.name.lastIndexOf("-");
+                const displayName =
+                  lastDashIndex !== -1
+                    ? stack.name.substring(0, lastDashIndex)
+                    : stack.name;
+
+                return (
+                  <DropdownItem
+                    key={stack.name}
+                    textValue={displayName}
+                    value={stack.name}
+                  >
+                    {displayName}
+                  </DropdownItem>
                 );
+              })}
+            </DropdownMenu>
+          </Dropdown>
 
-                setUrlData(selectedStack?.videos || []);
-              }
-            }}
-          >
-            {stacks.map((stack) => {
-              const lastDashIndex = stack.name.lastIndexOf("-");
-              const displayName =
-                lastDashIndex !== -1
-                  ? stack.name.substring(0, lastDashIndex)
-                  : stack.name;
-
-              return (
-                <DropdownItem
-                  key={stack.name}
-                  textValue={displayName}
-                  value={stack.name}
-                >
-                  {displayName}
-                </DropdownItem>
-              );
-            })}
-          </DropdownMenu>
-        </Dropdown>
-
-        {selectedStack && (
-          <div className="flex items-center ml-2">
-            {!isEditingStackName && (
+          {/* Dropdown secundário para ações de edição e exclusão */}
+          {selectedStack && !isEditingStackName && (
+            <div className="flex items-center">
               <Tooltip color="primary" content="Edit Stack Name">
                 <Button
                   className="text-lg text-default-400 cursor-pointer active:opacity-50"
-                  variant="light"
+                  variant="bordered"
                   onClick={handleEditStackName}
                 >
                   <EditIcon />
                 </Button>
               </Tooltip>
-            )}
-
-            {isEditingStackName && (
-              <div className="flex">
-                <Input
-                  className="mr-2"
-                  type="text"
-                  value={newStackName}
-                  onChange={(e) => setNewStackName(e.target.value)}
-                />
-                <Button color="success" onClick={handleSaveStackName}>
-                  Save
+              <Tooltip color="danger" content="Delete Stack">
+                <Button
+                  className="text-lg text-red-500 cursor-pointer active:opacity-50 ml-2"
+                  variant="bordered"
+                  onClick={handleDeleteStack}
+                >
+                  <DeleteIcon />
                 </Button>
-              </div>
-            )}
-            <Tooltip color="danger" content="Delete Stack">
-              <Button
-                className="text-lg text-red-500 border border-red-500 cursor-pointer active:opacity-50 ml-2"
-                variant="light"
-                onClick={handleDeleteStack}
-              >
-                <DeleteIcon />
+              </Tooltip>
+            </div>
+          )}
+        </div>
+
+        {selectedStack && isEditingStackName && (
+          <div className="flex items-center mt-2">
+            <Input
+              ref={newStackNameInputRef} // Associa a referência ao input
+              className="mr-2"
+              labelPlacement="inside"
+              placeholder="New Stack Name"
+              type="text"
+              value={newStackName}
+              variant="bordered"
+              onChange={(e) => setNewStackName(e.target.value)}
+            />
+            <div className="flex">
+              <Button color="success" onClick={handleSaveStackName}>
+                Save
               </Button>
-            </Tooltip>
+              <Button
+                className="ml-2"
+                color="default"
+                variant="ghost"
+                onClick={handleCancelEditStackName}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
       </div>
+
+      <div
+        className={`fixed inset-0 z-10 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isDropdownOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      />
+
       <Table aria-label="Tabela de URLs">
         <TableHeader>
           <TableColumn>URL</TableColumn>
