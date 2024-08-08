@@ -3,14 +3,14 @@ import { Metadata, Viewport } from "next";
 import { Link } from "@nextui-org/link";
 import clsx from "clsx";
 import Image from "next/image";
+import { Analytics } from "@vercel/analytics/react";
 
 import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
-
-import { Analytics } from '@vercel/analytics/react';
+import Starfield from "@/components/Starfield";
 
 export const metadata: Metadata = {
   title: {
@@ -52,6 +52,12 @@ export default function RootLayout({
           src="/bg.jpg"
           className="opacity-50" /* Define a opacidade (50% neste exemplo) */
           quality={100} /* Opcional: ajusta a qualidade da imagem (0-100) */
+        />
+        <Starfield
+          backgroundColor="black"
+          speedFactor={0.05}
+          starColor={[255, 255, 255]}
+          starCount={3690}
         />
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
           <div className="relative flex flex-col h-screen">
