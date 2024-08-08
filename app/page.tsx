@@ -1,28 +1,33 @@
 import { Link } from "@nextui-org/link";
 
-import { title, subtitle } from "@/components/primitives";
+import { title } from "@/components/primitives";
 
 export default function Home() {
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10 text-white bg-black bg-opacity-20 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
-      {/* Imagem de fundo com estrelas */}
-      {/* <div className="absolute inset-0 z-0">
-        <Image
-          alt="Background with stars"
-          className="opacity-50"
-          layout="fill"
-          objectFit="cover"
-          src="/bg.jpg"
-        />
-      </div> */}
-
-      <div className="inline-block max-w-lg text-center justify-center">
+    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10 text-white bg-black bg-opacity-50 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
+      <div className="inline-block max-w-full text-center justify-center p-5">
         <h1 className={title()}>Celestial</h1>
         <h1 className={title({ color: "blue" })}>Replay</h1>
         <br />
-        <h2 className={subtitle({ class: "mt-4" })}>
-          Rediscover your favorite moments, again and again.
+        <h2 className="my-2 text-lg lg:text-xl text-default-600 block max-w-full">
+          Celestial Replay is a personal project developed to explore and learn
+          the capabilities of Next.js. It&rsquo;s a simple yet powerful tool
+          that allows you to create and manage playlists of videos, repeating
+          them as many times as you like.
         </h2>
+
+        <h2 className="text-xl font-semibold text-white mt-4 text-left">
+          How it Works
+        </h2>
+
+        <p className="text-white text-left">
+          Celestial Replay uses the &quot;react-player&quot; library to
+          seamlessly play videos from various platforms. You can create
+          &quot;stacks&quot; of videos, each with its own number of repetitions.
+          These stacks are stored in your browser&quot;s local storage, so you
+          can access them even after closing the page, but just in the same
+          browser.
+        </p>
       </div>
 
       {/* Descrição das funcionalidades com links e hover effect */}
