@@ -20,29 +20,28 @@ import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
 
 function Player() {
+  const playerRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [videoInput, setVideoInput] = useState("");
   const [videos, setVideos] = useState<{ url: string; repetitions: number }[]>(
     [],
   );
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [currentRepetitions, setCurrentRepetitions] = useState(0);
-  const playerRef = useRef(null);
-
   const [stackName, setStackName] = useState("");
   const [stacks, setStacks] = useState<
     { name: string; videos: { url: string; repetitions: number }[] }[]
-  >(
-    typeof window !== "undefined" ? fetchValidStacks() : [], // Carrega as stacks válidas no estado inicial
-  );
+  >(typeof window !== "undefined" ? fetchValidStacks() : []);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  const { isOpen, onOpenChange } = useDisclosure(); // Hook para controlar o modal
-
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
-
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastColor, setToastColor] = useState("success");
+  const { isOpen, onOpenChange } = useDisclosure();
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   const handleCloseToast = () => {
     console.log("fechando");
@@ -270,6 +269,7 @@ function Player() {
               </p>
             )}
             <Textarea
+              ref={textareaRef}
               fullWidth
               className=""
               color={"default"}

@@ -9,17 +9,20 @@ import { Divider } from "@nextui-org/divider";
 import Alert from "@/components/alert";
 
 function YoutubeViewApp() {
-  const [videoUrlInput, setVideoUrlInput] = useState("");
+  const playerRef = useRef(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [repetitions, setRepetitions] = useState(0);
   const [remainingRepetitions, setRemainingRepetitions] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const playerRef = useRef(null);
   const [repetitionsInput, setRepetitionsInput] = useState(1);
   const [urlInput, setUrlInput] = useState("");
   const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
   const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    urlInputRef.current?.focus();
+  }, []);
 
   const validUrl = (value: string) =>
     value.match(
@@ -155,6 +158,7 @@ function YoutubeViewApp() {
       )}
 
       <Input
+        ref={urlInputRef}
         fullWidth
         className="w-full max-w-xl"
         color={isInvalid ? "danger" : "default"}
