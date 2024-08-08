@@ -11,9 +11,9 @@ export default function Home() {
         <br />
         <h2 className="my-2 text-lg lg:text-xl text-default-600 block max-w-full">
           Celestial Replay is a personal project developed to explore and learn
-          the capabilities of Next.js. It&rsquo;s a simple yet powerful tool
-          that allows you to create and manage playlists of videos, repeating
-          them as many times as you like.
+          the capabilities of Next.js. It is a simple yet powerful tool that
+          allows you to create and manage playlists of videos, repeating them as
+          many times as you like.
         </h2>
 
         <h2 className="text-xl font-semibold text-white mt-4 text-left">
