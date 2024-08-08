@@ -1,5 +1,4 @@
 import { Link } from "@nextui-org/link";
-import Image from "next/image";
 
 import { title, subtitle } from "@/components/primitives";
 
@@ -29,7 +28,7 @@ export default function Home() {
       {/* Descrição das funcionalidades com links e hover effect */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 m-3 ">
         <Link href="/default">
-          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white">
+          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white relative overflow-hidden hover:border-2 hover:border-blue-500">
             <h3 className="text-xl font-semibold mb-2">Default</h3>
             <p>
               Replay a single video on loop, perfect for focusing on specific
@@ -38,7 +37,7 @@ export default function Home() {
           </div>
         </Link>
         <Link href="/advanced">
-          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white">
+          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white relative overflow-hidden hover:border-2 hover:border-blue-500">
             <h3 className="text-xl font-semibold mb-2">Advanced+</h3>
             <p>
               Craft and save your own video playlists with custom repetitions.
@@ -48,7 +47,7 @@ export default function Home() {
           </div>
         </Link>
         <Link href="/stackeditor">
-          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white">
+          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white relative overflow-hidden hover:border-2 hover:border-blue-500">
             <h3 className="text-xl font-semibold mb-2">Stack Editor</h3>
             <p>
               Easily manage your saved video stacks. Update URLs, adjust
@@ -57,7 +56,7 @@ export default function Home() {
           </div>
         </Link>
         <Link href="/history">
-          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white">
+          <div className="bg-black/70 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 cursor-pointer text-white relative overflow-hidden hover:border-2 hover:border-blue-500">
             <h3 className="text-xl font-semibold mb-2">History</h3>
             <p>
               Track your video replays. See how many times you have watched a
