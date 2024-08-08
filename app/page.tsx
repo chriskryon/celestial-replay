@@ -5,7 +5,7 @@ import { title, subtitle } from "@/components/primitives";
 
 export default function Home() {
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10 bg-gradient-to-r from-blue-900 to-black-900 text-white">
+    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10 text-white bg-black bg-opacity-20 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
       {/* Imagem de fundo com estrelas */}
       {/* <div className="absolute inset-0 z-0">
         <Image
