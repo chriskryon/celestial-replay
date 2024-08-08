@@ -19,6 +19,8 @@ import { createStack } from "../utils/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
 
+import Toast from "@/components/toast";
+
 function Player() {
   const playerRef = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,7 +38,9 @@ function Player() {
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastColor, setToastColor] = useState("success");
+  const [toastColor, setToastColor] = useState<
+    "success" | "danger" | undefined
+  >(undefined);
   const { isOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
@@ -44,7 +48,6 @@ function Player() {
   }, []);
 
   const handleCloseToast = () => {
-    console.log("fechando");
     setShowToast(false);
   };
 
@@ -89,7 +92,6 @@ function Player() {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Erro ao carregar a stack:", error);
-      // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
     }
   };
 
@@ -140,12 +142,14 @@ function Player() {
 
   return (
     <>
-      {/* <Toast
-        color={toastColor as "success" | "danger" | undefined}
-        isVisible={showToast}
-        message={toastMessage}
-        onClose={handleCloseToast}
-      /> */}
+      {showToast && (
+        <Toast
+          color={toastColor}
+          isVisible={showToast}
+          message={toastMessage}
+          onClose={handleCloseToast}
+        />
+      )}
 
       <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 space-y-4">
         <div className="">

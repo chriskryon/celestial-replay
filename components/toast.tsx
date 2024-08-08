@@ -34,26 +34,30 @@ const Toast: React.FC<ToastProps> = ({
 
   return (
     <>
-      isVisible && (
-      <div
-        className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-[#171717] p-4 rounded-lg shadow-lg z-50 border ${borderColor}`}
-        role="alert"
-      >
-        <div className="flex items-center justify-between">
-          <span className={`text-white ${textColor}`}>{message}</span>
-          <div className="ml-5">
-            <Button
-              isIconOnly
-              className="text-white"
-              variant="light"
-              onClick={onClose}
-            >
-              X
-            </Button>
+      {isVisible && (
+        <div
+          className={`fixed bottom-4 w-11/12 sm:w-auto left-1/2 transform -translate-x-1/2 bg-[#171717] p-4 rounded-lg shadow-lg z-50 border ${borderColor} sm:max-w-sm`} // Ajustes para responsividade
+          role="alert"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-between">
+            {" "}
+            {/* Ajuste para responsividade */}
+            <span className={`text-white ${textColor}`}>{message}</span>
+            <div className="mt-2 sm:mt-0 ml-0 sm:ml-5">
+              {" "}
+              {/* Ajuste para responsividade */}
+              <Button
+                isIconOnly
+                className="text-white"
+                variant="bordered"
+                onClick={onClose}
+              >
+                X
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-      )
+      )}
     </>
   );
 };

@@ -28,6 +28,13 @@ export function editStack(
 
         const videoIndex = videos.findIndex((video) => video.url === url);
 
+        if (url === newUrl || repetitions === newRepetitions) {
+          const errorMessage =
+            "New URL or repetitions are the same as the old ones";
+
+          return { success: false, error: errorMessage };
+        }
+
         if (videoIndex !== -1) {
           if (newUrl !== null && newUrl !== url) {
             videos[videoIndex].url = newUrl;

@@ -36,7 +36,11 @@ import generateNanoid from "../utils/generateId";
 import { EditIcon } from "./EditIcon";
 import { DeleteIcon } from "./DeleteIcon";
 
+import Toast from "@/components/toast";
+
 function StackDetailsPage() {
+  const newStackNameInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedStack, setSelectedStack] = useState<string | null>(null);
   const [urlData, setUrlData] = useState<
     { url: string; repetitions: number }[]
@@ -46,23 +50,36 @@ function StackDetailsPage() {
     useState<
       { name: string; videos: { url: string; repetitions: number }[] }[]
     >(fetchValidStacks());
-
-  // Estados para o modal de edição
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editingUrl, setEditingUrl] = useState("");
   const [editingRepetitions, setEditingRepetitions] = useState(0);
   const [isEditingUrlValid, setIsEditingUrlValid] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
-  // const [isRepetitionsInvalid, setIsRepetitionsInvalid] = useState(false);
   const [deleteType, setDeleteType] = useState<"row" | "stack">("row");
   const [isEditingStackName, setIsEditingStackName] = useState(false);
   const [newStackName, setNewStackName] = useState("");
-  const newStackNameInputRef = useRef<HTMLInputElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastColor, setToastColor] = useState<
+    "success" | "danger" | undefined
+  >(undefined);
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
   }, [editingRepetitions]);
+
+  const getDisplayName = (name: string) => {
+    const lastDashIndex = name.lastIndexOf("-");
+    const displayName =
+      lastDashIndex !== -1 ? name.substring(0, lastDashIndex) : name;
+
+    return displayName;
+  };
+
+  const handleCloseToast = () => {
+    setShowToast(false);
+  };
 
   useEffect(() => {
     const isValidUrl = ReactPlayer.canPlay(editingUrl);
@@ -132,9 +149,17 @@ function StackDetailsPage() {
 
         // Atualizar o stack selecionado
         setSelectedStack(newName);
+
+        setShowToast(true);
+        setToastColor("danger");
+        setToastMessage(
+          `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
+        );
       }
     } else {
-      console.log("Não houve alteração no nome da stack");
+      setShowToast(true);
+      setToastColor("danger");
+      setToastMessage("No changes were made.");
     }
     setIsEditingStackName(false);
   };
@@ -186,10 +211,21 @@ function StackDetailsPage() {
 
       if (success) {
         if (success.updatedVideos) {
-          console.log("Deu certo");
           setUrlData(success.updatedVideos);
+          setShowToast(true);
+          setToastColor("success");
+          setToastMessage(
+            `Stack ${getDisplayName(selectedStack)} updated successfully.`,
+          );
         } else {
           console.log(`Deu o erro: ${success.error}`);
+          setShowToast(true);
+          setToastColor("danger");
+          const errorMessage = success.error || "An error occurred.";
+
+          setToastMessage(
+            `Stack ${getDisplayName(selectedStack)} error. ${errorMessage}`,
+          );
           // setUrlData([]);
         }
       } else {
@@ -229,11 +265,19 @@ function StackDetailsPage() {
             // Limpa a tabela e o selectedStack
             setUrlData([]);
             setSelectedStack(null);
-            console.log("Tive que apagar a stack");
+
+            const message = `Stack ${getDisplayName(selectedStack)} deleted successfully, because has just one video.`;
+
+            setShowToast(true);
+            setToastColor("success");
+            setToastMessage(message);
           } else {
-            console.log("Exclui a linha com sucesso");
-            // Atualiza o estado urlData para refletir as mudanças na tabela
             setUrlData(result.updatedData);
+            const message = `Line deleted successfully.`;
+
+            setShowToast(true);
+            setToastColor("success");
+            setToastMessage(message);
           }
         } else {
           // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
@@ -262,6 +306,14 @@ function StackDetailsPage() {
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
+      {showToast && (
+        <Toast
+          color={toastColor}
+          isVisible={showToast}
+          message={toastMessage}
+          onClose={handleCloseToast}
+        />
+      )}
       <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex flex-col space-y-4 w-full">
         <div className="flex items-center justify-between">
           {/* Dropdown principal para seleção de stack */}
