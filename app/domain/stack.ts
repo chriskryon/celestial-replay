@@ -86,7 +86,9 @@ export class Stack {
 
     if (storedData) {
       try {
-        const parsedVideos = JSON.parse(storedData.toString()) as Video[];
+        const parsedVideos = JSON.parse(
+          JSON.stringify(storedData.videos),
+        ) as Video[];
 
         z.array(videoSchema).parse(parsedVideos);
 
@@ -107,19 +109,24 @@ export class Stack {
    * @returns Um array de objetos Stack representando todas as stacks carregadas.
    */
   static getAllStacks(repository: StackRepository): Stack[] {
+    // Usa o método getAllStacks do repositório
+    const storedStacks = repository.getAllStacks();
+
+    // Valida cada stack carregada e cria instâncias de Stack
     const stacks: Stack[] = [];
 
-    if (typeof window !== "undefined") {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+    for (const storedStack of storedStacks) {
+      try {
+        z.array(videoSchema).parse(storedStack.videos);
+        const stack = new Stack(
+          storedStack.name,
+          storedStack.videos,
+          repository,
+        );
 
-        if (key) {
-          const stack = this.getStack(key, repository);
-
-          if (stack) {
-            stacks.push(stack);
-          }
-        }
+        stacks.push(stack);
+      } catch (error) {
+        console.error(`Dados inválidos na stack ${storedStack.name}`);
       }
     }
 
