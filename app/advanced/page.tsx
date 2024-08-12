@@ -15,9 +15,10 @@ import ReactPlayer from "react-player";
 import { Divider } from "@nextui-org/divider";
 import { Accordion, AccordionItem } from "@nextui-org/accordion";
 
-import { createStack } from "../utils/createStack";
+import { createStack } from "../domain/useCases/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
+import { LocalStorageAdapter } from "../domain/adapters/localStorageAdapter";
 
 import Toast from "@/components/toast";
 
@@ -63,7 +64,8 @@ function Player() {
 
   const handleCreateStack = () => {
     if (stackName && videoInput) {
-      const result = createStack(stackName, videoInput);
+      const repository = new LocalStorageAdapter();
+      const result = createStack(stackName, videoInput, repository);
 
       if (result.success) {
         setShowToast(true);
