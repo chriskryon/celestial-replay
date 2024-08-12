@@ -3,8 +3,8 @@
 
 import { z } from "zod";
 
-import { Stack } from "../stack";
 import { StackRepository } from "../ports/stackRepository";
+import { Video } from "../video";
 
 const videoSchema = z.object({
   url: z.string().url(),
@@ -18,8 +18,8 @@ export function editStack(
   repetitions: number,
   newRepetitions: number | null,
   repository: StackRepository,
-): { success: boolean; error?: string } {
-  const stack = Stack.getStack(stackId, repository);
+): { success: boolean; error?: string; updatedVideos?: Video[] } {
+  const stack = repository.getStack(stackId);
 
   if (!stack) {
     return { success: false, error: "Stack not found" };
@@ -62,17 +62,19 @@ export function editStack(
     );
 
     if (success) {
-      return { success: true };
+      stack.save();
+
+      return { success: true, updatedVideos: stack.videos };
     } else {
       return { success: false, error: "Failed to edit video in stack" };
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("Erro de validação Zod:", error.issues[0].message);
+      console.error("Zod validation error:", error.issues[0].message);
 
       return { success: false, error: error.issues[0].message };
     } else {
-      console.error("Erro ao editar a stack:", error);
+      console.error("Error editing stack:", error);
 
       return { success: false, error: "Error editing stack" };
     }
