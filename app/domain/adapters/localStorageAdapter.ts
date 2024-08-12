@@ -40,23 +40,33 @@ export class LocalStorageAdapter implements StackRepository {
   }
 
   getAllStacks(): Stack[] {
-    const stacks: Stack[] = [];
-
     if (typeof window !== "undefined") {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      return Object.entries(window.localStorage)
+        .filter(([key, value]) => {
+          try {
+            const parsedValue = JSON.parse(value);
 
-        if (key) {
-          const stack = this.getStack(key);
-
-          if (stack) {
-            stacks.push(stack);
+            return (
+              Array.isArray(parsedValue) &&
+              parsedValue.every(
+                (item) =>
+                  typeof item === "object" &&
+                  "url" in item &&
+                  "repetitions" in item,
+              )
+            );
+          } catch (error) {
+            return false;
           }
-        }
-      }
-    }
+        })
+        .map(([stackId, stackValue]) => {
+          const parsedVideos = JSON.parse(stackValue) as Video[];
 
-    return stacks;
+          return new Stack(stackId, parsedVideos, this);
+        });
+    } else {
+      return [];
+    }
   }
 
   deleteStack(stackId: string): void {
