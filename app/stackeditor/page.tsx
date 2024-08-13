@@ -42,7 +42,7 @@ import { createStack } from "../domain/useCases/createStack";
 import { DeleteIcon } from "./DeleteIcon";
 import { EditIcon } from "./EditIcon";
 
-import Toast from "@/components/toast";
+import { toast } from "@/components/ui/use-toast";
 
 function StackDetailsPage() {
   const repository = new LocalStorageAdapter();
@@ -50,6 +50,7 @@ function StackDetailsPage() {
   const newStackNameInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedStack, setSelectedStack] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [urlData, setUrlData] = useState<Video[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null); // Estado para controlar a linha em edição
   const [stacks, setStacks] = useState<Stack[]>([]);
@@ -62,11 +63,7 @@ function StackDetailsPage() {
   const [isEditingStackName, setIsEditingStackName] = useState(false);
   const [newStackName, setNewStackName] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [toastColor, setToastColor] = useState<
-    "success" | "danger" | undefined
-  >(undefined);
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
@@ -78,10 +75,6 @@ function StackDetailsPage() {
       lastDashIndex !== -1 ? name.substring(0, lastDashIndex) : name;
 
     return displayName;
-  };
-
-  const handleCloseToast = () => {
-    setShowToast(false);
   };
 
   useEffect(() => {
@@ -114,6 +107,13 @@ function StackDetailsPage() {
   useEffect(() => {
     if (selectedStack) {
       handleLoadStack(selectedStack);
+      const lastDashIndex = selectedStack.lastIndexOf("-");
+
+      setDisplayName(
+        lastDashIndex !== -1
+          ? selectedStack.substring(0, lastDashIndex)
+          : selectedStack,
+      );
     } else {
       setUrlData([]);
     }
@@ -121,7 +121,7 @@ function StackDetailsPage() {
 
   const handleEditStackName = () => {
     setIsEditingStackName(true);
-    setNewStackName(selectedStack || "");
+    setNewStackName(displayName || "");
     setTimeout(() => {
       newStackNameInputRef.current?.focus();
     }, 0);
@@ -136,7 +136,7 @@ function StackDetailsPage() {
     if (
       selectedStack &&
       newStackName.trim() !== "" &&
-      newStackName.trim() !== selectedStack
+      newStackName.trim() !== displayName
     ) {
       const storedData = getItem(selectedStack, repository);
 
@@ -161,18 +161,20 @@ function StackDetailsPage() {
 
         setSelectedStack(createdStack.stack?.name || "");
 
-        setShowToast(true);
-        setToastColor("danger");
-        setToastMessage(
-          `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
-        );
-      }
+        toast({
+          title: "Create Stack",
+          description: `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
+          duration: 5000,
+        })
     } else {
-      setShowToast(true);
-      setToastColor("danger");
-      setToastMessage("No changes were made.");
+      toast({
+        title: "Create Stack",
+        description: "No changes were made.",
+        duration: 5000,
+      })
     }
     setIsEditingStackName(false);
+    }
   };
 
   const handleDeleteStack = () => {
@@ -226,22 +228,29 @@ function StackDetailsPage() {
       if (success) {
         if (success.updatedVideos) {
           setUrlData(success.updatedVideos);
-          setShowToast(true);
-          setToastColor("success");
-          setToastMessage(
-            `Stack ${getDisplayName(selectedStack)} updated successfully.`,
-          );
+          toast({
+            title: "Video of Stack",
+            description: `Stack ${getDisplayName(selectedStack)} updated successfully.`,
+            duration: 5000,
+          });
         } else {
-          console.log(`Deu o erro: ${success.error}`);
-          setShowToast(true);
-          setToastColor("danger");
           const errorMessage = success.error || "An error occurred.";
 
-          setToastMessage(
-            `Stack ${getDisplayName(selectedStack)} error. ${errorMessage}`,
-          );
+          toast({
+            title: "Video of Stack",
+            description: `Stack ${getDisplayName(selectedStack)} error. ${errorMessage}`,
+            duration: 5000,
+          });
         }
       } else {
+
+        toast({
+          title: "Video of Stack",
+          description: "An error occurred.",
+          duration: 5000,
+          variant: "destructive"
+
+        });
       }
 
       setEditingIndex(null);
@@ -281,24 +290,25 @@ function StackDetailsPage() {
             setUrlData([]);
             setSelectedStack(null);
 
-            const message = `Stack ${getDisplayName(selectedStack)} deleted successfully, because has just one video.`;
-
-            setToastMessage(message);
-            setToastColor("success");
+            toast({
+              title: "Stack delete action",
+              description: `Stack ${getDisplayName(selectedStack)} deleted successfully, because has just one video.`,
+              duration: 5000,
+            });
           } else {
             if (result.updatedData) {
               setUrlData(result.updatedData);
             }
-            const message = `Line deleted successfully.`;
-
-            setToastMessage(message);
-            setToastColor("success");
+            toast({
+              title: "Stack delete action",
+              description: `Line deleted successfully.`,
+              duration: 5000,
+            });
           }
         } else {
           console.error(result.error);
         }
 
-        setShowToast(true);
         setItemToDeleteIndex(null);
       }
     } else if (deleteType === "stack") {
@@ -313,9 +323,11 @@ function StackDetailsPage() {
           setStacks(updatedStacks);
           setUrlData([]);
           setSelectedStack(null);
-          setToastMessage("Stack deleted successfully.");
-          setShowToast(true);
-          setToastColor("success");
+          toast({
+            title: "Stack delete action",
+            description: `Stack deleted successfully.`,
+            duration: 5000,
+          });
         } else {
           console.error(result.error);
         }
@@ -326,14 +338,6 @@ function StackDetailsPage() {
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
-      {showToast && (
-        <Toast
-          color={toastColor}
-          isVisible={showToast}
-          message={toastMessage}
-          onClose={handleCloseToast}
-        />
-      )}
       <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex flex-col space-y-4 w-full">
         <div className="flex items-center justify-between">
           <Dropdown onOpenChange={setIsDropdownOpen}>
@@ -343,7 +347,7 @@ function StackDetailsPage() {
                 color="primary"
                 variant="bordered"
               >
-                {selectedStack || "Select a Stack"}
+                {displayName || "Select a Stack"}
               </Button>
             </DropdownTrigger>
             <DropdownMenu
@@ -425,7 +429,12 @@ function StackDetailsPage() {
               onChange={(e) => setNewStackName(e.target.value)}
             />
             <div className="flex">
-              <Button color="success" onClick={handleSaveStackName}>
+              <Button
+                color="success"
+                onClick={() => {
+                  handleSaveStackName()
+                }}
+              >
                 Save
               </Button>
               <Button
