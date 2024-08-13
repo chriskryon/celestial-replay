@@ -1,13 +1,7 @@
 import { z } from "zod";
-import ReactPlayer from "react-player";
 
 const videoSchema = z.object({
-  url: z
-    .string()
-    .url()
-    .refine((url) => ReactPlayer.canPlay(url), {
-      message: "Unsupported URL or player.",
-    }),
+  url: z.string().url(),
   repetitions: z
     .number()
     .int()

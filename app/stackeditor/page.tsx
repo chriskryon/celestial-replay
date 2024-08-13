@@ -37,6 +37,7 @@ import { Stack } from "../domain/stack";
 import { listStacks } from "../domain/useCases/getAllStacks";
 import { getItem } from "../domain/useCases/getItem";
 import { Video } from "../domain/video";
+import { createStack } from "../domain/useCases/createStack";
 
 import { DeleteIcon } from "./DeleteIcon";
 import { EditIcon } from "./EditIcon";
@@ -140,22 +141,25 @@ function StackDetailsPage() {
       const storedData = getItem(selectedStack, repository);
 
       if (storedData) {
-        localStorage.removeItem(selectedStack);
-        const newName = `${newStackName.trim()}-${generateNanoid()}`;
+        deleteStack(selectedStack, repository);
+        const newName = newStackName.trim();
 
-        console.log(newName);
+        let strForObj = "";
 
-        localStorage.setItem(newName, JSON.stringify(storedData));
+        storedData.videos.map((video) => {
+          strForObj += `${video.url};${video.repetitions}\n`;
+        });
+        let createdStack = createStack(newName, strForObj, repository);
 
         setStacks(
           stacks.map((stack) =>
             stack.name === selectedStack
-              ? ({ ...stack, name: newName } as Stack)
+              ? ({ ...stack, name: createdStack.stack?.name } as Stack)
               : stack,
           ),
         );
 
-        setSelectedStack(newName);
+        setSelectedStack(createdStack.stack?.name || "");
 
         setShowToast(true);
         setToastColor("danger");
@@ -181,10 +185,7 @@ function StackDetailsPage() {
   const handleLoadStack = (stackId: string) => {
     try {
       if (typeof window !== "undefined") {
-        console.log("carregando", stackId);
         const storedData = getItem(stackId, repository);
-
-        console.log("deu certo", storedData);
 
         if (storedData) {
           const parsedData = JSON.parse(

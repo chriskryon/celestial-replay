@@ -1,18 +1,12 @@
 /* eslint-disable no-console */
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import ReactPlayer from "react-player";
 
 import { Stack } from "../stack";
 import { StackRepository } from "../ports/stackRepository";
 
 const videoSchema = z.object({
-  url: z
-    .string()
-    .url()
-    .refine((url) => ReactPlayer.canPlay(url), {
-      message: "Unsupported URL or player.",
-    }),
+  url: z.string().url(),
   repetitions: z
     .number()
     .int()
@@ -33,7 +27,6 @@ export function createStack(
 
         return { url, repetitions: parseInt(repetitionsStr, 10) };
       });
-
     const validatedVideos = z.array(videoSchema).parse(parsedVideos);
 
     const groupedVideos = validatedVideos.reduce(
