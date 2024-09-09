@@ -16,14 +16,12 @@ export function editStack(
   newRepetitions: number | null = null,
 ) {
   if (typeof window !== "undefined") {
-    console.log(stackId, url, newUrl, repetitions, newRepetitions);
     const storedData = localStorage.getItem(stackId);
 
     if (storedData) {
       try {
         const parsedVideos = JSON.parse(storedData);
 
-        // Validar os vídeos com Zod
         const videos = z.array(videoSchema).parse(parsedVideos);
 
         const videoIndex = videos.findIndex((video) => video.url === url);
