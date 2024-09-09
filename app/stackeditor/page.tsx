@@ -28,28 +28,32 @@ import {
 } from "@nextui-org/modal";
 import ReactPlayer from "react-player";
 
-import fetchValidStacks from "../utils/fetchValidStacks";
-import { editStack } from "../utils/editStack";
-import { deleteVideoFromStack } from "../utils/deleteVideoFromStack";
 import generateNanoid from "../utils/generateId";
+import { LocalStorageAdapter } from "../domain/adapters/localStorageAdapter";
+import { editStack } from "../domain/useCases/editStack";
+import { deleteStack } from "../domain/useCases/deleteStack";
+import { deleteVideoFromStack } from "../domain/useCases/deleteVideoFromStack";
+import { Stack } from "../domain/stack";
+import { listStacks } from "../domain/useCases/getAllStacks";
+import { getItem } from "../domain/useCases/getItem";
+import { Video } from "../domain/video";
+import { createStack } from "../domain/useCases/createStack";
 
-import { EditIcon } from "./EditIcon";
 import { DeleteIcon } from "./DeleteIcon";
+import { EditIcon } from "./EditIcon";
 
-import Toast from "@/components/toast";
+import { toast } from "@/components/ui/use-toast";
 
 function StackDetailsPage() {
+  const repository = new LocalStorageAdapter();
+
   const newStackNameInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedStack, setSelectedStack] = useState<string | null>(null);
-  const [urlData, setUrlData] = useState<
-    { url: string; repetitions: number }[]
-  >([]);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [urlData, setUrlData] = useState<Video[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null); // Estado para controlar a linha em edição
-  const [stacks, setStacks] =
-    useState<
-      { name: string; videos: { url: string; repetitions: number }[] }[]
-    >(fetchValidStacks());
+  const [stacks, setStacks] = useState<Stack[]>([]);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editingUrl, setEditingUrl] = useState("");
   const [editingRepetitions, setEditingRepetitions] = useState(0);
@@ -59,11 +63,6 @@ function StackDetailsPage() {
   const [isEditingStackName, setIsEditingStackName] = useState(false);
   const [newStackName, setNewStackName] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastColor, setToastColor] = useState<
-    "success" | "danger" | undefined
-  >(undefined);
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
@@ -77,9 +76,11 @@ function StackDetailsPage() {
     return displayName;
   };
 
-  const handleCloseToast = () => {
-    setShowToast(false);
-  };
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setStacks(listStacks(repository));
+    }
+  }, []);
 
   useEffect(() => {
     const isValidUrl = ReactPlayer.canPlay(editingUrl);
@@ -93,7 +94,6 @@ function StackDetailsPage() {
     }
   }, [editingUrl, editingRepetitions]);
 
-  // Estado para controlar o modal de exclusão
   const {
     isOpen: isDeleteModalOpen,
     onOpen: openDeleteModal,
@@ -106,6 +106,13 @@ function StackDetailsPage() {
   useEffect(() => {
     if (selectedStack) {
       handleLoadStack(selectedStack);
+      const lastDashIndex = selectedStack.lastIndexOf("-");
+
+      setDisplayName(
+        lastDashIndex !== -1
+          ? selectedStack.substring(0, lastDashIndex)
+          : selectedStack,
+      );
     } else {
       setUrlData([]);
     }
@@ -113,7 +120,7 @@ function StackDetailsPage() {
 
   const handleEditStackName = () => {
     setIsEditingStackName(true);
-    setNewStackName(selectedStack || "");
+    setNewStackName(displayName || "");
     setTimeout(() => {
       newStackNameInputRef.current?.focus();
     }, 0);
@@ -121,47 +128,52 @@ function StackDetailsPage() {
 
   const handleCancelEditStackName = () => {
     setIsEditingStackName(false);
-    setNewStackName(selectedStack || ""); // Reset to original name
+    setNewStackName(selectedStack || "");
   };
 
   const handleSaveStackName = () => {
     if (
       selectedStack &&
       newStackName.trim() !== "" &&
-      newStackName.trim() !== selectedStack
+      newStackName.trim() !== displayName
     ) {
-      const storedData = localStorage.getItem(selectedStack);
+      const storedData = getItem(selectedStack, repository);
 
       if (storedData) {
-        localStorage.removeItem(selectedStack);
-        const newName = `${newStackName.trim()}-${generateNanoid()}`;
+        deleteStack(selectedStack, repository);
+        const newName = newStackName.trim();
 
-        console.log(newName);
+        let strForObj = "";
 
-        localStorage.setItem(newName, storedData);
+        storedData.videos.map((video) => {
+          strForObj += `${video.url};${video.repetitions}\n`;
+        });
+        let createdStack = createStack(newName, strForObj, repository);
 
-        // Atualizar a lista de stacks
         setStacks(
           stacks.map((stack) =>
-            stack.name === selectedStack ? { ...stack, name: newName } : stack,
+            stack.name === selectedStack
+              ? ({ ...stack, name: createdStack.stack?.name } as Stack)
+              : stack,
           ),
         );
 
-        // Atualizar o stack selecionado
-        setSelectedStack(newName);
+        setSelectedStack(createdStack.stack?.name || "");
 
-        setShowToast(true);
-        setToastColor("danger");
-        setToastMessage(
-          `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
-        );
+        toast({
+          title: "Create Stack",
+          description: `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Create Stack",
+          description: "No changes were made.",
+          duration: 5000,
+        });
       }
-    } else {
-      setShowToast(true);
-      setToastColor("danger");
-      setToastMessage("No changes were made.");
+      setIsEditingStackName(false);
     }
-    setIsEditingStackName(false);
   };
 
   const handleDeleteStack = () => {
@@ -174,10 +186,12 @@ function StackDetailsPage() {
   const handleLoadStack = (stackId: string) => {
     try {
       if (typeof window !== "undefined") {
-        const storedData = localStorage.getItem(stackId);
+        const storedData = getItem(stackId, repository);
 
         if (storedData) {
-          const parsedData = JSON.parse(storedData);
+          const parsedData = JSON.parse(
+            JSON.stringify(storedData.videos),
+          ) as Video[];
 
           setUrlData(parsedData);
         } else {
@@ -207,28 +221,33 @@ function StackDetailsPage() {
         editingUrl,
         urlData[editingIndex].repetitions,
         editingRepetitions,
+        repository,
       );
 
       if (success) {
         if (success.updatedVideos) {
           setUrlData(success.updatedVideos);
-          setShowToast(true);
-          setToastColor("success");
-          setToastMessage(
-            `Stack ${getDisplayName(selectedStack)} updated successfully.`,
-          );
+          toast({
+            title: "Video of Stack",
+            description: `Stack ${getDisplayName(selectedStack)} updated successfully.`,
+            duration: 5000,
+          });
         } else {
-          console.log(`Deu o erro: ${success.error}`);
-          setShowToast(true);
-          setToastColor("danger");
           const errorMessage = success.error || "An error occurred.";
 
-          setToastMessage(
-            `Stack ${getDisplayName(selectedStack)} error. ${errorMessage}`,
-          );
-          // setUrlData([]);
+          toast({
+            title: "Video of Stack",
+            description: `Stack ${getDisplayName(selectedStack)} error. ${errorMessage}`,
+            duration: 5000,
+          });
         }
       } else {
+        toast({
+          title: "Video of Stack",
+          description: "An error occurred.",
+          duration: 5000,
+          variant: "destructive",
+        });
       }
 
       setEditingIndex(null);
@@ -251,54 +270,64 @@ function StackDetailsPage() {
   const confirmDelete = () => {
     if (deleteType === "row") {
       if (itemToDeleteIndex !== null && selectedStack) {
-        const result = deleteVideoFromStack(selectedStack, itemToDeleteIndex);
+        const result = deleteVideoFromStack(
+          selectedStack,
+          itemToDeleteIndex,
+          repository,
+        );
 
         if (result.success) {
           if (result.stackDeleted) {
-            // Atualiza o estado stacks para refletir a exclusão
             const updatedStacks = stacks.filter(
               (stack) => stack.name !== selectedStack,
             );
 
             setStacks(updatedStacks);
 
-            // Limpa a tabela e o selectedStack
             setUrlData([]);
             setSelectedStack(null);
 
-            const message = `Stack ${getDisplayName(selectedStack)} deleted successfully, because has just one video.`;
-
-            setShowToast(true);
-            setToastColor("success");
-            setToastMessage(message);
+            toast({
+              title: "Stack delete action",
+              description: `Stack ${getDisplayName(selectedStack)} deleted successfully, because has just one video.`,
+              duration: 5000,
+            });
           } else {
-            setUrlData(result.updatedData);
-            const message = `Line deleted successfully.`;
-
-            setShowToast(true);
-            setToastColor("success");
-            setToastMessage(message);
+            if (result.updatedData) {
+              setUrlData(result.updatedData);
+            }
+            toast({
+              title: "Stack delete action",
+              description: `Line deleted successfully.`,
+              duration: 5000,
+            });
           }
         } else {
-          // Lógica para lidar com o erro (exibir uma mensagem para o usuário)
-          console.error(result.error); // Exibe o erro no console (opcional)
+          console.error(result.error);
         }
 
         setItemToDeleteIndex(null);
       }
     } else if (deleteType === "stack") {
       if (selectedStack && typeof window !== "undefined") {
-        localStorage.removeItem(selectedStack);
+        const result = deleteStack(selectedStack, repository);
 
-        const updatedStacks = stacks.filter(
-          (stack) => stack.name !== selectedStack,
-        );
+        if (result.success) {
+          const updatedStacks = stacks.filter(
+            (stack) => stack.name !== selectedStack,
+          );
 
-        setStacks(updatedStacks);
-
-        setUrlData([]);
-        setSelectedStack(null);
-        console.log("Stack excluída com sucesso!");
+          setStacks(updatedStacks);
+          setUrlData([]);
+          setSelectedStack(null);
+          toast({
+            title: "Stack delete action",
+            description: `Stack deleted successfully.`,
+            duration: 5000,
+          });
+        } else {
+          console.error(result.error);
+        }
       }
     }
     onDeleteModalClose();
@@ -306,17 +335,8 @@ function StackDetailsPage() {
 
   return (
     <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 flex flex-col items-center space-y-4">
-      {showToast && (
-        <Toast
-          color={toastColor}
-          isVisible={showToast}
-          message={toastMessage}
-          onClose={handleCloseToast}
-        />
-      )}
       <div className="bg-[#27272A] rounded-md bg-opacity-100 p-2 flex flex-col space-y-4 w-full">
         <div className="flex items-center justify-between">
-          {/* Dropdown principal para seleção de stack */}
           <Dropdown onOpenChange={setIsDropdownOpen}>
             <DropdownTrigger>
               <Button
@@ -324,7 +344,7 @@ function StackDetailsPage() {
                 color="primary"
                 variant="bordered"
               >
-                {selectedStack || "Select a Stack"}
+                {displayName || "Select a Stack"}
               </Button>
             </DropdownTrigger>
             <DropdownMenu
@@ -396,7 +416,7 @@ function StackDetailsPage() {
         {selectedStack && isEditingStackName && (
           <div className="flex items-center mt-2">
             <Input
-              ref={newStackNameInputRef} // Associa a referência ao input
+              ref={newStackNameInputRef}
               className="mr-2"
               labelPlacement="inside"
               placeholder="New Stack Name"
@@ -443,7 +463,7 @@ function StackDetailsPage() {
                     <Tooltip content="Edit URL">
                       <Button
                         className="text-lg text-default-400 cursor-pointer active:opacity-50"
-                        variant="light" // Or any other variant that suits your design
+                        variant="light"
                         onClick={() => handleEdit(index)}
                       >
                         <EditIcon />

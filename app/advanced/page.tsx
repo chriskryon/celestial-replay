@@ -15,11 +15,12 @@ import ReactPlayer from "react-player";
 import { Divider } from "@nextui-org/divider";
 import { Accordion, AccordionItem } from "@nextui-org/accordion";
 
-import { createStack } from "../utils/createStack";
+import { createStack } from "../domain/useCases/createStack";
 import fetchValidStacks from "../utils/fetchValidStacks";
 import validateInputs from "../utils/validateUrls";
+import { LocalStorageAdapter } from "../domain/adapters/localStorageAdapter";
 
-import Toast from "@/components/toast";
+import { toast } from "@/components/ui/use-toast";
 
 function Player() {
   const playerRef = useRef(null);
@@ -36,20 +37,11 @@ function Player() {
   >(typeof window !== "undefined" ? fetchValidStacks() : []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastColor, setToastColor] = useState<
-    "success" | "danger" | undefined
-  >(undefined);
   const { isOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
-
-  const handleCloseToast = () => {
-    setShowToast(false);
-  };
 
   useEffect(() => {
     setAreAllUrlsValid(validateInputs(videoInput)); // Use a função utilitária
@@ -63,20 +55,26 @@ function Player() {
 
   const handleCreateStack = () => {
     if (stackName && videoInput) {
-      const result = createStack(stackName, videoInput);
+      const repository = new LocalStorageAdapter();
+      const result = createStack(stackName, videoInput, repository);
 
       if (result.success) {
-        setShowToast(true);
-        setToastColor("success");
-        setToastMessage(`Stack ${stackName} created.`);
+        toast({
+          title: "Create Stack",
+          description: `Stack ${stackName} created.`,
+          duration: 5000,
+        });
+
         setStacks(fetchValidStacks());
       } else {
-        setShowToast(true);
-        setToastColor("danger");
-        setToastMessage(
-          `Error while creating stack ${stackName}: ${result.error}`,
-        );
+        toast({
+          title: "Create Stack",
+          description: `Error while creating stack ${stackName}: ${result.error}`,
+          duration: 5000,
+          variant: "destructive",
+        });
       }
+
       setStackName("");
       setVideoInput("");
     }
@@ -142,15 +140,6 @@ function Player() {
 
   return (
     <>
-      {showToast && (
-        <Toast
-          color={toastColor}
-          isVisible={showToast}
-          message={toastMessage}
-          onClose={handleCloseToast}
-        />
-      )}
-
       <div className="bg-[#27272A] rounded-md bg-opacity-70 p-5 space-y-4">
         <div className="">
           <h4 className="text-center text-lg font-medium mt-5 mb-4">
@@ -281,7 +270,7 @@ function Player() {
               label="url;repetitions (per line)"
               placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
               value={videoInput}
-              onChange={(e) => setVideoInput(e.target.value)}
+              onChange={(e: any) => setVideoInput(e.target.value)}
             />
             <Button
               className="w-full max-w-xl disabled:opacity-50 disabled:cursor-not-allowed"
@@ -304,7 +293,7 @@ function Player() {
       {/* teste */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
-          {(onClose) => (
+          {(onClose: any) => (
             <>
               <ModalHeader>Create new stack</ModalHeader>
               <ModalBody>
@@ -312,7 +301,7 @@ function Player() {
                   label="Stack name"
                   type="text"
                   value={stackName}
-                  onChange={(e) => setStackName(e.target.value)}
+                  onChange={(e: any) => setStackName(e.target.value)}
                 />
 
                 <Textarea
@@ -323,7 +312,7 @@ function Player() {
                   label="Stack template (URL;Repetitions) by line"
                   placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
                   value={videoInput}
-                  onChange={(e) => setVideoInput(e.target.value)}
+                  onChange={(e: any) => setVideoInput(e.target.value)}
                 />
               </ModalBody>
               <ModalFooter>
