@@ -89,6 +89,7 @@ function Player() {
       setVideos(parsedVideos);
       setCurrentVideoIndex(0);
       setCurrentRepetitions(parsedVideos[0]?.repetitions || 0);
+      setIsPlaying(true);
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Erro ao carregar a stack:", error);
