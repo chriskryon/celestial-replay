@@ -45,6 +45,7 @@ export default function RootLayout({
           "relative",
         )}
       >
+        <div className="fixed top-0 left-0 w-full h-full">
         <Image
           alt="Background Image"
           layout="fill"
@@ -52,7 +53,9 @@ export default function RootLayout({
           src="/bg.jpg"
           className="opacity-50" /* Define a opacidade (50% neste exemplo) */
           quality={100} /* Opcional: ajusta a qualidade da imagem (0-100) */
+          background-attachment="fixed"
         />
+        </div>
         <Starfield
           backgroundColor="black"
           speedFactor={0.05}
@@ -66,7 +69,7 @@ export default function RootLayout({
               {children}
               <Analytics />
             </main>
-            <footer className="w-full flex items-center justify-center py-3">
+            {/* <footer className="w-full flex items-center justify-center py-3">
               <Link
                 isExternal
                 className="flex items-center gap-1 text-current"
@@ -76,7 +79,7 @@ export default function RootLayout({
                 <span className="text-default-600">Powered by</span>
                 <p className="text-primary">NextUI</p>
               </Link>
-            </footer>
+            </footer> */}
           </div>
         </Providers>
       </body>
