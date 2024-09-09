@@ -1,6 +1,6 @@
 import "@/styles/globals.css";
 import type { Metadata, Viewport } from "next";
-import { Link } from "@nextui-org/link";
+
 import clsx from "clsx";
 import Image from "next/image";
 import { Analytics } from "@vercel/analytics/react";
@@ -41,21 +41,21 @@ export default function RootLayout({
       <head />
       <body
         className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
+          "min-h-screen font-sans antialiased",
           fontSans.variable,
           "relative",
         )}
       >
         <div className="fixed top-0 left-0 w-full h-full">
-        <Image
-          alt="Background Image"
-          layout="fill"
-          objectFit="cover"
-          src="/bg.jpg"
-          className="opacity-50" /* Define a opacidade (50% neste exemplo) */
-          quality={100} /* Opcional: ajusta a qualidade da imagem (0-100) */
-          background-attachment="fixed"
-        />
+          <Image
+            alt="Background Image"
+            className=""
+            layout="fill"
+            objectFit="cover"
+            quality={100}
+            src="/bg.jpg"
+            style={{ backgroundSize: "cover" }} // Add this line
+          />
         </div>
         <Starfield
           backgroundColor="black"

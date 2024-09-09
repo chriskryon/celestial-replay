@@ -21,6 +21,7 @@ import validateInputs from "../utils/validateUrls";
 import { LocalStorageAdapter } from "../domain/adapters/localStorageAdapter";
 
 import { toast } from "@/components/ui/use-toast";
+import VolumeCelestial from "@/components/volume/volume";
 
 function Player() {
   const playerRef = useRef(null);
@@ -37,6 +38,17 @@ function Player() {
   >(typeof window !== "undefined" ? fetchValidStacks() : []);
   const [isPlaying, setIsPlaying] = useState(false);
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [volume, setVolume] = useState(0.5);
+
+  const handleReady = () => {
+    setIsReady(true);
+  };
+
+  const handleVolumeChange = (newValue: number | number[]) => {
+    setVolume((newValue as number) / 100);
+  };
+
   const { isOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
@@ -100,7 +112,7 @@ function Player() {
       .filter(Boolean)
       .map((video) => {
         const [url, repetitionsStr] = video.split(";");
-        const repetitions = parseInt(repetitionsStr, 10) || 0;
+        const repetitions = Number.parseInt(repetitionsStr, 10) || 0;
 
         return { url, repetitions };
       });
@@ -131,7 +143,7 @@ function Player() {
 
   const updatePlaybackStatistics = (url: string) => {
     if (typeof window !== "undefined") {
-      let stats = JSON.parse(localStorage.getItem("celestial-stats") || "[]");
+      const stats = JSON.parse(localStorage.getItem("celestial-stats") || "[]");
 
       stats.push({ url, lastPlayed: new Date().toISOString() });
 
@@ -245,8 +257,10 @@ function Player() {
                   height={"200px"}
                   playing={isPlaying}
                   url={videos[currentVideoIndex]?.url}
+                  volume={volume}
                   width={"100%"}
                   onEnded={handleVideoEnded}
+                  onReady={handleReady}
                 />
               </>
             )}
@@ -289,6 +303,15 @@ function Player() {
             </Button>
           </div>
         </div>
+
+        {isReady && (
+          <>
+            <div className="flex items-center gap-2 mt-2 w-full justify-center">
+              {" "}
+              <VolumeCelestial onVolumeChange={handleVolumeChange} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* teste */}
