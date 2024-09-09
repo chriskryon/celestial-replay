@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { Stack } from "../stack";
 import { StackRepository } from "../ports/stackRepository";
+import generateNanoid from "@/app/utils/generateId";
 
 const videoSchema = z.object({
   url: z.string().url(),
@@ -44,7 +45,7 @@ export function createStack(
 
     const uniqueVideos = Object.values(groupedVideos);
 
-    const stackId = `${stackName}-${nanoid()}`;
+    const stackId = `${stackName}-${generateNanoid()}`;
     const newStack = new Stack(stackId, uniqueVideos, repository);
 
     newStack.save();

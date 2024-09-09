@@ -63,7 +63,6 @@ function StackDetailsPage() {
   const [isEditingStackName, setIsEditingStackName] = useState(false);
   const [newStackName, setNewStackName] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
 
   const isRepetitionsInvalid = useMemo(() => {
     return editingRepetitions <= 0;
@@ -165,15 +164,15 @@ function StackDetailsPage() {
           title: "Create Stack",
           description: `Stack '${getDisplayName(selectedStack)}' renamed to '${getDisplayName(newName)}'.`,
           duration: 5000,
-        })
-    } else {
-      toast({
-        title: "Create Stack",
-        description: "No changes were made.",
-        duration: 5000,
-      })
-    }
-    setIsEditingStackName(false);
+        });
+      } else {
+        toast({
+          title: "Create Stack",
+          description: "No changes were made.",
+          duration: 5000,
+        });
+      }
+      setIsEditingStackName(false);
     }
   };
 
@@ -243,13 +242,11 @@ function StackDetailsPage() {
           });
         }
       } else {
-
         toast({
           title: "Video of Stack",
           description: "An error occurred.",
           duration: 5000,
-          variant: "destructive"
-
+          variant: "destructive",
         });
       }
 
@@ -429,12 +426,7 @@ function StackDetailsPage() {
               onChange={(e) => setNewStackName(e.target.value)}
             />
             <div className="flex">
-              <Button
-                color="success"
-                onClick={() => {
-                  handleSaveStackName()
-                }}
-              >
+              <Button color="success" onClick={handleSaveStackName}>
                 Save
               </Button>
               <Button

@@ -43,7 +43,6 @@ function Player() {
     textareaRef.current?.focus();
   }, []);
 
-
   useEffect(() => {
     setAreAllUrlsValid(validateInputs(videoInput)); // Use a função utilitária
   }, [videoInput]);
