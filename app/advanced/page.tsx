@@ -284,6 +284,7 @@ function Player() {
               label="url;repetitions (per line)"
               placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
               value={videoInput}
+              // biome-ignore lint/suspicious/noExplicitAny: <explanation>
               onChange={(e: any) => setVideoInput(e.target.value)}
             />
             <Button
@@ -314,6 +315,7 @@ function Player() {
       {/* teste */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
+          {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
           {(onClose: any) => (
             <>
               <ModalHeader>Create new stack</ModalHeader>
@@ -322,6 +324,7 @@ function Player() {
                   label="Stack name"
                   type="text"
                   value={stackName}
+                  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
                   onChange={(e: any) => setStackName(e.target.value)}
                 />
 
@@ -333,6 +336,7 @@ function Player() {
                   label="Stack template (URL;Repetitions) by line"
                   placeholder="Ex: https://www.youtube.com/watch?v=dQw4w9WgXcQ;3"
                   value={videoInput}
+                  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
                   onChange={(e: any) => setVideoInput(e.target.value)}
                 />
               </ModalBody>

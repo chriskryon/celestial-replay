@@ -8,7 +8,6 @@ import { Divider } from "@nextui-org/divider";
 
 import Alert from "@/components/alert";
 import VolumeCelestial from "@/components/volume/volume";
-import volume from "@/components/volume/volume";
 
 function YoutubeViewApp() {
   const playerRef = useRef<ReactPlayer | null>(null);
@@ -36,6 +35,7 @@ function YoutubeViewApp() {
       /[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/gi,
     );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const isInvalid = React.useMemo(() => {
     if (urlInput === "") return false;
 
@@ -60,6 +60,7 @@ function YoutubeViewApp() {
     }
   }, [videoUrl]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (!isPlaying && ReactPlayer.canPlay(urlInput)) {
       setError(null);
@@ -218,12 +219,10 @@ function YoutubeViewApp() {
         {error && <Alert message={error} />}
 
         {isReady && (
-          <>
-            <div className="flex items-center gap-2 mt-2 w-full justify-center">
-              {" "}
-              <VolumeCelestial onVolumeChange={handleVolumeChange} />
-            </div>
-          </>
+          <div className="flex items-center gap-2 mt-2 w-full justify-center">
+            {" "}
+            <VolumeCelestial onVolumeChange={handleVolumeChange} />
+          </div>
         )}
       </div>
     </>
