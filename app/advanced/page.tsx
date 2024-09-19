@@ -39,7 +39,7 @@ function Player() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [areAllUrlsValid, setAreAllUrlsValid] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.25);
 
   const handleReady = () => {
     setIsReady(true);
@@ -123,15 +123,16 @@ function Player() {
   };
 
   const handleVideoEnded = () => {
+    setVolume(volume);
     if (currentRepetitions > 1) {
       setCurrentRepetitions((prev) => prev - 1);
       setIsPlaying(false);
-      setTimeout(() => setIsPlaying(true), 1);
+      if (isReady) setTimeout(() => setIsPlaying(true), 1);
     } else {
       setCurrentVideoIndex((prev) => prev + 1);
       setCurrentRepetitions(videos[currentVideoIndex + 1]?.repetitions || 0);
       setIsPlaying(false);
-      setTimeout(() => setIsPlaying(true), 1);
+      if (isReady) setTimeout(() => setIsPlaying(true), 1);
     }
 
     const currentVideoUrl = videos[currentVideoIndex]?.url;
@@ -159,7 +160,7 @@ function Player() {
             Advanced Plus
           </h4>
           <Divider />
-          {stacks.length > 0 && <></>}
+          {stacks.length > 0}
 
           {/* Instructions for the User */}
           <div className="text-left mt-4">
@@ -235,34 +236,32 @@ function Player() {
         <div className="">
           <div className="bg-[#27272A] rounded-md">
             {currentRepetitions > 0 && (
-              <>
-                <ReactPlayer
-                  ref={playerRef}
-                  controls
-                  config={{
-                    youtube: {
-                      playerVars: { autoplay: 1 },
+              <ReactPlayer
+                ref={playerRef}
+                controls
+                config={{
+                  youtube: {
+                    playerVars: { autoplay: 1 },
+                  },
+                  soundcloud: {
+                    options: {
+                      auto_play: true,
                     },
-                    soundcloud: {
-                      options: {
-                        auto_play: true,
-                      },
+                  },
+                  vimeo: {
+                    playerOptions: {
+                      autoplay: true,
                     },
-                    vimeo: {
-                      playerOptions: {
-                        autoplay: true,
-                      },
-                    },
-                  }}
-                  height={"200px"}
-                  playing={isPlaying}
-                  url={videos[currentVideoIndex]?.url}
-                  volume={volume}
-                  width={"100%"}
-                  onEnded={handleVideoEnded}
-                  onReady={handleReady}
-                />
-              </>
+                  },
+                }}
+                height={"200px"}
+                playing={isPlaying}
+                url={videos[currentVideoIndex]?.url}
+                volume={volume}
+                width={"100%"}
+                onEnded={handleVideoEnded}
+                onReady={handleReady}
+              />
             )}
           </div>
         </div>
@@ -305,12 +304,10 @@ function Player() {
         </div>
 
         {isReady && (
-          <>
-            <div className="flex items-center gap-2 mt-2 w-full justify-center">
-              {" "}
-              <VolumeCelestial onVolumeChange={handleVolumeChange} />
-            </div>
-          </>
+          <div className="flex items-center gap-2 mt-2 w-full justify-center">
+            {" "}
+            <VolumeCelestial onVolumeChange={handleVolumeChange} />
+          </div>
         )}
       </div>
 

@@ -1,7 +1,8 @@
+import type { SliderValue } from "@nextui-org/slider";
+
 import React from "react";
 import { Slider } from "@nextui-org/slider";
 import { Button } from "@nextui-org/button";
-import { SliderValue } from "@nextui-org/slider";
 
 import { VolumeLowIcon } from "./VolumeLowIcon";
 import { VolumeHighIcon } from "./VolumeHighIcon";
@@ -17,9 +18,28 @@ export default function VolumeCelestial({
 
   const handleSliderChange = (newValue: SliderValue) => {
     setValue(newValue);
-    onVolumeChange(newValue); // Chama a função passada como prop
+    onVolumeChange(newValue);
   };
 
+  const increaseVolume = () => {
+    setValue((prev) => {
+      const newValue = Number(prev) <= 90 ? Number(prev) + 10 : 100;
+
+      onVolumeChange(newValue);
+
+      return newValue;
+    });
+  };
+
+  const decreaseVolume = () => {
+    setValue((prev) => {
+      const newValue = Number(prev) >= 10 ? Number(prev) - 10 : 0;
+
+      onVolumeChange(newValue);
+
+      return newValue;
+    });
+  };
 
   return (
     <div className="flex flex-col gap-2 w-full h-full max-w-md items-start justify-center">
@@ -32,9 +52,7 @@ export default function VolumeCelestial({
             isIconOnly
             radius="full"
             variant="light"
-            onPress={() =>
-              setValue((prev) => (Number(prev) <= 90 ? Number(prev) + 10 : 100))
-            }
+            onPress={increaseVolume}
           >
             <VolumeHighIcon className="text-2xl" />
           </Button>
@@ -45,9 +63,7 @@ export default function VolumeCelestial({
             isIconOnly
             radius="full"
             variant="light"
-            onPress={() =>
-              setValue((prev) => (Number(prev) >= 10 ? Number(prev) - 10 : 0))
-            }
+            onPress={decreaseVolume}
           >
             <VolumeLowIcon className="text-2xl" />
           </Button>

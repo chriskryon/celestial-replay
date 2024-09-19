@@ -8,6 +8,7 @@ import { Divider } from "@nextui-org/divider";
 
 import Alert from "@/components/alert";
 import VolumeCelestial from "@/components/volume/volume";
+import volume from "@/components/volume/volume";
 
 function YoutubeViewApp() {
   const playerRef = useRef<ReactPlayer | null>(null);
@@ -44,11 +45,10 @@ function YoutubeViewApp() {
       setError(result ? "Sorry, we can not play this video link." : null);
 
       return result;
-    } else {
-      setError("Invalid URL format");
-
-      return true;
     }
+    setError("Invalid URL format");
+
+    return true;
   }, [urlInput]);
 
   useEffect(() => {
@@ -68,9 +68,10 @@ function YoutubeViewApp() {
   }, [urlInput]);
 
   useEffect(() => {
-    setIsRepetitionsInvalid(isNaN(repetitionsInput) || repetitionsInput <= 0);
+    setIsRepetitionsInvalid(
+      Number.isNaN(repetitionsInput) || repetitionsInput <= 0,
+    );
   }, [repetitionsInput]);
-
 
   const handlePlay = () => {
     if (repetitionsInput > 0 && urlInput) {
@@ -83,10 +84,11 @@ function YoutubeViewApp() {
   };
 
   const handleEnded = () => {
+    setVolume(volume);
     if (remainingRepetitions > 1) {
       setRemainingRepetitions(remainingRepetitions - 1);
       setIsPlaying(false);
-      setTimeout(() => setIsPlaying(true), 1);
+      if (isReady) setTimeout(() => setIsPlaying(true), 1);
     } else {
       setRemainingRepetitions(0);
       setIsPlaying(false);
