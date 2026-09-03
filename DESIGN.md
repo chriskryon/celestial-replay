@@ -19,11 +19,19 @@ principal explícita.
 ## Estrutura
 
 1. Um cabeçalho compacto mantém o universo e o player no primeiro viewport;
-   deixa claro que a reprodução é anônima e que o login só libera persistência.
+   a marca funciona como atalho para a página inicial e, com sessão, o avatar
+   abre um menu discreto de conta e saída. O acesso frequente a playlists e
+   histórico fica nas abas de contexto do estúdio, junto aos modos de reprodução.
 2. Alternância acessível entre Vídeo único e Playlist.
 3. O vídeo aparece primeiro; os controles ficam compactos logo abaixo, como no
    mobile, e a fila em execução fecha a composição.
 4. Estado da sessão e número de repetições restantes ficam próximos ao player.
+5. O histórico usa uma linha temporal escaneável: data, repetições e atalho
+   para a origem do vídeo aparecem sem competir com a leitura cronológica.
+6. A biblioteca de playlists separa navegação e edição em duas colunas: a lista
+   preserva o contexto e o editor prioriza nome, vídeos e repetições. Em telas
+   pequenas, as duas áreas viram uma sequência única e natural. O editor oferece
+   o atalho por linhas (`link;quantidade`) e a edição por campos equivalentes.
 
 ## Movimento e responsividade
 

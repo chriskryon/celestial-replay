@@ -2,9 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { ListPlus, Pause, Play, Plus, Trash2, Volume2 } from "lucide-react";
+import Link from "next/link";
+import { ListMusic, ListPlus, Orbit, Pause, Play, Plus, Trash2, Video, Volume2 } from "lucide-react";
 
 import { AuthControls } from "@/components/auth-controls";
+import { AccountStudioTabs } from "@/components/account-studio-tabs";
+import { isPlayableMediaUrl } from "@/lib/media-url";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
@@ -16,16 +19,7 @@ type SavedPlaylist = { id: string; name: string; items: Array<{ id: string; url:
 const makeItem = (src: string, repetitions: number): VideoItem => ({ id: crypto.randomUUID(), src, repetitions });
 const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "", repetitions: "1" });
 
-function validUrl(value: string) {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const isPlayableItem = (item: VideoItem) => validUrl(item.src.trim()) && Number.isInteger(item.repetitions) && item.repetitions > 0;
+const isPlayableItem = (item: VideoItem) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.repetitions) && item.repetitions > 0;
 
 function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
   const lines = value.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -33,7 +27,7 @@ function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
   const parsed = lines.map((line) => {
     const [src, repetitions, ...extra] = line.split(";").map((part) => part.trim());
     const count = Number(repetitions);
-    return extra.length === 0 && validUrl(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
+    return extra.length === 0 && isPlayableMediaUrl(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
   });
   return parsed.every(Boolean) ? parsed as ParsedPlaylistItem[] : null;
 }
@@ -44,10 +38,13 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [repetitions, setRepetitions] = useState("3");
   const [playlistInputMode, setPlaylistInputMode] = useState<"simple" | "advanced">("advanced");
   const [simplePlaylist, setSimplePlaylist] = useState("");
-  const [drafts, setDrafts] = useState<PlaylistDraft[]>([makeDraft()]);
+  const [drafts, setDrafts] = useState<PlaylistDraft[]>([{ id: "playlist-draft-0", src: "", repetitions: "1" }]);
   const [playlistName, setPlaylistName] = useState("Minha playlist");
   const [playlistSaveMessage, setPlaylistSaveMessage] = useState<string | null>(null);
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false);
+  const [queuePlaylistName, setQueuePlaylistName] = useState("Minha playlist");
+  const [queueSaveMessage, setQueueSaveMessage] = useState<string | null>(null);
+  const [isSavingQueue, setIsSavingQueue] = useState(false);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -59,12 +56,12 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
   const parsedRepetitions = Number(repetitions);
-  const canSubmitSingle = validUrl(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
+  const canSubmitSingle = isPlayableMediaUrl(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
   const playlistItems = useMemo(() => drafts.map((draft) => ({ ...draft, count: Number(draft.repetitions) })), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist), [simplePlaylist]);
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
-    : playlistItems.length > 0 && playlistItems.every((item) => validUrl(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
+    : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
 
   useEffect(() => {
@@ -128,10 +125,34 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const loadSavedPlaylist = (playlist: SavedPlaylist) => {
     setPlaylistName(playlist.name);
+    setQueuePlaylistName(playlist.name);
     setPlaylistInputMode("advanced");
     setDrafts(playlist.items.map((item) => ({ id: crypto.randomUUID(), src: item.url, repetitions: String(item.repetitions) })));
     setError(null);
     setPlaylistSaveMessage(`Playlist “${playlist.name}” carregada. Revise ou inicie quando quiser.`);
+  };
+
+  const saveQueuePlaylist = async () => {
+    if (queue.length === 0 || !queue.every(isPlayableItem) || !queuePlaylistName.trim()) {
+      setQueueSaveMessage("Dê um nome e revise os vídeos antes de salvar.");
+      return;
+    }
+
+    setIsSavingQueue(true);
+    setQueueSaveMessage(null);
+    const response = await fetch("/api/playlists", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: queuePlaylistName, items: queue.map((item) => ({ url: item.src.trim(), repetitions: item.repetitions })) }),
+    });
+    const result = await response.json().catch(() => null);
+    setIsSavingQueue(false);
+    if (!response.ok) {
+      setQueueSaveMessage(result?.error ?? "Não foi possível salvar a playlist agora.");
+      return;
+    }
+    setSavedPlaylists((items) => [result.playlist as SavedPlaylist, ...items.filter((item) => item.id !== result.playlist.id)]);
+    setQueueSaveMessage("Playlist salva na sua conta.");
   };
 
   const recordCompletedVideo = (item: VideoItem) => {
@@ -166,6 +187,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     }
     const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems;
     const nextQueue = entries.map((item) => makeItem(item.src.trim(), item.count));
+    setQueuePlaylistName(playlistName.trim() || "Minha playlist");
     setQueue(nextQueue);
     setActiveIndex(0);
     setRemaining(nextQueue[0].repetitions);
@@ -205,16 +227,17 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     <>
       <header className="studio-heading">
         <div className="navbar-inner">
-          <h1 id="studio-title">Celestial Replay</h1>
+          <h1 id="studio-title"><Link className="brand-mark" href="/"><span aria-hidden="true"><Orbit size={20} /></span>Celestial Replay</Link></h1>
           <AuthControls />
         </div>
       </header>
 
       <section className="studio-shell" aria-labelledby="studio-title">
-        <div className="mode-switch" role="tablist" aria-label="Modo de reprodução">
-          <button className={mode === "single" ? "mode-button is-selected" : "mode-button"} type="button" onClick={() => setMode("single")} role="tab" aria-selected={mode === "single"}>Vídeo único</button>
-          <button className={mode === "playlist" ? "mode-button is-selected" : "mode-button"} type="button" onClick={() => setMode("playlist")} role="tab" aria-selected={mode === "playlist"}>Playlist</button>
-        </div>
+        <nav className="studio-tabs" aria-label="Áreas do Celestial Replay">
+          <button className={mode === "single" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("single")} aria-pressed={mode === "single"}><Video aria-hidden="true" size={16} />Vídeo único</button>
+          <button className={mode === "playlist" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("playlist")} aria-pressed={mode === "playlist"}><ListMusic aria-hidden="true" size={16} />Playlist</button>
+          <AccountStudioTabs />
+        </nav>
 
         <div className="studio-grid">
           <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={start}>
@@ -280,6 +303,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
         {mode === "playlist" && queue.length > 0 && <section className="queue-surface" aria-labelledby="queue-title">
           <div className="queue-title"><div><h2 id="queue-title">Playlist em execução</h2><p>Edite somente os vídeos que ainda não começaram.</p></div><span>{queue.length} vídeos</span></div>
+          <div className="queue-save"><label htmlFor="queue-playlist-name">Salvar esta fila como</label><input id="queue-playlist-name" value={queuePlaylistName} onChange={(event) => setQueuePlaylistName(event.target.value)} maxLength={80} /><button className="secondary-button" type="button" onClick={saveQueuePlaylist} disabled={isSavingQueue}>{isSavingQueue ? "Salvando…" : "Salvar"}</button></div>
+          {queueSaveMessage && <p className="field-help queue-save-message" role="status">{queueSaveMessage}</p>}
           <ol>{queue.map((item, index) => {
             const isCurrent = index === activeIndex;
             const isFuture = activeIndex !== null && index > activeIndex;
@@ -288,7 +313,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
               <span className="queue-state"><b>{index + 1}</b><small>{state}</small></span>
               {isFuture ? <>
                 <label className="sr-only" htmlFor={`queue-url-${item.id}`}>URL do vídeo {index + 1}</label>
-                <input id={`queue-url-${item.id}`} value={item.src} onChange={(event) => updateUpcomingItem(item.id, "src", event.target.value)} aria-invalid={!validUrl(item.src.trim())} />
+                <input id={`queue-url-${item.id}`} value={item.src} onChange={(event) => updateUpcomingItem(item.id, "src", event.target.value)} aria-invalid={!isPlayableMediaUrl(item.src.trim())} />
                 <label className="sr-only" htmlFor={`queue-count-${item.id}`}>Repetições do vídeo {index + 1}</label>
                 <input id={`queue-count-${item.id}`} type="number" min="1" step="1" value={Number.isFinite(item.repetitions) ? item.repetitions : ""} onChange={(event) => updateUpcomingItem(item.id, "repetitions", event.target.value)} aria-invalid={!isPlayableItem(item)} />
               </> : <><span className="queue-url">{item.src}</span><span className="queue-count">{item.repetitions}×</span></>}

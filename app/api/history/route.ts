@@ -5,9 +5,10 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playbackHistory } from "@/lib/db/schema";
+import { isPlayableMediaUrl } from "@/lib/media-url";
 
 const historyInput = z.object({
-  url: z.url(),
+  url: z.url().refine(isPlayableMediaUrl),
   completedRepetitions: z.number().int().positive(),
 });
 

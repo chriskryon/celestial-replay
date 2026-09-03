@@ -5,10 +5,11 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playlistItems, playlists } from "@/lib/db/schema";
+import { isPlayableMediaUrl } from "@/lib/media-url";
 
-const playlistInput = z.object({
+export const playlistInput = z.object({
   name: z.string().trim().min(1).max(80),
-  items: z.array(z.object({ url: z.url(), repetitions: z.number().int().positive() })).min(1).max(100),
+  items: z.array(z.object({ url: z.url().refine(isPlayableMediaUrl), repetitions: z.number().int().positive() })).min(1).max(100),
 });
 
 async function requireUser() {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Faça login para salvar playlists." }, { status: 401 });
 
   const result = playlistInput.safeParse(await request.json().catch(() => null));
-  if (!result.success) return NextResponse.json({ error: "A playlist precisa de nome, URLs válidas e repetições maiores que zero." }, { status: 400 });
+  if (!result.success) return NextResponse.json({ error: "A playlist precisa de nome, links de vídeo válidos e repetições maiores que zero." }, { status: 400 });
 
   const [playlist] = await db.insert(playlists).values({ ownerId: user.id, name: result.data.name }).returning();
   const items = await db.insert(playlistItems).values(result.data.items.map((item, position) => ({
