@@ -1,89 +1,27 @@
-import "@/styles/globals.css";
 import type { Metadata, Viewport } from "next";
-
-import clsx from "clsx";
 import Image from "next/image";
-import { Analytics } from "@vercel/analytics/react";
 
-import { Providers } from "./providers";
-
-import { siteConfig } from "@/config/site";
-import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
-import Starfield from "@/components/Starfield";
-import { Toaster } from "@/components/ui/toaster";
+import { StarfieldCanvas } from "@/components/starfield-canvas";
+import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  icons: {
-    icon: "/favicon.ico",
-  },
+  title: "Celestial Replay",
+  description: "Repita vídeos e crie sessões no seu próprio ritmo.",
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
-};
+export const viewport: Viewport = { themeColor: "#080b1b", width: "device-width", initialScale: 1 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html suppressHydrationWarning lang="en">
-      <head />
-      <body
-        className={clsx(
-          "min-h-screen font-sans antialiased",
-          fontSans.variable,
-          "relative",
-        )}
-      >
-        <div className="fixed top-0 left-0 w-full h-full">
-          <Image
-            alt="Background Image"
-            className=""
-            layout="fill"
-            objectFit="cover"
-            quality={100}
-            src="/bg.jpg"
-            style={{ backgroundSize: "cover" }} // Add this line
-          />
+    <html lang="pt-BR">
+      <body>
+        {/* THESIS: playback is immediate; permanence is earned through sign-in. OWN-WORLD: midnight-blue celestial field and restrained liquid-glass control surfaces. STORY: paste a source, choose exact repetitions, and see completion without ambiguity. FIRST VIEWPORT: the player and its settings share one focused workspace. FORM: operational studio, pinned celestial-liquid-glass direction. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
+        <a className="skip-link" href="#main-content">Pular para o player</a>
+        <div className="universe-backdrop" aria-hidden="true">
+          <Image alt="" fill priority sizes="100vw" src="/bg.jpg" />
         </div>
-        <Starfield
-          backgroundColor="black"
-          speedFactor={0.05}
-          starColor={[255, 255, 255]}
-          starCount={3690}
-        />
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="relative flex flex-col h-screen">
-            <Navbar />
-            <main className="container mx-auto max-w-7xl pt-1 px-6 flex-grow">
-              {children}
-              <Analytics />
-            </main>
-            {/* <footer className="w-full flex items-center justify-center py-3">
-              <Link
-                isExternal
-                className="flex items-center gap-1 text-current"
-                href="https://nextui-docs-v2.vercel.app?utm_source=next-app-template"
-                title="nextui.org homepage"
-              >
-                <span className="text-default-600">Powered by</span>
-                <p className="text-primary">NextUI</p>
-              </Link>
-            </footer> */}
-          </div>
-        </Providers>
-        <Toaster />
+        <StarfieldCanvas />
+        <main id="main-content">{children}</main>
       </body>
     </html>
   );
