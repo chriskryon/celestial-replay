@@ -1,0 +1,50 @@
+import { and, eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+
+import { getCurrentUser } from "@/lib/current-user";
+import { db } from "@/lib/db";
+import { playlistItems, playlists } from "@/lib/db/schema";
+import { playlistInput } from "../route";
+
+async function currentOwner() {
+  const user = await getCurrentUser();
+  return user?.id ?? null;
+}
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const ownerId = await currentOwner();
+  if (!ownerId) return NextResponse.json({ error: "Faça login para editar playlists." }, { status: 401 });
+
+  const input = playlistInput.safeParse(await request.json().catch(() => null));
+  if (!input.success) return NextResponse.json({ error: "Informe um nome, URLs válidas e repetições maiores que zero." }, { status: 400 });
+
+  const { id } = await context.params;
+  const [playlist] = await db.update(playlists)
+    .set({ name: input.data.name, updatedAt: new Date() })
+    .where(and(eq(playlists.id, id), eq(playlists.ownerId, ownerId)))
+    .returning();
+  if (!playlist) return NextResponse.json({ error: "Playlist não encontrada." }, { status: 404 });
+
+  await db.delete(playlistItems).where(eq(playlistItems.playlistId, playlist.id));
+  const items = await db.insert(playlistItems).values(input.data.items.map((item, position) => ({
+    playlistId: playlist.id,
+    url: item.url,
+    repetitions: item.repetitions,
+    position,
+  }))).returning();
+
+  return NextResponse.json({ playlist: { ...playlist, items } });
+}
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const ownerId = await currentOwner();
+  if (!ownerId) return NextResponse.json({ error: "Faça login para apagar playlists." }, { status: 401 });
+
+  const { id } = await context.params;
+  const [playlist] = await db.delete(playlists)
+    .where(and(eq(playlists.id, id), eq(playlists.ownerId, ownerId)))
+    .returning({ id: playlists.id });
+  if (!playlist) return NextResponse.json({ error: "Playlist não encontrada." }, { status: 404 });
+
+  return NextResponse.json({ id: playlist.id });
+}
