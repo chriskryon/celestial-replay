@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playbackHistory } from "@/lib/db/schema";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { requireSameOrigin } from "@/lib/request-security";
 
 const historyInput = z.object({
   url: z.url().refine(isPlayableMediaUrl),
@@ -29,6 +30,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request); if (originError) return originError;
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Faça login para salvar seu histórico." }, { status: 401 });
 

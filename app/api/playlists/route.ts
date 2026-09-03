@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playlistItems, playlists } from "@/lib/db/schema";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { requireSameOrigin } from "@/lib/request-security";
 
 export const playlistInput = z.object({
   name: z.string().trim().min(1).max(80),
@@ -38,6 +39,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request); if (originError) return originError;
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Faça login para salvar playlists." }, { status: 401 });
 

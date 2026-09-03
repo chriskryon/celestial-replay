@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playlistItems, playlists } from "@/lib/db/schema";
 import { playlistInput } from "../route";
+import { requireSameOrigin } from "@/lib/request-security";
 
 async function currentOwner() {
   const user = await getCurrentUser();
@@ -12,6 +13,7 @@ async function currentOwner() {
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const originError = requireSameOrigin(request); if (originError) return originError;
   const ownerId = await currentOwner();
   if (!ownerId) return NextResponse.json({ error: "Faça login para editar playlists." }, { status: 401 });
 
@@ -37,6 +39,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const originError = requireSameOrigin(_request); if (originError) return originError;
   const ownerId = await currentOwner();
   if (!ownerId) return NextResponse.json({ error: "Faça login para apagar playlists." }, { status: 401 });
 
