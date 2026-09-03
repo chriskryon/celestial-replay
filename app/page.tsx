@@ -1,5 +1,5 @@
-import { ReplayStudio } from "@/components/replay-studio";
+import { HomeHero } from "@/components/home-hero";
 
 export default function HomePage() {
-  return <ReplayStudio />;
+  return <HomeHero />;
 }
