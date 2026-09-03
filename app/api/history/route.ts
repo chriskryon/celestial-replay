@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playbackHistory } from "@/lib/db/schema";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { requireWithinRateLimit } from "@/lib/rate-limit";
 import { requireSameOrigin } from "@/lib/request-security";
 
 const historyInput = z.object({
@@ -18,7 +19,8 @@ async function requireUser() {
   return user?.id ? user : null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const rateLimitError = await requireWithinRateLimit(request, "history-read"); if (rateLimitError) return rateLimitError;
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Faça login para consultar seu histórico." }, { status: 401 });
 
@@ -30,6 +32,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitError = await requireWithinRateLimit(request, "history-write"); if (rateLimitError) return rateLimitError;
   const originError = requireSameOrigin(request); if (originError) return originError;
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Faça login para salvar seu histórico." }, { status: 401 });

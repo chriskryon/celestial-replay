@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getNeonAuth } from "@/lib/auth";
+import { requireWithinRateLimit } from "@/lib/rate-limit";
 
 type AuthContext = { params: Promise<{ path: string[] }> };
 
@@ -12,6 +13,10 @@ function unavailable() {
 }
 
 async function handle(method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH", request: Request, context: AuthContext) {
+  if (method !== "GET") {
+    const rateLimitError = await requireWithinRateLimit(request, "auth");
+    if (rateLimitError) return rateLimitError;
+  }
   const auth = getNeonAuth();
   if (!auth) return unavailable();
   return auth.handler()[method](request, context);
