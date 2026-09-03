@@ -5,6 +5,7 @@ import { History, ListMusic, Pencil, Play, Plus, Save, Trash2, Video } from "luc
 import { useEffect, useMemo, useState } from "react";
 
 import { AuthControls } from "@/components/auth-controls";
+import { OpenAuthButton } from "@/components/open-auth-button";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { Toast } from "@/components/toast";
 
@@ -115,7 +116,7 @@ export function PlaylistManager() {
       <nav className="studio-tabs" aria-label="Áreas do Celestial Replay"><Link className="studio-tab" href="/"><Video aria-hidden="true" size={16} />Vídeo único</Link><Link className="studio-tab" href="/advanced"><ListMusic aria-hidden="true" size={16} />Playlist</Link><Link className="studio-tab is-selected" href="/playlists" aria-current="page"><ListMusic aria-hidden="true" size={16} />Minhas playlists</Link><Link className="studio-tab" href="/history"><History aria-hidden="true" size={16} />Histórico</Link></nav>
       <div className="playlist-library">
       <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
-      {isSignedOut ? <div className="library-empty"><ListMusic aria-hidden="true" size={24} /><p>Entre para criar playlists privadas e acessá-las em qualquer dispositivo.</p><Link className="primary-button" href="/auth/sign-in">Entrar para salvar</Link></div> : <div className="library-grid">
+      {isSignedOut ? <div className="library-empty"><ListMusic aria-hidden="true" size={24} /><p>Entre para criar playlists privadas e acessá-las em qualquer dispositivo.</p><OpenAuthButton>Entrar para salvar</OpenAuthButton></div> : <div className="library-grid">
         <aside className="library-list" aria-label="Playlists salvas"><button className="new-playlist" type="button" onClick={create}><Plus aria-hidden="true" size={17} />Nova playlist</button>{isLoading ? <p>Carregando playlists…</p> : playlists.length === 0 ? <div className="library-empty"><Play aria-hidden="true" size={20} /><p>Você ainda não salvou nenhuma playlist.</p></div> : <ul>{playlists.map((playlist) => <li key={playlist.id}><button className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"} type="button" onClick={() => edit(playlist)}><span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span><Pencil aria-hidden="true" size={15} /></button></li>)}</ul>}</aside>
         <section className="library-editor" aria-labelledby="editor-title"><div className="library-editor-heading"><div><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>{selected && <button className="icon-danger" type="button" onClick={() => setDeleteTarget(selected)} aria-label={`Apagar ${selected.name}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>
           <label htmlFor="library-playlist-name">Nome da playlist</label><input id="library-playlist-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />

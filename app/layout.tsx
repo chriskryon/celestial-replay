@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 
+import { AuthDialogProvider } from "@/components/auth-dialog";
 import { StarfieldCanvas } from "@/components/starfield-canvas";
 import "@/styles/globals.css";
 
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Image alt="" fill priority sizes="100vw" src="/bg.jpg" />
         </div>
         <StarfieldCanvas />
-        <main id="main-content">{children}</main>
+        <AuthDialogProvider><main id="main-content">{children}</main></AuthDialogProvider>
       </body>
     </html>
   );

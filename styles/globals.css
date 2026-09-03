@@ -169,6 +169,12 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .account-popover button { color: var(--muted); }
 .account-popover a:hover, .account-popover button:hover { background: rgba(209, 222, 255, 0.1); color: var(--ink); }
 .auth-surface { display: grid; width: min(100%, 430px); gap: 1.05rem; margin: auto; padding: clamp(1.05rem, 4vw, 1.65rem); border: 1px solid rgba(216, 227, 255, 0.18); border-radius: 1rem; background: rgba(11, 21, 48, 0.55); box-shadow: var(--shadow), inset 0 1px rgba(255, 255, 255, 0.08); backdrop-filter: blur(25px) saturate(120%); }
+.auth-dialog { width: min(calc(100vw - 2rem), 430px); max-height: calc(100dvh - 2rem); margin: auto; padding: 0; overflow: auto; border: 1px solid rgba(216, 227, 255, 0.22); border-radius: 1rem; color: var(--ink); background: rgba(11, 21, 48, 0.78); box-shadow: 0 24px 72px rgba(0, 0, 0, 0.52), inset 0 1px rgba(255, 255, 255, 0.1); backdrop-filter: blur(28px) saturate(125%); }
+.auth-dialog::backdrop { background: rgba(0, 3, 15, 0.72); backdrop-filter: blur(7px); }
+.auth-dialog .auth-surface { width: 100%; margin: 0; border: 0; background: transparent; box-shadow: none; }
+.auth-dialog .auth-heading { padding-right: 2.4rem; }
+.auth-dialog-close { position: absolute; top: 0.75rem; right: 0.75rem; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(216, 227, 255, 0.16); border-radius: 0.58rem; color: var(--muted); background: rgba(219, 229, 255, 0.06); transition: color 160ms ease, background 160ms ease, border-color 160ms ease; }
+.auth-dialog-close:hover { border-color: rgba(216, 227, 255, 0.36); color: var(--ink); background: rgba(219, 229, 255, 0.14); }
 .auth-back { display: inline-flex; align-items: center; gap: 0.36rem; width: fit-content; color: var(--muted); font-size: 0.78rem; text-decoration: none; }
 .auth-back:hover { color: var(--ink); }
 .auth-heading { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0.72rem; align-items: center; }
@@ -246,7 +252,6 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .universe-backdrop::after { background: linear-gradient(0deg, rgba(1, 4, 14, 0.5), rgba(1, 4, 14, 0.16)), linear-gradient(90deg, rgba(2, 6, 20, 0.25), rgba(2, 7, 22, 0.06)); }
   main { display: block; width: min(100% - 1rem, 720px); min-height: 100dvh; padding: 4.75rem 0 0.8rem; }
   .studio-shell { min-height: calc(100dvh - 5.55rem); grid-template-rows: auto auto auto; padding: 0.6rem; }
-  .home-hero{grid-template-columns:1fr;min-height:calc(100dvh - 5.55rem);padding:1.4rem}.home-hero aside{border-left:0;border-top:1px solid var(--line)}
   .studio-tabs { width: 100%; overflow-x: auto; padding-bottom: 0.08rem; }
   .studio-tab { flex: 0 0 auto; }
   .studio-heading, .navbar-inner { min-height: 54px; }

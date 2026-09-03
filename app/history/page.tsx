@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
 import { playbackHistory } from "@/lib/db/schema";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { OpenAuthButton } from "@/components/open-auth-button";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +41,9 @@ export default async function HistoryPage() {
         Você pode reproduzir vídeos sem entrar. Quando a autenticação Neon estiver
         conectada, as sessões concluídas aparecerão aqui — privadas e sincronizadas.
       </p>
-      <Link className="button button-primary" href="/auth/sign-in">
+      <OpenAuthButton className="button button-primary">
         <History aria-hidden="true" size={17} />Entrar para sincronizar
-      </Link>
+      </OpenAuthButton>
     </section>
   );
 }

@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { ChevronDown, LogIn, LogOut, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { useAuthDialog } from "@/components/auth-dialog";
 
 export function AuthControls() {
   const session = authClient.useSession();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { openSignIn } = useAuthDialog();
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -20,7 +21,7 @@ export function AuthControls() {
   }, []);
 
   if (session.isPending) return <span className="account-status">Carregando conta</span>;
-  if (!session.data?.user) return <Link className="account-link" href="/auth/sign-in"><LogIn aria-hidden="true" size={16} />Entrar</Link>;
+  if (!session.data?.user) return <button className="account-link" type="button" onClick={openSignIn}><LogIn aria-hidden="true" size={16} />Entrar</button>;
 
   const { user } = session.data;
   const name = user.name || user.email || "Sua conta";
