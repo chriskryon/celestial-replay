@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ListMusic, Pencil, Play, Plus, Save, Trash2 } from "lucide-react";
+import { History, ListMusic, Pencil, Play, Plus, Save, Trash2, Video } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AuthControls } from "@/components/auth-controls";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { Toast } from "@/components/toast";
 
 type PlaylistItem = { id: string; url: string; repetitions: number; position: number };
 type Playlist = { id: string; name: string; items: PlaylistItem[]; updatedAt: string };
@@ -44,6 +45,7 @@ export function PlaylistManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isSignedOut, setIsSignedOut] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
 
   const selected = useMemo(() => playlists.find((playlist) => playlist.id === selectedId) ?? null, [playlists, selectedId]);
   const parsedSimple = useMemo(() => parseSimplePlaylist(simpleInput), [simpleInput]);
@@ -99,28 +101,29 @@ export function PlaylistManager() {
   };
 
   const remove = async (playlist: Playlist) => {
-    if (!window.confirm(`Apagar a playlist “${playlist.name}”? Esta ação não pode ser desfeita.`)) return;
     const response = await fetch(`/api/playlists/${playlist.id}`, { method: "DELETE" });
     if (!response.ok) { setMessage("Não foi possível apagar esta playlist agora."); return; }
     setPlaylists((current) => current.filter((currentPlaylist) => currentPlaylist.id !== playlist.id));
     if (selectedId === playlist.id) create();
     setMessage("Playlist apagada.");
+    setDeleteTarget(null);
   };
 
   return <>
     <header className="studio-heading"><div className="navbar-inner"><h1><Link className="brand-mark" href="/"><span aria-hidden="true"><ListMusic size={19} /></span>Celestial Replay</Link></h1><AuthControls /></div></header>
-    <section className="playlist-library" aria-labelledby="playlist-library-title">
-      <Link className="auth-back" href="/"><ArrowLeft aria-hidden="true" size={16} />Voltar ao player</Link>
+    <section className="studio-shell account-shell" aria-labelledby="playlist-library-title">
+      <nav className="studio-tabs" aria-label="Áreas do Celestial Replay"><Link className="studio-tab" href="/"><Video aria-hidden="true" size={16} />Vídeo único</Link><Link className="studio-tab" href="/advanced"><ListMusic aria-hidden="true" size={16} />Playlist</Link><Link className="studio-tab is-selected" href="/playlists" aria-current="page"><ListMusic aria-hidden="true" size={16} />Minhas playlists</Link><Link className="studio-tab" href="/history"><History aria-hidden="true" size={16} />Histórico</Link></nav>
+      <div className="playlist-library">
       <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
       {isSignedOut ? <div className="library-empty"><ListMusic aria-hidden="true" size={24} /><p>Entre para criar playlists privadas e acessá-las em qualquer dispositivo.</p><Link className="primary-button" href="/auth/sign-in">Entrar para salvar</Link></div> : <div className="library-grid">
         <aside className="library-list" aria-label="Playlists salvas"><button className="new-playlist" type="button" onClick={create}><Plus aria-hidden="true" size={17} />Nova playlist</button>{isLoading ? <p>Carregando playlists…</p> : playlists.length === 0 ? <div className="library-empty"><Play aria-hidden="true" size={20} /><p>Você ainda não salvou nenhuma playlist.</p></div> : <ul>{playlists.map((playlist) => <li key={playlist.id}><button className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"} type="button" onClick={() => edit(playlist)}><span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span><Pencil aria-hidden="true" size={15} /></button></li>)}</ul>}</aside>
-        <section className="library-editor" aria-labelledby="editor-title"><div className="library-editor-heading"><div><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>{selected && <button className="icon-danger" type="button" onClick={() => remove(selected)} aria-label={`Apagar ${selected.name}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>
+        <section className="library-editor" aria-labelledby="editor-title"><div className="library-editor-heading"><div><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>{selected && <button className="icon-danger" type="button" onClick={() => setDeleteTarget(selected)} aria-label={`Apagar ${selected.name}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>
           <label htmlFor="library-playlist-name">Nome da playlist</label><input id="library-playlist-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
           <div className="playlist-input-mode" role="tablist" aria-label="Forma de montar a playlist"><button className={inputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={inputMode === "simple"} onClick={() => changeInputMode("simple")}>Simples: linhas</button><button className={inputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={inputMode === "advanced"} onClick={() => changeInputMode("advanced")}>Avançado: campos</button></div>
           {inputMode === "simple" ? <div className="simple-playlist-input"><label htmlFor="library-simple-playlist">Vídeos e repetições</label><textarea id="library-simple-playlist" value={simpleInput} onChange={(event) => setSimpleInput(event.target.value)} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" /><p>Uma linha por vídeo: <code>link;quantidade</code>.</p></div> : <><div className="library-items" aria-label="Vídeos da playlist">{items.map((item, index) => <div className="playlist-row" key={item.id}><span className="row-number" aria-hidden="true">{index + 1}</span><label className="sr-only" htmlFor={`library-url-${item.id}`}>URL do vídeo {index + 1}</label><input id={`library-url-${item.id}`} value={item.url} onChange={(event) => updateItem(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" /><label className="sr-only" htmlFor={`library-repetitions-${item.id}`}>Repetições do vídeo {index + 1}</label><input id={`library-repetitions-${item.id}`} type="number" min="1" step="1" value={item.repetitions} onChange={(event) => updateItem(item.id, "repetitions", event.target.value)} />{items.length > 1 && <button className="remove-row" type="button" onClick={() => setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>)}</div><button className="add-row" type="button" onClick={() => setItems((current) => [...current, draftItem()])}><Plus aria-hidden="true" size={17} />Adicionar vídeo</button></>}
-          {message && <p className="field-help" role="status">{message}</p>}<button className="primary-button" type="button" onClick={save} disabled={!isValid || isSaving}><Save aria-hidden="true" size={17} />{isSaving ? "Salvando…" : selected ? "Salvar alterações" : "Criar playlist"}</button>
+          <button className="primary-button" type="button" onClick={save} disabled={!isValid || isSaving}><Save aria-hidden="true" size={17} />{isSaving ? "Salvando…" : selected ? "Salvar alterações" : "Criar playlist"}</button>
         </section>
-      </div>}
-    </section>
+      </div>}<Toast message={message} tone={message?.includes("não foi") || message?.includes("Informe") ? "error" : "success"}/>{deleteTarget && <div className="confirm-backdrop" role="presentation"><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title"><h2 id="delete-title">Apagar playlist?</h2><p>“{deleteTarget.name}” será apagada definitivamente.</p><div><button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button><button className="danger-button" type="button" onClick={() => void remove(deleteTarget)}>Apagar playlist</button></div></section></div>}
+      </div></section>
   </>;
 }
