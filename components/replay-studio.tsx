@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Keyboard, ListMusic, ListPlus, Orbit, Pause, Play, Plus, RotateCcw, Trash2, Video, Volume2 } from "lucide-react";
+import { Keyboard, ListMusic, ListPlus, Orbit, Pause, Play, Plus, RotateCcw, Save, Trash2, Video, Volume2, X } from "lucide-react";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
@@ -34,6 +34,14 @@ function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
   return parsed.every(Boolean) ? parsed as ParsedPlaylistItem[] : null;
 }
 
+function parseFirstPlaylistLine(value: string): ParsedPlaylistItem | null {
+  const line = value.split("\n").map((item) => item.trim()).find(Boolean);
+  if (!line) return null;
+  const [src, repetitions, ...extra] = line.split(";").map((part) => part.trim());
+  const count = Number(repetitions);
+  return extra.length === 0 && isPlayableMediaUrl(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
+}
+
 export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
   const session = authClient.useSession();
   const [mode, setMode] = useState(initialMode);
@@ -48,6 +56,10 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [queuePlaylistName, setQueuePlaylistName] = useState("Minha playlist");
   const [queueSaveMessage, setQueueSaveMessage] = useState<string | null>(null);
   const [isSavingQueue, setIsSavingQueue] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveTarget, setSaveTarget] = useState<"draft" | "queue">("draft");
+  const [saveName, setSaveName] = useState("Minha playlist");
+  const [saveDialogError, setSaveDialogError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -65,6 +77,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const canSubmitSingle = isPlayableMediaUrl(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
   const playlistItems = useMemo(() => drafts.map((draft) => ({ ...draft, count: Number(draft.repetitions) })), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist), [simplePlaylist]);
+  const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist), [simplePlaylist]);
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
     : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
@@ -72,6 +85,19 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
   const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
   const progressLabel = activeIndex === null || error || !hasPlaybackStarted ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
+  const isLoggedIn = Boolean(session.data?.user);
+  const previewVideo = useMemo<VideoItem | null>(() => {
+    if (activeVideo) return null;
+    if (mode === "single" && canSubmitSingle) return { id: "single-preview", src: source.trim(), repetitions: parsedRepetitions };
+    if (mode !== "playlist") return null;
+    if (playlistInputMode === "simple" && firstSimplePlaylistItem) return { id: "simple-playlist-preview", src: firstSimplePlaylistItem.src, repetitions: firstSimplePlaylistItem.count };
+    const firstDraft = playlistItems[0];
+    return firstDraft && isPlayableMediaUrl(firstDraft.src.trim()) && Number.isInteger(firstDraft.count) && firstDraft.count > 0
+      ? { id: "advanced-playlist-preview", src: firstDraft.src.trim(), repetitions: firstDraft.count }
+      : null;
+  }, [activeVideo, canSubmitSingle, firstSimplePlaylistItem, mode, parsedRepetitions, playlistInputMode, playlistItems, source]);
+  const displayedVideo = activeVideo ?? previewVideo;
+  const playerStatus = previewVideo && !error ? "Vídeo carregado. Clique em Iniciar para começar." : status;
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -102,6 +128,15 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setResumeSession(result.session);
     }).catch(() => undefined);
   }, [session.data?.user]);
+
+  useEffect(() => {
+    if (!isSaveDialogOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSaveDialogOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isSaveDialogOpen]);
 
   useEffect(() => {
     if (!session.data?.user || !hasPlaybackStarted || activeIndex === null || queue.length === 0 || !activeVideo) return;
@@ -165,32 +200,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setResumeSession(null);
   };
 
-  const savePlaylist = async () => {
-    if (!canSubmitPlaylist) {
-      setError("Revise a playlist antes de salvar: cada vídeo precisa de URL válida e repetições maiores que zero.");
-      return;
-    }
-
-    const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems;
-    setIsSavingPlaylist(true);
-    setPlaylistSaveMessage(null);
-    const response = await fetch("/api/playlists", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: playlistName,
-        items: entries.map((item) => ({ url: item.src.trim(), repetitions: item.count })),
-      }),
-    });
-    const result = await response.json().catch(() => null);
-    setIsSavingPlaylist(false);
-
-    if (!response.ok) {
-      setPlaylistSaveMessage(result?.error ?? "Não foi possível salvar a playlist agora.");
-      return;
-    }
-    setSavedPlaylists((items) => [result.playlist as SavedPlaylist, ...items.filter((item) => item.id !== result.playlist.id)]);
-    setPlaylistSaveMessage("Playlist salva na sua conta.");
+  const openSaveDialog = (target: "draft" | "queue") => {
+    setSaveTarget(target);
+    setSaveName(target === "draft" ? playlistName : queuePlaylistName);
+    setSaveDialogError(null);
+    setIsSaveDialogOpen(true);
   };
 
   const loadSavedPlaylist = (playlist: SavedPlaylist) => {
@@ -202,27 +216,39 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setPlaylistSaveMessage(`Playlist “${playlist.name}” carregada. Revise ou inicie quando quiser.`);
   };
 
-  const saveQueuePlaylist = async () => {
-    if (queue.length === 0 || !queue.every(isPlayableItem) || !queuePlaylistName.trim()) {
-      setQueueSaveMessage("Dê um nome e revise os vídeos antes de salvar.");
+  const savePlaylist = async () => {
+    const isQueue = saveTarget === "queue";
+    const draftEntries = playlistInputMode === "simple" ? simplePlaylistItems : playlistItems;
+    const entries = isQueue
+      ? queue.map((item) => ({ url: item.src.trim(), repetitions: item.repetitions }))
+      : draftEntries?.map((item) => ({ url: item.src.trim(), repetitions: item.count }));
+    if (!isLoggedIn || !saveName.trim() || !entries?.length || !entries.every((item) => isPlayableMediaUrl(item.url) && Number.isInteger(item.repetitions) && item.repetitions > 0)) {
+      setSaveDialogError("Informe um nome e revise os links e repetições antes de salvar.");
       return;
     }
 
-    setIsSavingQueue(true);
-    setQueueSaveMessage(null);
+    if (isQueue) setIsSavingQueue(true); else setIsSavingPlaylist(true);
+    if (isQueue) setQueueSaveMessage(null); else setPlaylistSaveMessage(null);
     const response = await fetch("/api/playlists", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: queuePlaylistName, items: queue.map((item) => ({ url: item.src.trim(), repetitions: item.repetitions })) }),
+      body: JSON.stringify({ name: saveName.trim(), items: entries }),
     });
     const result = await response.json().catch(() => null);
-    setIsSavingQueue(false);
+    if (isQueue) setIsSavingQueue(false); else setIsSavingPlaylist(false);
     if (!response.ok) {
-      setQueueSaveMessage(result?.error ?? "Não foi possível salvar a playlist agora.");
+      setSaveDialogError(result?.error ?? "Não foi possível salvar a playlist agora.");
       return;
     }
     setSavedPlaylists((items) => [result.playlist as SavedPlaylist, ...items.filter((item) => item.id !== result.playlist.id)]);
-    setQueueSaveMessage("Playlist salva na sua conta.");
+    if (isQueue) {
+      setQueuePlaylistName(saveName.trim());
+      setQueueSaveMessage("Playlist salva na sua conta.");
+    } else {
+      setPlaylistName(saveName.trim());
+      setPlaylistSaveMessage("Playlist salva na sua conta.");
+    }
+    setIsSaveDialogOpen(false);
   };
 
   const recordCompletedVideo = (item: VideoItem) => {
@@ -340,7 +366,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
             {mode === "single" ? <>
               <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Configurar repetição</h2></div>
               <label htmlFor="source">URL do vídeo</label>
-              <input id="source" value={source} onChange={(event) => setSource(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" autoComplete="url" />
+              <input id="source" value={source} onChange={(event) => { setSource(event.target.value); setError(null); }} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" autoComplete="url" />
               <label htmlFor="repetitions">Repetições</label>
               <input id="repetitions" type="number" min="1" step="1" value={repetitions} onChange={(event) => setRepetitions(event.target.value)} />
               <p className="field-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
@@ -376,11 +402,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
                 </div>)}
               </div>}
               {playlistInputMode === "advanced" && <button className="add-row" type="button" onClick={() => setDrafts((items) => [...items, makeDraft()])}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>}
-              <div className="playlist-save">
-                <label htmlFor="playlist-name">Nome para salvar</label>
-                <input id="playlist-name" value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} maxLength={80} />
-                <button className="secondary-button" type="button" onClick={savePlaylist} disabled={!canSubmitPlaylist || isSavingPlaylist}>{isSavingPlaylist ? "Salvando…" : "Salvar playlist"}</button>
-              </div>
+              {isLoggedIn && <div className="playlist-save"><button className="icon-save-button" type="button" onClick={() => openSaveDialog("draft")} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button></div>}
               {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
             </>}
             {error && <p className="field-error" role="alert">{error}</p>}
@@ -389,9 +411,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {activeVideo && !error ? <ReactPlayer className="replay-player" key={`${activeVideo.id}-${remaining}`} src={activeVideo.src} playing={isPlaying} controls playsInline volume={volume} width="100%" height="100%" onStart={handlePlaybackStart} onEnded={handleEnded} onDurationChange={(event) => setDuration(event.currentTarget.duration)} onError={handlePlaybackError} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={`${displayedVideo.id}-${activeVideo ? remaining : "preview"}`} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} controls={Boolean(activeVideo)} playsInline volume={volume} width="100%" height="100%" onStart={activeVideo ? handlePlaybackStart : undefined} onEnded={activeVideo ? handleEnded : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
-            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? status}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
+            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
             {activeVideo && !error && <button className="pause-button" type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? "Pausar" : "Continuar"}</button>}
             {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
@@ -400,7 +422,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
         {mode === "playlist" && queue.length > 0 && <section className="queue-surface" aria-labelledby="queue-title">
           <div className="queue-title"><div><h2 id="queue-title">Playlist em execução</h2><p>Edite somente os vídeos que ainda não começaram.</p></div><span>{queue.length} vídeos</span></div>
-          <div className="queue-save"><label htmlFor="queue-playlist-name">Salvar esta fila como</label><input id="queue-playlist-name" value={queuePlaylistName} onChange={(event) => setQueuePlaylistName(event.target.value)} maxLength={80} /><button className="secondary-button" type="button" onClick={saveQueuePlaylist} disabled={isSavingQueue}>{isSavingQueue ? "Salvando…" : "Salvar"}</button></div>
+          {isLoggedIn && <div className="queue-save"><button className="icon-save-button" type="button" onClick={() => openSaveDialog("queue")} disabled={isSavingQueue} aria-label="Salvar playlist em execução" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button></div>}
           {queueSaveMessage && <p className="field-help queue-save-message" role="status">{queueSaveMessage}</p>}
           <ol>{queue.map((item, index) => {
             const isCurrent = index === activeIndex;
@@ -418,6 +440,16 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
           })}</ol>
         </section>}
       </section>
+      {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>
+        <section className="save-playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="save-playlist-title" onMouseDown={(event) => event.stopPropagation()}>
+          <button className="auth-dialog-close" type="button" onClick={() => setIsSaveDialogOpen(false)} aria-label="Fechar"><X aria-hidden="true" size={18} /></button>
+          <div className="profile-heading"><span className="history-heading-icon"><Save aria-hidden="true" size={21} /></span><div><h2 id="save-playlist-title">Salvar playlist</h2><p>Escolha um nome para encontrá-la na sua biblioteca.</p></div></div>
+          <label htmlFor="save-playlist-name">Nome da playlist</label>
+          <input id="save-playlist-name" value={saveName} onChange={(event) => setSaveName(event.target.value)} maxLength={80} autoComplete="off" autoFocus />
+          {saveDialogError && <p className="field-error" role="alert">{saveDialogError}</p>}
+          <button className="primary-button" type="button" onClick={() => void savePlaylist()} disabled={!saveName.trim() || isSavingPlaylist || isSavingQueue}>{isSavingPlaylist || isSavingQueue ? "Salvando…" : "Salvar"}</button>
+        </section>
+      </div>}
     </>
   );
 }

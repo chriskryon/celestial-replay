@@ -127,7 +127,10 @@ input::placeholder, .simple-playlist-input textarea::placeholder { color: #b8c2d
 .playlist-running-note .form-heading { padding: 0; }
 .playlist-running-note p { margin: 0 auto 0 0; color: var(--muted); font-size: 0.76rem; }
 .playlist-running-note .add-row { flex: 0 0 auto; }
-.playlist-save { display: grid; grid-template-columns: auto minmax(160px, 1fr) auto; align-items: center; gap: 0.45rem; padding-top: 0.15rem; } .playlist-save label { color: var(--muted); font-size: 0.78rem; font-weight: 600; } .playlist-save .secondary-button { grid-column: auto; justify-self: stretch; } .playlist-save-message { grid-column: auto; }
+.playlist-save { display: flex; justify-content: flex-end; padding-top: 0.15rem; } .playlist-save-message { grid-column: auto; }
+.icon-save-button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(187, 207, 255, 0.22); border-radius: 0.62rem; color: #dce7ff; background: rgba(128, 158, 234, 0.13); box-shadow: inset 0 1px rgba(255, 255, 255, 0.08); transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+.icon-save-button:hover:not(:disabled) { border-color: rgba(205, 222, 255, 0.46); background: rgba(152, 181, 251, 0.22); transform: translateY(-1px); }
+.icon-save-button:focus-visible { outline: 3px solid rgba(193, 213, 255, 0.75); outline-offset: 3px; }
 
 .queue-surface { max-height: 160px; overflow: auto; padding: 0.75rem; border: 1px solid rgba(218, 228, 255, 0.09); border-radius: 0.75rem; background: var(--glass-subtle); }
 .queue-title { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
@@ -148,10 +151,7 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .queue-count { color: var(--ink); font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
 .queue-item input:not([type="range"]) { min-height: 34px; padding: 0.4rem 0.5rem; font-size: 0.78rem; }
 .queue-item input[aria-invalid="true"] { border-color: var(--danger); }
-.queue-save { display: grid; grid-template-columns: auto minmax(150px, 1fr) auto; gap: 0.45rem; align-items: center; margin: 0.7rem 0 0.2rem; padding: 0.58rem; border: 1px solid rgba(205, 220, 255, 0.12); border-radius: 0.65rem; background: rgba(67, 91, 153, 0.08); }
-.queue-save label { color: var(--muted); font-size: 0.76rem; font-weight: 650; }
-.queue-save input { min-height: 36px; padding: 0.4rem 0.52rem; font-size: 0.8rem; }
-.queue-save .secondary-button { grid-column: auto; min-height: 36px; padding: 0.35rem 0.7rem; }
+.queue-save { display: flex; justify-content: flex-end; margin: 0.55rem 0 0.15rem; }
 .queue-save-message { margin: 0.15rem 0 0; }
 
 .empty-surface { display: grid; max-width: 720px; gap: 1rem; margin: auto; padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--glass); box-shadow: var(--shadow); backdrop-filter: blur(22px); }
@@ -218,6 +218,10 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .profile-dialog > label { margin-top: 0.15rem; color: var(--muted); font-size: 0.76rem; font-weight: 650; }
 .profile-dialog > input { min-height: 40px; padding: 0.45rem 0.58rem; font-size: 0.85rem; }
 .profile-dialog .primary-button { justify-self: start; min-height: 40px; margin-top: 0.25rem; }
+.save-playlist-dialog { position: relative; display: grid; width: min(100%, 390px); gap: 0.5rem; padding: 1.1rem; border: 1px solid rgba(216, 227, 255, 0.2); border-radius: 0.85rem; background: rgba(9, 18, 43, 0.96); box-shadow: var(--shadow), inset 0 1px rgba(255, 255, 255, 0.08); }
+.save-playlist-dialog > label { margin-top: 0.15rem; color: var(--muted); font-size: 0.76rem; font-weight: 650; }
+.save-playlist-dialog > input { min-height: 40px; padding: 0.45rem 0.58rem; font-size: 0.85rem; }
+.save-playlist-dialog .primary-button { justify-self: start; min-height: 40px; margin-top: 0.25rem; }
 .history-surface { display: grid; width: min(100%, 900px); align-content: start; gap: 1.15rem; margin: 0; padding: clamp(1rem, 3vw, 1.35rem); border: 1px solid rgba(216, 227, 255, 0.17); border-radius: 0.85rem; background: rgba(11, 21, 48, 0.4); box-shadow: inset 0 1px rgba(255, 255, 255, 0.07); backdrop-filter: blur(24px) saturate(120%); }
 .history-heading { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 0.7rem; align-items: center; }
 .history-heading-icon { width: 42px; height: 42px; border-radius: 50%; }
