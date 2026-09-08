@@ -77,6 +77,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [played, setPlayed] = useState(0);
+  const [loaded, setLoaded] = useState(0);
   const seekingRef = useRef(false);
   const programmaticSeekRef = useRef(false);
   const activeVideoIdRef = useRef<string | null>(null);
@@ -368,11 +369,18 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     }
   };
 
-  const recordCompletedVideo = (item: VideoItem) => {
+  const recordCompletedVideo = (item: VideoItem, attempt = 0) => {
+    // Fire-and-forget com retry: sem isso, uma falha de rede pontual
+    // apaga a repetição do histórico para sempre.
+    const send = () => recordCompletedVideo(item, attempt + 1);
     void fetch("/api/history", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ url: item.src, completedRepetitions: item.repetitions }),
+    }).then((response) => {
+      if (!response.ok && attempt < 2) window.setTimeout(send, 1500 * (attempt + 1));
+    }).catch(() => {
+      if (attempt < 2) window.setTimeout(send, 1500 * (attempt + 1));
     });
   };
 
@@ -394,8 +402,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       const item = makeItem(source.trim(), parsedRepetitions);
       setQueue([item]);
       setActiveIndex(0);
-      setRemaining(item.repetitions);
-      setPlayed(0);
+      setRemaining(item.repetitions);(0);
+(0);
       seekingRef.current = false;
       setIsPlaying(true);
       setHasPlaybackStarted(false);
@@ -415,8 +423,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setQueuePlaylistName(playlistName.trim() || "Minha playlist");
     setQueue(nextQueue);
     setActiveIndex(0);
-    setRemaining(nextQueue[0].repetitions);
-    setPlayed(0);
+    setRemaining(nextQueue[0].repetitions);(0);
+(0);
     seekingRef.current = false;
     setIsPlaying(true);
     setHasPlaybackStarted(false);
@@ -459,8 +467,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         return;
       }
       setActiveIndex(nextIndex);
-      setRemaining(nextVideo.repetitions);
-      setPlayed(0);
+      setRemaining(nextVideo.repetitions);(0);
+(0);
       seekingRef.current = false;
       setHasPlaybackStarted(false);
       setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
@@ -476,8 +484,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setRemaining(0);
-    setDuration(null);
-    setPlayed(0);
+    setDuration(null);(0);
+(0);
     const src = activeVideo?.src ?? "";
     // Diferencia fonte não suportada (nem o ReactPlayer reconhece) de falha
     // de rede/embed privado — cada caso pede uma ação diferente do usuário.
@@ -563,6 +571,15 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     const node = playerRef.current;
     if (!node || seekingRef.current || !Number.isFinite(node.duration) || !node.duration) return;
     setPlayed(node.currentTime / node.duration);
+  };
+
+  // Faixa "carregado" atrás do seek (guards da demo: sem buffered, sem update).
+  const handleProgress = () => {
+    const node = playerRef.current;
+    if (!node || !node.buffered?.length || !Number.isFinite(node.duration) || !node.duration) return;
+    try {
+      setLoaded(node.buffered.end(node.buffered.length - 1) / node.duration);
+    } catch { /* buffered indisponível neste provider */ }
   };
 
   const handleSeekSliderDown = () => { seekingRef.current = true; };
@@ -659,20 +676,21 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
               {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
             </>}
             {error && <p className="field-error" role="alert">{error}</p>}
-            {!isEditingQueue && <button className="primary-button" type="submit" disabled={mode === "single" ? !canSubmitSingle : !canSubmitPlaylist}><Play aria-hidden="true" size={18} />{mode === "single" ? "Iniciar repetição" : "Iniciar playlist"}</button>}
+            {!isEditingQueue && <button className="primary-button" type="submit" disabled={mode === "single" ? !canSubmitSingle : !canSubmitPlaylist}><Play aria-hidden="true" size={18} />{mode === "single" ? "Iniciar" : "Iniciar playlist"}</button>}
             {!isEditingQueue && (mode === "single" ? singleHint : playlistHint) && <p className="field-help" role="status">{mode === "single" ? singleHint : playlistHint}</p>}
+            {!isEditingQueue && !activeVideo && previewVideo && !error && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
           </form>
 
           <div className="player-surface">
             <div className="player-stage">
               {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onTimeUpdate={activeVideo ? handleTimeUpdate : undefined} onSeeked={activeVideo ? handleSeeked : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onTimeUpdate={activeVideo ? handleTimeUpdate : undefined} onProgress={activeVideo ? handleProgress : undefined} onSeeked={activeVideo ? handleSeeked : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             {queue.length > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((completedRepetitions / totalRepetitions) * 100)} aria-label="Progresso da playlist"><i style={{ width: `${(completedRepetitions / totalRepetitions) * 100}%` }} /></div>}
             {activeVideo && !error && <div className="control-bar">
               <div className="control-group"><button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button></div>
-              {duration !== null && duration > 0 && <div className="control-group seek-group"><label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label></div>}
+              {duration !== null && duration > 0 && <div className="control-group seek-group"><label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} style={{ background: `linear-gradient(90deg, rgba(220,231,255,.9) ${played * 100}%, rgba(190,207,248,.35) ${played * 100}%, rgba(190,207,248,.35) ${Math.max(played, Math.min(loaded, 1)) * 100}%, rgba(190,207,248,.12) ${Math.max(played, Math.min(loaded, 1)) * 100}%)` }} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label></div>}
               <div className="control-group"><button className="icon-save-button" type="button" onClick={toggleMute} aria-label={volume === 0 ? "Ativar som" : "Silenciar"} title={volume === 0 ? "Ativar som (M)" : "Silenciar (M)"}>{volume === 0 ? <VolumeX aria-hidden="true" size={18} /> : <Volume2 aria-hidden="true" size={18} />}</button><input className="volume-slider" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" title="Volume" /></div>
               <div className="control-group" role="toolbar" aria-label="Velocidade">{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Velocidade ${rate}x`}>{rate}x</button>)}</div>
               <div className="control-group" role="toolbar" aria-label="Tela">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={() => setPip((value) => !value)} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={goFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
