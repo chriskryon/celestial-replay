@@ -12,7 +12,7 @@ import { PlaybackQueue } from "@/components/playback-queue";
 import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
-import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistLine, parsePlaylistLines } from "@/lib/replay-playlist";
+import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
@@ -62,14 +62,14 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
   activeVideoIdRef.current = activeVideo?.id ?? null;
-  const parsedRepetitions = Number(repetitions);
-  const canSubmitSingle = isPlayableMediaUrl(source.trim()) && canPlaySrc(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
-  const playlistItems = useMemo(() => drafts.map((draft) => ({ ...draft, count: Number(draft.repetitions) })), [drafts]);
+  const singleReplay = useMemo(() => parseSingleReplay(source, repetitions, canPlaySrc), [repetitions, source]);
+  const canSubmitSingle = singleReplay !== null;
+  const playlistItems = useMemo(() => parsePlaylistDrafts(drafts, canPlaySrc), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
-    : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
+    : playlistItems !== null;
   // Motivo do Iniciar desabilitado — botão cinza sem explicação é beco sem saída.
   const singleHint = !canSubmitSingle
     ? !source.trim()
@@ -79,7 +79,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         : "Repetições: número inteiro maior que zero."
     : null;
   const firstBadDraft = playlistInputMode === "advanced"
-    ? playlistItems.findIndex((item) => !(isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.count) && item.count > 0))
+    ? drafts.findIndex((draft) => !parseSingleReplay(draft.src, draft.repetitions, canPlaySrc))
     : -1;
   const playlistHint = !canSubmitPlaylist
     ? playlistInputMode === "simple"
@@ -103,14 +103,14 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
   const previewVideo = useMemo<VideoItem | null>(() => {
     if (activeVideo) return null;
-    if (mode === "single" && canSubmitSingle) return { id: "single-preview", src: source.trim(), repetitions: parsedRepetitions };
+    if (mode === "single" && singleReplay) return { id: "single-preview", src: singleReplay.src, repetitions: singleReplay.count };
     if (mode !== "playlist") return null;
     if (playlistInputMode === "simple" && firstSimplePlaylistItem) return { id: "simple-playlist-preview", src: firstSimplePlaylistItem.src, repetitions: firstSimplePlaylistItem.count };
-    const firstDraft = playlistItems[0];
-    return firstDraft && isPlayableMediaUrl(firstDraft.src.trim()) && canPlaySrc(firstDraft.src.trim()) && Number.isInteger(firstDraft.count) && firstDraft.count > 0
+    const firstDraft = playlistItems?.[0];
+    return firstDraft
       ? { id: "advanced-playlist-preview", src: firstDraft.src.trim(), repetitions: firstDraft.count }
       : null;
-  }, [activeVideo, canSubmitSingle, firstSimplePlaylistItem, mode, parsedRepetitions, playlistInputMode, playlistItems, source]);
+  }, [activeVideo, firstSimplePlaylistItem, mode, playlistInputMode, playlistItems, singleReplay]);
   const displayedVideo = activeVideo ?? previewVideo;
   const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
 
@@ -398,7 +398,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       // Dá play NA INSTÂNCIA ATUAL dentro do clique antes de trocar o estado,
       // assim o navegador mantém o gesto de ativação e não recarrega.
       playLoadedVideo();
-      const item = makeItem(source.trim(), parsedRepetitions);
+      const item = makeItem(singleReplay!.src, singleReplay!.count);
       setQueue([item]);
       setActiveIndex(0);
       setRemaining(item.repetitions);(0);
@@ -415,7 +415,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setError("Revise cada linha: todas precisam ter uma URL válida e pelo menos uma repetição.");
       return;
     }
-    const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems;
+    const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems!;
     // Mesmo raciocínio da playlist: o preview do 1º vídeo já está montado.
     playLoadedVideo();
     const nextQueue = entries.map((item) => makeItem(item.src.trim(), item.count));

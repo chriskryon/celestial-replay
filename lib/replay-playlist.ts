@@ -1,4 +1,5 @@
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { z } from "zod";
 
 export type VideoItem = { id: string; src: string; repetitions: number };
 export type PlaylistDraft = { id: string; src: string; repetitions: string };
@@ -8,8 +9,25 @@ export type ResumableSession = { queue: VideoItem[]; activeIndex: number; remain
 
 type CanPlay = (src: string) => boolean;
 
+const sourceSchema = z.string().trim().url().refine(isPlayableMediaUrl);
+const repetitionsSchema = z.coerce.number().int().positive();
+const playlistLineSchema = z.object({ src: sourceSchema, repetitions: repetitionsSchema });
+
 export const makeItem = (src: string, repetitions: number): VideoItem => ({ id: crypto.randomUUID(), src, repetitions });
 export const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "", repetitions: "1" });
+
+export function parseSingleReplay(source: string, repetitions: string, canPlay: CanPlay): ParsedPlaylistItem | null {
+  const result = playlistLineSchema.safeParse({ src: source, repetitions });
+  return result.success && canPlay(result.data.src) ? { src: result.data.src, count: result.data.repetitions } : null;
+}
+
+export function parsePlaylistDrafts(drafts: PlaylistDraft[], canPlay: CanPlay): ParsedPlaylistItem[] | null {
+  if (drafts.length === 0) return null;
+  const result = z.array(playlistLineSchema).min(1).safeParse(drafts);
+  return result.success && result.data.every((item) => canPlay(item.src))
+    ? result.data.map((item) => ({ src: item.src, count: item.repetitions }))
+    : null;
+}
 
 export function isPlayableItem(item: VideoItem, canPlay: CanPlay) {
   const src = item.src.trim();
@@ -30,6 +48,5 @@ export function parseFirstPlaylistLine(value: string, canPlay: CanPlay): ParsedP
 
 export function parsePlaylistLine(line: string, canPlay: CanPlay): ParsedPlaylistItem | null {
   const [src, repetitions, ...extra] = line.split(";").map((part) => part.trim());
-  const count = Number(repetitions);
-  return extra.length === 0 && isPlayableMediaUrl(src) && canPlay(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
+  return extra.length === 0 ? parseSingleReplay(src, repetitions, canPlay) : null;
 }
