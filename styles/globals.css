@@ -91,6 +91,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .volume-control span { min-width: 3.4rem; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .pause-button { width: fit-content; margin: 0.35rem 0.15rem 0; }
+.playback-tools { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.15rem 0; flex-wrap: wrap; }
+.playback-tools .icon-save-button { width: 36px; height: 36px; }
 .keyboard-help { display: inline-flex; align-items: center; gap: 0.32rem; margin: 0.32rem 0.15rem 0; color: var(--muted); font-size: 0.7rem; }
 
 .control-surface { display: grid; grid-template-columns: auto minmax(170px, 1fr) 82px auto; align-items: end; gap: 0.45rem; padding: 0.1rem; border: 0; background: transparent; box-shadow: none; }

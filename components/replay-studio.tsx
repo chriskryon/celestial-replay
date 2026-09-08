@@ -3,10 +3,12 @@
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Keyboard, ListMusic, ListPlus, Orbit, Pause, Play, Plus, RotateCcw, Save, Trash2, Video, Volume2, X } from "lucide-react";
+import { Keyboard, ListMusic, ListPlus, Maximize, Orbit, Pause, PictureInPicture2, Play, Plus, RotateCcw, Save, Trash2, Video, Volume2, VolumeX, X } from "lucide-react";
+import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
+import { canEnablePIP } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 
@@ -68,6 +70,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
   const [playBlocked, setPlayBlocked] = useState(false);
   const [volume, setVolume] = useState(0.7);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [pip, setPip] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
@@ -472,6 +476,18 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying((value) => !value);
   };
 
+  const toggleMute = () => setVolume((value) => (value === 0 ? 0.7 : 0));
+
+  const goFullscreen = () => {
+    const el = document.querySelector(".replay-player");
+    if (el && screenfull.isEnabled) void screenfull.request(el);
+  };
+
+  const handleRateChange = () => {
+    const rate = playerRef.current?.playbackRate;
+    if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) setPlaybackRate(rate);
+  };
+
   const handlePlaybackPause = (videoId: string) => {
     if (!activeVideo || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === videoId) return;
     setIsPlaying(false);
@@ -547,11 +563,17 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
             {activeVideo && !error && <button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button>}
+            {activeVideo && !error && <div className="playback-tools" role="toolbar" aria-label="Controles de reprodução">
+              {[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Velocidade ${rate}x`}>{rate}x</button>)}
+              <button className="icon-save-button" type="button" onClick={toggleMute} aria-label={volume === 0 ? "Ativar som" : "Silenciar"} title={volume === 0 ? "Ativar som (M)" : "Silenciar (M)"}>{volume === 0 ? <VolumeX aria-hidden="true" size={18} /> : <Volume2 aria-hidden="true" size={18} />}</button>
+              {displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={() => setPip((value) => !value)} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}
+              <button className="icon-save-button" type="button" onClick={goFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button>
+            </div>}
             {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
           </div>
         </div>

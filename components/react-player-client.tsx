@@ -26,3 +26,11 @@ const ClientReactPlayer = forwardRef<HTMLVideoElement, ClientProps>(
 ClientReactPlayer.displayName = "ClientReactPlayer";
 
 export default ClientReactPlayer;
+
+// Estáticos do ReactPlayer v3 (perdidos no forwardRef): canPlay/canEnablePIP.
+const inner = ReactPlayer as unknown as {
+  canPlay?: (src: string) => boolean;
+  canEnablePIP?: (src: string) => boolean;
+};
+export const canPlaySrc: (src: string) => boolean = inner.canPlay ?? (() => false);
+export const canEnablePIP: (src: string) => boolean = inner.canEnablePIP ?? (() => false);
