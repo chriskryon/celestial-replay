@@ -24,12 +24,14 @@ export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: Aut
 
   useEffect(() => setMode(initialMode), [initialMode]);
 
+  const callbackUrlForCurrentPage = () => variant === "dialog" ? `${window.location.pathname}${window.location.search}` : "/";
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    const callbackURL = variant === "dialog" ? window.location.href : "/";
+    const callbackURL = callbackUrlForCurrentPage();
     const result = isSignUp
       ? await authClient.signUp.email({ name, email, password, callbackURL })
       : await authClient.signIn.email({ email, password, callbackURL });
@@ -47,10 +49,13 @@ export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: Aut
   const continueWithGoogle = async () => {
     setError(null);
     setIsSubmitting(true);
-    const callbackURL = variant === "dialog" ? window.location.href : "/";
-    const result = await authClient.signIn.social({ provider: "google", callbackURL });
-    if (result?.error) {
-      setError(result.error.message || "Não foi possível continuar com o Google.");
+    try {
+      const callbackURL = callbackUrlForCurrentPage();
+      const result = await authClient.signIn.social({ provider: "google", callbackURL });
+      if (result?.error) setError(result.error.message || "Não foi possível continuar com o Google.");
+    } catch {
+      setError("Não foi possível abrir o login do Google. Verifique se pop-ups estão permitidos e tente novamente.");
+    } finally {
       setIsSubmitting(false);
     }
   };
