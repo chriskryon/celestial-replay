@@ -73,9 +73,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [duration, setDuration] = useState<number | null>(null);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
-  // Ref da instância do react-player (não é HTMLMediaElement).
-  // Guarda playVideo()/play() do player interno (YouTube/Vimeo/HTML5).
-  const playerRef = useRef<any>(null);
+  // Ref do elemento de mídia interno do ReactPlayer v3 (HTMLMediaElement).
+  // playerRef.current.play() / .pause() / .seekTo via currentTime.
+  const playerRef = useRef<HTMLVideoElement | null>(null);
 
   const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
   activeVideoIdRef.current = activeVideo?.id ?? null;
@@ -200,27 +200,33 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setStatus("Pronto para montar uma nova playlist.");
   };
 
-  const playLoadedVideo = () => {
-    // Chamado DENTRO do clique (gesto do usuário) sobre a instância
-    // que já está montada (preview). Não cria play novo, só dá play.
+  const attemptPlay = () => {
+    // Chamado DENTRO de gesto do usuário (submit / Continuar) e no onReady
+    // como fallback. No v3 o ref é o elemento de mídia real.
     try {
-      const instance: any = playerRef.current;
-      if (!instance) return;
-      // HTML5 direto (caso o interno seja <video>)
-      if (typeof instance.play === "function") {
-        void instance.play().catch?.(() => undefined);
-        return;
+      const node = playerRef.current as (HTMLVideoElement & {
+        playVideo?: () => void;
+        getInternalPlayer?: () => any;
+      }) | null;
+      if (!node) return false;
+      if (typeof node.playVideo === "function") { node.playVideo(); return true; }
+      if (typeof node.play === "function") {
+        const r = node.play() as unknown as Promise<void> | undefined;
+        if (r && typeof r.catch === "function") r.catch(() => undefined);
+        return true;
       }
-      const inner = instance.getInternalPlayer?.();
-      if (!inner) return;
-      if (typeof inner.playVideo === "function") { inner.playVideo(); return; } // YouTube
-      if (typeof inner.play === "function") {
-        // Vimeo / HTML5 interno
+      const inner = node.getInternalPlayer?.();
+      if (inner && typeof inner.playVideo === "function") { inner.playVideo(); return true; }
+      if (inner && typeof inner.play === "function") {
         const r = inner.play();
-        if (r?.catch) r.catch(() => undefined);
+        if (r && typeof r.catch === "function") r.catch(() => undefined);
+        return true;
       }
     } catch { /* autoplay bloqueado: o prop playing=true assume em seguida */ }
+    return false;
   };
+
+  const playLoadedVideo = attemptPlay;
 
   const resume = () => {
     if (!resumeSession) return;
@@ -350,11 +356,17 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setRemaining(nextRemaining);
       setHasPlaybackStarted(false);
       try {
-        const instance: any = playerRef.current;
-        if (typeof instance?.seekTo === "function") instance.seekTo(0, "seconds");
-        else if (instance && "currentTime" in instance) instance.currentTime = 0;
+        const node = playerRef.current;
+        if (node) {
+          if ("currentTime" in node) node.currentTime = 0;
+          const maybeSeek = (node as unknown as { seekTo?: (s: number, t?: string) => void }).seekTo;
+          if (typeof maybeSeek === "function") maybeSeek.call(node, 0, "seconds");
+        }
       } catch { /* segue para play */ }
-      playLoadedVideo();
+      // O seek acima pausa alguns providers; re-dispara play no próximo tick,
+      // ainda dentro da cadeia do evento `ended`.
+      window.setTimeout(() => { attemptPlay(); }, 0);
+      setIsPlaying(true);
       setStatus(`Reproduzindo ${activeVideo.repetitions - nextRemaining + 1} de ${activeVideo.repetitions}.`);
       return;
     }
@@ -402,6 +414,30 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying(true);
     setHasPlaybackStarted(true);
     setStatus(`Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`);
+  };
+
+  // onPlay/onStart do v3 disparam no evento `play` (antes de ter dados).
+  // onPlaying só dispara quando há dados fluindo — se depender só dele,
+  // YouTube em buffering ou autoplay bloqueado trava em "Iniciando…".
+  const handlePlaybackPlay = (videoId: string) => {
+    if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current) return;
+    endedVideoIdRef.current = null;
+    setIsPlaying(true);
+    // Marca started já no `play` para sair do "Iniciando…" mesmo em buffering.
+    setHasPlaybackStarted((started) => {
+      if (!started) setStatus(`Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`);
+      return true;
+    });
+  };
+
+  const togglePlay = () => {
+    // Gesto do usuário: tenta play imperativo primeiro (preserva ativação),
+    // depois espelha no estado declarativo que o Player.js observa.
+    if (!isPlaying) attemptPlay();
+    else {
+      try { playerRef.current?.pause(); } catch { /* segue para estado */ }
+    }
+    setIsPlaying((value) => !value);
   };
 
   const handlePlaybackPause = (videoId: string) => {
@@ -479,11 +515,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} playerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} controls playsInline volume={volume} width="100%" height="100%" onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} width="100%" height="100%" onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
-            {activeVideo && !error && <button className="pause-button" type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button>}
+            {activeVideo && !error && <button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button>}
             {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
           </div>
         </div>
