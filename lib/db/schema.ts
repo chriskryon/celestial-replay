@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { check, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const playlists = pgTable(
   "playlists",
@@ -42,5 +42,24 @@ export const playbackHistory = pgTable(
   (table) => [
     index("playback_history_owner_completed_at_idx").on(table.ownerId, table.completedAt),
     check("playback_history_repetitions_positive", sql`${table.completedRepetitions} > 0`),
+  ],
+);
+
+export const playbackSessions = pgTable(
+  "playback_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    queue: jsonb("queue").$type<Array<{ id: string; src: string; repetitions: number }>>().notNull(),
+    activeIndex: integer("active_index").notNull(),
+    remaining: integer("remaining").notNull(),
+    playlistName: text("playlist_name").notNull(),
+    volume: integer("volume").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("playback_sessions_owner_unique").on(table.ownerId),
+    index("playback_sessions_owner_updated_at_idx").on(table.ownerId, table.updatedAt),
+    check("playback_sessions_remaining_positive", sql`${table.remaining} > 0`),
   ],
 );

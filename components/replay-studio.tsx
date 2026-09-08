@@ -3,10 +3,11 @@
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ListMusic, ListPlus, Orbit, Pause, Play, Plus, Trash2, Video, Volume2 } from "lucide-react";
+import { Keyboard, ListMusic, ListPlus, Orbit, Pause, Play, Plus, RotateCcw, Trash2, Video, Volume2 } from "lucide-react";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
+import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
@@ -15,6 +16,7 @@ type VideoItem = { id: string; src: string; repetitions: number };
 type PlaylistDraft = { id: string; src: string; repetitions: string };
 type ParsedPlaylistItem = { src: string; count: number };
 type SavedPlaylist = { id: string; name: string; items: Array<{ id: string; url: string; repetitions: number }> };
+type ResumableSession = { queue: VideoItem[]; activeIndex: number; remaining: number; playlistName: string; volume: number };
 
 const makeItem = (src: string, repetitions: number): VideoItem => ({ id: crypto.randomUUID(), src, repetitions });
 const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "", repetitions: "1" });
@@ -33,6 +35,7 @@ function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
 }
 
 export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
+  const session = authClient.useSession();
   const [mode, setMode] = useState(initialMode);
   const [source, setSource] = useState("");
   const [repetitions, setRepetitions] = useState("3");
@@ -53,6 +56,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [volume, setVolume] = useState(0.7);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
+  const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
 
   const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
   const parsedRepetitions = Number(repetitions);
@@ -63,6 +68,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     ? simplePlaylistItems !== null
     : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
+  const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
+  const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
+  const progressLabel = activeIndex === null ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -72,6 +80,40 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setSavedPlaylists(result.playlists);
     }).catch(() => undefined);
   }, [mode]);
+
+  useEffect(() => {
+    if (!session.data?.user) return;
+    void fetch("/api/playback-session").then(async (response) => {
+      if (!response.ok) return;
+      const result = await response.json() as { session: ResumableSession | null };
+      setResumeSession(result.session);
+    }).catch(() => undefined);
+  }, [session.data?.user]);
+
+  useEffect(() => {
+    if (!session.data?.user || activeIndex === null || queue.length === 0 || !activeVideo) return;
+    const timeout = window.setTimeout(() => {
+      void fetch("/api/playback-session", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100) }),
+      });
+    }, 750);
+    return () => window.clearTimeout(timeout);
+  }, [activeIndex, activeVideo, queue, queuePlaylistName, remaining, session.data?.user, volume]);
+
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, [contenteditable='true']") || !activeVideo) return;
+      if (event.key === " ") { event.preventDefault(); setIsPlaying((value) => !value); }
+      if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
+      if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
+      if (event.key === "ArrowDown") { event.preventDefault(); setVolume((value) => Math.max(0, Number((value - 0.05).toFixed(2)))); }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [activeVideo]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -93,6 +135,19 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying(false);
     setError(null);
     setStatus("Pronto para montar uma nova playlist.");
+  };
+
+  const resume = () => {
+    if (!resumeSession) return;
+    setMode("playlist");
+    setQueue(resumeSession.queue);
+    setActiveIndex(resumeSession.activeIndex);
+    setRemaining(resumeSession.remaining);
+    setQueuePlaylistName(resumeSession.playlistName);
+    setVolume(resumeSession.volume / 100);
+    setIsPlaying(true);
+    setStatus(`Sessão retomada: vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
+    setResumeSession(null);
   };
 
   const savePlaylist = async () => {
@@ -194,6 +249,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying(true);
     setError(null);
     setStatus(`Playlist iniciada: vídeo 1 de ${nextQueue.length}.`);
+    setDuration(null);
   };
 
   const handleEnded = () => {
@@ -221,6 +277,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     }
     setIsPlaying(false);
     setStatus("Sessão concluída. Entre para manter este histórico.");
+    setResumeSession(null);
+    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
   };
 
   return (
@@ -238,6 +296,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
           <button className={mode === "playlist" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("playlist")} aria-pressed={mode === "playlist"}><ListMusic aria-hidden="true" size={16} />Playlist</button>
           <AccountStudioTabs />
         </nav>
+
+        {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length}</span></div><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></aside>}
 
         <div className="studio-grid">
           <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={start}>
@@ -293,11 +353,12 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {activeVideo ? <ReactPlayer className="replay-player" key={`${activeVideo.id}-${remaining}`} src={activeVideo.src} playing={isPlaying} controls playsInline volume={volume} width="100%" height="100%" onEnded={handleEnded} onError={() => { setIsPlaying(false); setError("Não foi possível reproduzir esta URL. Verifique as permissões do vídeo ou tente outra fonte suportada."); }} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>O player aparece aqui quando a sessão começar.</p></div>}
+              {activeVideo ? <ReactPlayer className="replay-player" key={`${activeVideo.id}-${remaining}`} src={activeVideo.src} playing={isPlaying} controls playsInline volume={volume} width="100%" height="100%" onEnded={handleEnded} onDurationChange={(event) => setDuration(event.currentTarget.duration)} onError={() => { setIsPlaying(false); setError("Não foi possível reproduzir esta URL. Verifique as permissões do vídeo ou tente outra fonte suportada."); }} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>O player aparece aqui quando a sessão começar.</p></div>}
             </div>
-            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{status}</span>{activeVideo && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
+            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? status}{duration && activeVideo ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
             {activeVideo && <button className="pause-button" type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? "Pausar" : "Continuar"}</button>}
+            {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
           </div>
         </div>
 

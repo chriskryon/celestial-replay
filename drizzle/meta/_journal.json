@@ -15,6 +15,13 @@
       "when": 1788455337510,
       "tag": "0001_flimsy_the_renegades",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788869803267,
+      "tag": "0002_familiar_black_queen",
+      "breakpoints": true
     }
   ]
 }
