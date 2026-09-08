@@ -203,7 +203,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setIsPlaying(true);
     setHasPlaybackStarted(false);
     setPlaybackNonce(0);
-    setStatus(`Retomando vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}…`);
+    setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
     setResumeSession(null);
   };
 
@@ -282,7 +282,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setHasPlaybackStarted(false);
       setPlaybackNonce(0);
       setError(null);
-      setStatus("Carregando vídeo…");
+      setStatus(`Reproduzindo 1 de ${item.repetitions}.`);
       return;
     }
 
@@ -300,7 +300,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setHasPlaybackStarted(false);
     setPlaybackNonce(0);
     setError(null);
-    setStatus("Carregando o primeiro vídeo…");
+    setStatus(`Reproduzindo vídeo 1 de ${nextQueue.length}.`);
     setDuration(null);
   };
 
@@ -312,7 +312,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setRemaining(nextRemaining);
       setHasPlaybackStarted(false);
       setPlaybackNonce((value) => value + 1);
-      setStatus("Preparando a próxima repetição…");
+      setStatus(`Reproduzindo ${activeVideo.repetitions - nextRemaining + 1} de ${activeVideo.repetitions}.`);
       return;
     }
     const nextIndex = activeIndex + 1;
@@ -328,7 +328,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setActiveIndex(nextIndex);
       setRemaining(nextVideo.repetitions);
       setHasPlaybackStarted(false);
-      setStatus(`Carregando vídeo ${nextIndex + 1} de ${queue.length}…`);
+      setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
       return;
     }
     setIsPlaying(false);
