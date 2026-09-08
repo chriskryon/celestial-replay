@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { History, ListMusic, Pencil, Play, Plus, Save, Trash2, Video } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, GripVertical, History, ListFilter, ListMusic, Pencil, Play, Plus, Save, Search, Trash2, Video } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AuthControls } from "@/components/auth-controls";
@@ -15,6 +15,10 @@ type DraftItem = { id: string; url: string; repetitions: string };
 
 const draftItem = (): DraftItem => ({ id: crypto.randomUUID(), url: "", repetitions: "1" });
 const initialDraftItem: DraftItem = { id: "new-playlist-item", url: "", repetitions: "1" };
+
+function sourceDomain(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "outro"; }
+}
 
 function parseSimplePlaylist(value: string) {
   const lines = value.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -47,9 +51,18 @@ export function PlaylistManager() {
   const [message, setMessage] = useState<string | null>(null);
   const [isSignedOut, setIsSignedOut] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+  const [search, setSearch] = useState("");
+  const [domainFilter, setDomainFilter] = useState("todos");
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
   const selected = useMemo(() => playlists.find((playlist) => playlist.id === selectedId) ?? null, [playlists, selectedId]);
   const parsedSimple = useMemo(() => parseSimplePlaylist(simpleInput), [simpleInput]);
+  const availableDomains = useMemo(() => Array.from(new Set(playlists.flatMap((playlist) => playlist.items.map((item) => sourceDomain(item.url))))).sort(), [playlists]);
+  const filteredPlaylists = useMemo(() => playlists.filter((playlist) => {
+    const matchesSearch = playlist.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase());
+    const matchesDomain = domainFilter === "todos" || playlist.items.some((item) => sourceDomain(item.url) === domainFilter);
+    return matchesSearch && matchesDomain;
+  }), [domainFilter, playlists, search]);
   const isValid = name.trim().length > 0 && (inputMode === "simple"
     ? parsedSimple !== null
     : items.length > 0 && items.every((item) => isPlayableMediaUrl(item.url.trim()) && Number.isInteger(Number(item.repetitions)) && Number(item.repetitions) > 0));
@@ -75,6 +88,26 @@ export function PlaylistManager() {
   };
 
   const create = () => { setSelectedId(null); setName("Minha playlist"); setSimpleInput(""); setItems([initialDraftItem]); setInputMode("advanced"); setMessage(null); };
+  const moveItem = (id: string, direction: -1 | 1) => setItems((current) => {
+    const from = current.findIndex((item) => item.id === id);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= current.length) return current;
+    const next = [...current];
+    [next[from], next[to]] = [next[to], next[from]];
+    return next;
+  });
+  const duplicateItem = (item: DraftItem) => setItems((current) => [...current, { ...item, id: crypto.randomUUID() }]);
+  const duplicatePlaylist = async (playlist: Playlist) => {
+    setIsSaving(true); setMessage(null);
+    const response = await fetch("/api/playlists", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: `${playlist.name} (cópia)`, items: playlist.items.map((item) => ({ url: item.url, repetitions: item.repetitions })) }) });
+    const result = await response.json().catch(() => null);
+    setIsSaving(false);
+    if (!response.ok) { setMessage(result?.error ?? "Não foi possível duplicar agora."); return; }
+    const saved = result.playlist as Playlist;
+    setPlaylists((current) => [saved, ...current]);
+    edit(saved);
+    setMessage("Playlist duplicada.");
+  };
   const updateItem = (id: string, field: "url" | "repetitions", value: string) => setItems((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
   const changeInputMode = (nextMode: "simple" | "advanced") => {
     if (nextMode === inputMode) return;
@@ -117,11 +150,11 @@ export function PlaylistManager() {
       <div className="playlist-library">
       <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
       {isSignedOut ? <div className="library-empty"><ListMusic aria-hidden="true" size={24} /><p>Entre para criar playlists privadas e acessá-las em qualquer dispositivo.</p><OpenAuthButton>Entrar para salvar</OpenAuthButton></div> : <div className="library-grid">
-        <aside className="library-list" aria-label="Playlists salvas"><button className="new-playlist" type="button" onClick={create}><Plus aria-hidden="true" size={17} />Nova playlist</button>{isLoading ? <p>Carregando playlists…</p> : playlists.length === 0 ? <div className="library-empty"><Play aria-hidden="true" size={20} /><p>Você ainda não salvou nenhuma playlist.</p></div> : <ul>{playlists.map((playlist) => <li key={playlist.id}><button className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"} type="button" onClick={() => edit(playlist)}><span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span><Pencil aria-hidden="true" size={15} /></button></li>)}</ul>}</aside>
+        <aside className="library-list" aria-label="Playlists salvas"><button className="new-playlist" type="button" onClick={create}><Plus aria-hidden="true" size={17} />Nova playlist</button>{isLoading ? <div className="library-skeleton" aria-label="Carregando playlists"><i /><i /><i /></div> : playlists.length === 0 ? <div className="library-empty"><Play aria-hidden="true" size={20} /><p>Você ainda não salvou nenhuma playlist.</p></div> : <><div className="library-filters"><label className="sr-only" htmlFor="playlist-search">Buscar playlist</label><span><Search aria-hidden="true" size={15}/><input id="playlist-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar" /></span><label className="sr-only" htmlFor="playlist-domain">Filtrar por origem</label><span><ListFilter aria-hidden="true" size={15}/><select id="playlist-domain" value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}><option value="todos">Todas as origens</option>{availableDomains.map((domain) => <option key={domain} value={domain}>{domain}</option>)}</select></span></div>{filteredPlaylists.length === 0 ? <p className="library-no-results">Nenhuma playlist encontrada.</p> : <ul>{filteredPlaylists.map((playlist) => <li key={playlist.id}><div className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"}><button type="button" onClick={() => edit(playlist)}><span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span><Pencil aria-hidden="true" size={15} /></button><button className="library-duplicate" type="button" onClick={() => void duplicatePlaylist(playlist)} aria-label={`Duplicar ${playlist.name}`}><Copy aria-hidden="true" size={15}/></button></div></li>)}</ul>}</>}</aside>
         <section className="library-editor" aria-labelledby="editor-title"><div className="library-editor-heading"><div><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>{selected && <button className="icon-danger" type="button" onClick={() => setDeleteTarget(selected)} aria-label={`Apagar ${selected.name}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>
           <label htmlFor="library-playlist-name">Nome da playlist</label><input id="library-playlist-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} />
           <div className="playlist-input-mode" role="tablist" aria-label="Forma de montar a playlist"><button className={inputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={inputMode === "simple"} onClick={() => changeInputMode("simple")}>Simples: linhas</button><button className={inputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={inputMode === "advanced"} onClick={() => changeInputMode("advanced")}>Avançado: campos</button></div>
-          {inputMode === "simple" ? <div className="simple-playlist-input"><label htmlFor="library-simple-playlist">Vídeos e repetições</label><textarea id="library-simple-playlist" value={simpleInput} onChange={(event) => setSimpleInput(event.target.value)} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" /><p>Uma linha por vídeo: <code>link;quantidade</code>.</p></div> : <><div className="library-items" aria-label="Vídeos da playlist">{items.map((item, index) => <div className="playlist-row" key={item.id}><span className="row-number" aria-hidden="true">{index + 1}</span><label className="sr-only" htmlFor={`library-url-${item.id}`}>URL do vídeo {index + 1}</label><input id={`library-url-${item.id}`} value={item.url} onChange={(event) => updateItem(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" /><label className="sr-only" htmlFor={`library-repetitions-${item.id}`}>Repetições do vídeo {index + 1}</label><input id={`library-repetitions-${item.id}`} type="number" min="1" step="1" value={item.repetitions} onChange={(event) => updateItem(item.id, "repetitions", event.target.value)} />{items.length > 1 && <button className="remove-row" type="button" onClick={() => setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={17} /></button>}</div>)}</div><button className="add-row" type="button" onClick={() => setItems((current) => [...current, draftItem()])}><Plus aria-hidden="true" size={17} />Adicionar vídeo</button></>}
+          {inputMode === "simple" ? <div className="simple-playlist-input"><label htmlFor="library-simple-playlist">Vídeos e repetições</label><textarea id="library-simple-playlist" value={simpleInput} onChange={(event) => setSimpleInput(event.target.value)} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" /><p>Uma linha por vídeo: <code>link;quantidade</code>.</p></div> : <><div className="library-items" aria-label="Vídeos da playlist">{items.map((item, index) => <div className="playlist-row" key={item.id} draggable onDragStart={() => setDraggedItemId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (!draggedItemId || draggedItemId === item.id) return; setItems((current) => { const from = current.findIndex((entry) => entry.id === draggedItemId); const to = current.findIndex((entry) => entry.id === item.id); const next = [...current]; next.splice(to, 0, next.splice(from, 1)[0]); return next; }); setDraggedItemId(null); }}><span className="row-number" aria-hidden="true">{index + 1}</span><button className="drag-handle" type="button" aria-label={`Arraste ou mova o vídeo ${index + 1}`}><GripVertical aria-hidden="true" size={16}/></button><label className="sr-only" htmlFor={`library-url-${item.id}`}>URL do vídeo {index + 1}</label><input id={`library-url-${item.id}`} value={item.url} onChange={(event) => updateItem(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" /><label className="sr-only" htmlFor={`library-repetitions-${item.id}`}>Repetições do vídeo {index + 1}</label><input id={`library-repetitions-${item.id}`} type="number" min="1" step="1" value={item.repetitions} onChange={(event) => updateItem(item.id, "repetitions", event.target.value)} /><div className="row-actions"><button type="button" onClick={() => moveItem(item.id, -1)} disabled={index === 0} aria-label={`Mover vídeo ${index + 1} para cima`}><ChevronUp aria-hidden="true" size={15}/></button><button type="button" onClick={() => moveItem(item.id, 1)} disabled={index === items.length - 1} aria-label={`Mover vídeo ${index + 1} para baixo`}><ChevronDown aria-hidden="true" size={15}/></button><button type="button" onClick={() => duplicateItem(item)} aria-label={`Duplicar vídeo ${index + 1}`}><Copy aria-hidden="true" size={15}/></button>{items.length > 1 && <button className="remove-row" type="button" onClick={() => setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={17} /></button>}</div></div>)}</div><button className="add-row" type="button" onClick={() => setItems((current) => [...current, draftItem()])}><Plus aria-hidden="true" size={17} />Adicionar vídeo</button></>}
           <button className="primary-button" type="button" onClick={save} disabled={!isValid || isSaving}><Save aria-hidden="true" size={17} />{isSaving ? "Salvando…" : selected ? "Salvar alterações" : "Criar playlist"}</button>
         </section>
       </div>}<Toast message={message} tone={message?.includes("não foi") || message?.includes("Informe") ? "error" : "success"}/>{deleteTarget && <div className="confirm-backdrop" role="presentation"><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-title"><h2 id="delete-title">Apagar playlist?</h2><p>“{deleteTarget.name}” será apagada definitivamente.</p><div><button className="secondary-button" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button><button className="danger-button" type="button" onClick={() => void remove(deleteTarget)}>Apagar playlist</button></div></section></div>}
