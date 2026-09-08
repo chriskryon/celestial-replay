@@ -70,7 +70,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
   const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
   const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
-  const progressLabel = activeIndex === null ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
+  const progressLabel = activeIndex === null || error ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -293,6 +293,16 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
   };
 
+  const handlePlaybackError = () => {
+    setIsPlaying(false);
+    setRemaining(0);
+    setDuration(null);
+    setError("Não foi possível reproduzir esta URL. Verifique as permissões do vídeo ou tente outra fonte suportada.");
+    setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
+    setResumeSession(null);
+    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+  };
+
   return (
     <>
       <header className="studio-heading">
@@ -365,11 +375,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {activeVideo ? <ReactPlayer className="replay-player" key={`${activeVideo.id}-${remaining}`} src={activeVideo.src} playing={isPlaying} controls playsInline volume={volume} width="100%" height="100%" onEnded={handleEnded} onDurationChange={(event) => setDuration(event.currentTarget.duration)} onError={() => { setIsPlaying(false); setError("Não foi possível reproduzir esta URL. Verifique as permissões do vídeo ou tente outra fonte suportada."); }} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>O player aparece aqui quando a sessão começar.</p></div>}
+              {activeVideo && !error ? <ReactPlayer className="replay-player" key={`${activeVideo.id}-${remaining}`} src={activeVideo.src} playing={isPlaying} controls playsInline volume={volume} width="100%" height="100%" onEnded={handleEnded} onDurationChange={(event) => setDuration(event.currentTarget.duration)} onError={handlePlaybackError} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
-            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? status}{duration && activeVideo ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
+            <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? status}{duration && activeVideo && !error ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
-            {activeVideo && <button className="pause-button" type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? "Pausar" : "Continuar"}</button>}
+            {activeVideo && !error && <button className="pause-button" type="button" onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? "Pausar" : "Continuar"}</button>}
             {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
           </div>
         </div>
@@ -381,7 +391,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
           <ol>{queue.map((item, index) => {
             const isCurrent = index === activeIndex;
             const isFuture = activeIndex !== null && index > activeIndex;
-            const state = isCurrent ? "Tocando agora" : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
+            const state = isCurrent ? error ? "Não reproduzível" : isPlaying ? "Tocando agora" : "Pausado" : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
             return <li className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
               <span className="queue-state"><b>{index + 1}</b><small>{state}</small></span>
               {isFuture ? <>
