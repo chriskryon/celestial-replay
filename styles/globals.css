@@ -71,7 +71,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .resume-session span { overflow: hidden; color: var(--muted); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
 .resume-session .secondary-button { flex: 0 0 auto; }
 
-.studio-grid { display: grid; min-height: 0; grid-template-columns: 1fr; grid-template-rows: clamp(230px, 46dvh, 460px) auto; align-content: start; gap: 0.5rem; }
+.studio-grid { display: grid; min-height: 0; grid-template-columns: 1fr; grid-template-rows: clamp(380px, 66dvh, 660px) auto; align-content: start; gap: 0.5rem; }
 .player-surface { position: relative; z-index: 0; order: -1; display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr) auto auto auto auto auto; overflow: hidden; padding: 0.45rem; border: 1px solid rgba(225, 234, 255, 0.11); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.27); }
 .player-stage { position: relative; display: grid; width: auto; height: 100%; min-height: 0; max-width: 100%; aspect-ratio: 16 / 9; justify-self: center; overflow: hidden; border: 1px solid rgba(222, 232, 255, 0.08); border-radius: 0.52rem; background: rgba(0, 2, 12, 0.88); place-items: center; box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.7); }
 .preview-badge { position: absolute; z-index: 2; top: 0.5rem; left: 0.5rem; padding: 0.22rem 0.55rem; border: 1px solid rgba(216, 227, 255, 0.25); border-radius: 999px; color: #e6edff; background: rgba(4, 10, 28, 0.72); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; backdrop-filter: blur(8px); pointer-events: none; }
@@ -346,8 +346,10 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .studio-tab { flex: 0 0 auto; min-height: 38px; scroll-snap-align: start; }
   .studio-heading, .navbar-inner { min-height: 54px; }
   .navbar-inner { width: min(100% - 1rem, 720px); }
-  .studio-grid { grid-template-rows: clamp(200px, 40dvh, 280px) auto; }
+  .studio-grid { grid-template-rows: clamp(330px, 62dvh, 480px) auto; }
   .player-surface { min-height: 200px; }
+  .keyboard-help { display: none; }
+  .playback-tools { gap: 0.3rem; }
   .control-surface { grid-template-columns: 1fr; grid-template-rows: none; align-items: stretch; padding: 0.2rem 0 0; }
   .control-surface .form-heading { grid-row: auto; }
   .control-surface label[for="source"], .control-surface label[for="repetitions"], .control-surface #source, .control-surface #repetitions { grid-column: auto; grid-row: auto; }
