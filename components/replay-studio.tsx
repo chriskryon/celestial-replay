@@ -77,7 +77,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [played, setPlayed] = useState(0);
-  const [seeking, setSeeking] = useState(false);
   const seekingRef = useRef(false);
   const programmaticSeekRef = useRef(false);
   const activeVideoIdRef = useRef<string | null>(null);
@@ -397,7 +396,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setActiveIndex(0);
       setRemaining(item.repetitions);
       setPlayed(0);
-      setSeeking(false);
+      seekingRef.current = false;
       setIsPlaying(true);
       setHasPlaybackStarted(false);
       setError(null);
@@ -418,7 +417,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setActiveIndex(0);
     setRemaining(nextQueue[0].repetitions);
     setPlayed(0);
-    setSeeking(false);
+    seekingRef.current = false;
     setIsPlaying(true);
     setHasPlaybackStarted(false);
     setError(null);
@@ -462,7 +461,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setActiveIndex(nextIndex);
       setRemaining(nextVideo.repetitions);
       setPlayed(0);
-      setSeeking(false);
+      seekingRef.current = false;
       setHasPlaybackStarted(false);
       setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
       return;
@@ -566,7 +565,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setPlayed(node.currentTime / node.duration);
   };
 
-  const handleSeekSliderDown = () => { setSeeking(true); seekingRef.current = true; };
+  const handleSeekSliderDown = () => { seekingRef.current = true; };
 
   const handleSeekSliderChange = (value: number) => {
     if (Number.isFinite(value)) setPlayed(Math.min(Math.max(0, value), 1));
@@ -574,7 +573,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const handleSeekSliderUp = (value: number) => {
     const node = playerRef.current;
-    setSeeking(false);
     seekingRef.current = false;
     if (node && Number.isFinite(node.duration) && node.duration > 0 && Number.isFinite(value)) {
       try { node.currentTime = Math.min(Math.max(0, value), 1) * node.duration; } catch { /* provider não suporta seek */ }
