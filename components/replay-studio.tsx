@@ -8,7 +8,7 @@ import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
-import { canEnablePIP } from "@/components/react-player-client";
+import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 
@@ -18,12 +18,12 @@ type VideoItem = { id: string; src: string; repetitions: number };
 type PlaylistDraft = { id: string; src: string; repetitions: string };
 type ParsedPlaylistItem = { src: string; count: number };
 type SavedPlaylist = { id: string; name: string; items: Array<{ id: string; url: string; repetitions: number }> };
-type ResumableSession = { queue: VideoItem[]; activeIndex: number; remaining: number; playlistName: string; volume: number };
+type ResumableSession = { queue: VideoItem[]; activeIndex: number; remaining: number; playlistName: string; volume: number; playbackRate?: number };
 
 const makeItem = (src: string, repetitions: number): VideoItem => ({ id: crypto.randomUUID(), src, repetitions });
 const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "", repetitions: "1" });
 
-const isPlayableItem = (item: VideoItem) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.repetitions) && item.repetitions > 0;
+const isPlayableItem = (item: VideoItem) => isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.repetitions) && item.repetitions > 0;
 
 function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
   const lines = value.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -31,7 +31,7 @@ function parsePlaylistLines(value: string): ParsedPlaylistItem[] | null {
   const parsed = lines.map((line) => {
     const [src, repetitions, ...extra] = line.split(";").map((part) => part.trim());
     const count = Number(repetitions);
-    return extra.length === 0 && isPlayableMediaUrl(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
+    return extra.length === 0 && isPlayableMediaUrl(src) && canPlaySrc(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
   });
   return parsed.every(Boolean) ? parsed as ParsedPlaylistItem[] : null;
 }
@@ -41,7 +41,7 @@ function parseFirstPlaylistLine(value: string): ParsedPlaylistItem | null {
   if (!line) return null;
   const [src, repetitions, ...extra] = line.split(";").map((part) => part.trim());
   const count = Number(repetitions);
-  return extra.length === 0 && isPlayableMediaUrl(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
+  return extra.length === 0 && isPlayableMediaUrl(src) && canPlaySrc(src) && Number.isInteger(count) && count > 0 ? { src, count } : null;
 }
 
 export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
@@ -76,6 +76,10 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
+  const [played, setPlayed] = useState(0);
+  const [seeking, setSeeking] = useState(false);
+  const seekingRef = useRef(false);
+  const programmaticSeekRef = useRef(false);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
   // Ref do elemento de mídia interno do ReactPlayer v3 (HTMLMediaElement).
@@ -85,13 +89,13 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
   activeVideoIdRef.current = activeVideo?.id ?? null;
   const parsedRepetitions = Number(repetitions);
-  const canSubmitSingle = isPlayableMediaUrl(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
+  const canSubmitSingle = isPlayableMediaUrl(source.trim()) && canPlaySrc(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
   const playlistItems = useMemo(() => drafts.map((draft) => ({ ...draft, count: Number(draft.repetitions) })), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist), [simplePlaylist]);
   const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist), [simplePlaylist]);
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
-    : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
+    : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
   const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
   const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
@@ -103,7 +107,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     if (mode !== "playlist") return null;
     if (playlistInputMode === "simple" && firstSimplePlaylistItem) return { id: "simple-playlist-preview", src: firstSimplePlaylistItem.src, repetitions: firstSimplePlaylistItem.count };
     const firstDraft = playlistItems[0];
-    return firstDraft && isPlayableMediaUrl(firstDraft.src.trim()) && Number.isInteger(firstDraft.count) && firstDraft.count > 0
+    return firstDraft && isPlayableMediaUrl(firstDraft.src.trim()) && canPlaySrc(firstDraft.src.trim()) && Number.isInteger(firstDraft.count) && firstDraft.count > 0
       ? { id: "advanced-playlist-preview", src: firstDraft.src.trim(), repetitions: firstDraft.count }
       : null;
   }, [activeVideo, canSubmitSingle, firstSimplePlaylistItem, mode, parsedRepetitions, playlistInputMode, playlistItems, source]);
@@ -165,11 +169,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       void fetch("/api/playback-session", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100) }),
+        body: JSON.stringify({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100), playbackRate }),
       });
     }, 750);
     return () => window.clearTimeout(timeout);
-  }, [activeIndex, activeVideo, error, hasPlaybackStarted, isPlaying, queue, queuePlaylistName, remaining, session.data?.user, volume]);
+  }, [activeIndex, activeVideo, error, hasPlaybackStarted, isPlaying, playbackRate, queue, queuePlaylistName, remaining, session.data?.user, volume]);
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
@@ -188,6 +192,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         setIsPlaying((value) => !value);
       }
       if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
+      if (event.key.toLowerCase() === "j") seekBy(-10);
+      if (event.key.toLowerCase() === "l") seekBy(10);
       if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
       if (event.key === "ArrowDown") { event.preventDefault(); setVolume((value) => Math.max(0, Number((value - 0.05).toFixed(2)))); }
     };
@@ -272,6 +278,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setRemaining(resumeSession.remaining);
     setQueuePlaylistName(resumeSession.playlistName);
     setVolume(resumeSession.volume / 100);
+    setPlaybackRate(Number.isFinite(resumeSession.playbackRate) && (resumeSession.playbackRate as number) >= 0.25 && (resumeSession.playbackRate as number) <= 4 ? resumeSession.playbackRate as number : 1);
     setIsPlaying(true);
     setHasPlaybackStarted(false);
     setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
@@ -300,7 +307,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     const entries = isQueue
       ? queue.map((item) => ({ url: item.src.trim(), repetitions: item.repetitions }))
       : draftEntries?.map((item) => ({ url: item.src.trim(), repetitions: item.count }));
-    if (!isLoggedIn || !saveName.trim() || !entries?.length || !entries.every((item) => isPlayableMediaUrl(item.url) && Number.isInteger(item.repetitions) && item.repetitions > 0)) {
+    if (!isLoggedIn || !saveName.trim() || !entries?.length || !entries.every((item) => isPlayableMediaUrl(item.url) && canPlaySrc(item.url) && Number.isInteger(item.repetitions) && item.repetitions > 0)) {
       setSaveDialogError("Informe um nome e revise os links e repetições antes de salvar.");
       return;
     }
@@ -358,6 +365,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setQueue([item]);
       setActiveIndex(0);
       setRemaining(item.repetitions);
+      setPlayed(0);
+      setSeeking(false);
       setIsPlaying(true);
       setHasPlaybackStarted(false);
       setError(null);
@@ -377,6 +386,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setQueue(nextQueue);
     setActiveIndex(0);
     setRemaining(nextQueue[0].repetitions);
+    setPlayed(0);
+    setSeeking(false);
     setIsPlaying(true);
     setHasPlaybackStarted(false);
     setError(null);
@@ -392,13 +403,14 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setRemaining(nextRemaining);
       setHasPlaybackStarted(false);
       try {
+        programmaticSeekRef.current = true;
         const node = playerRef.current;
         if (node) {
           if ("currentTime" in node) node.currentTime = 0;
           const maybeSeek = (node as unknown as { seekTo?: (s: number, t?: string) => void }).seekTo;
           if (typeof maybeSeek === "function") maybeSeek.call(node, 0, "seconds");
         }
-      } catch { /* segue para play */ }
+      } catch { programmaticSeekRef.current = false; /* segue para play */ }
       // O seek acima pausa alguns providers; re-dispara play no próximo tick,
       // ainda dentro da cadeia do evento `ended`.
       window.setTimeout(() => { attemptPlay(); }, 0);
@@ -418,6 +430,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       }
       setActiveIndex(nextIndex);
       setRemaining(nextVideo.repetitions);
+      setPlayed(0);
+      setSeeking(false);
       setHasPlaybackStarted(false);
       setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
       return;
@@ -433,7 +447,15 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setHasPlaybackStarted(false);
     setRemaining(0);
     setDuration(null);
-    setError("Não foi possível reproduzir esta URL. Verifique as permissões do vídeo ou tente outra fonte suportada.");
+    setPlayed(0);
+    const src = activeVideo?.src ?? "";
+    // Diferencia fonte não suportada (nem o ReactPlayer reconhece) de falha
+    // de rede/embed privado — cada caso pede uma ação diferente do usuário.
+    setError(
+      src && !canPlaySrc(src)
+        ? "Esta fonte não é suportada pelo player. Use YouTube, Vimeo, HLS/DASH ou um arquivo de vídeo/áudio direto."
+        : "Não foi possível carregar este vídeo. Pode ser embed desativado, vídeo privado/restrito ou falha de rede — tente outra fonte.",
+    );
     setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
     setResumeSession(null);
     if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
@@ -478,6 +500,14 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const toggleMute = () => setVolume((value) => (value === 0 ? 0.7 : 0));
 
+  const seekBy = (seconds: number) => {
+    const node = playerRef.current;
+    if (!node || !Number.isFinite(node.duration) || node.duration <= 0) return;
+    try {
+      node.currentTime = Math.min(Math.max(0, node.currentTime + seconds), node.duration);
+    } catch { /* provider não suporta seek */ }
+  };
+
   const goFullscreen = () => {
     const el = document.querySelector(".replay-player");
     if (el && screenfull.isEnabled) void screenfull.request(el);
@@ -486,6 +516,44 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const handleRateChange = () => {
     const rate = playerRef.current?.playbackRate;
     if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) setPlaybackRate(rate);
+  };
+
+  const formatTime = (seconds: number | null) => {
+    if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--:--";
+    const s = Math.floor(seconds);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+    return `${h > 0 ? `${h}:` : ""}${mm}:${String(sec).padStart(2, "0")}`;
+  };
+
+  // Slider de posição (padrão da demo oficial): lê do elemento, escreve no mouseUp.
+  const handleTimeUpdate = () => {
+    const node = playerRef.current;
+    if (!node || seekingRef.current || !Number.isFinite(node.duration) || !node.duration) return;
+    setPlayed(node.currentTime / node.duration);
+  };
+
+  const handleSeekSliderDown = () => { setSeeking(true); seekingRef.current = true; };
+
+  const handleSeekSliderChange = (value: number) => {
+    if (Number.isFinite(value)) setPlayed(Math.min(Math.max(0, value), 1));
+  };
+
+  const handleSeekSliderUp = (value: number) => {
+    const node = playerRef.current;
+    setSeeking(false);
+    seekingRef.current = false;
+    if (node && Number.isFinite(node.duration) && node.duration > 0 && Number.isFinite(value)) {
+      try { node.currentTime = Math.min(Math.max(0, value), 1) * node.duration; } catch { /* provider não suporta seek */ }
+    }
+  };
+
+  // Seeks programáticos (repetição: volta ao 0 no ended) não podem sujar a
+  // contagem; seeks manuais só movem currentTime, a contagem segue por ended.
+  const handleSeeked = () => {
+    if (programmaticSeekRef.current) programmaticSeekRef.current = false;
   };
 
   const handlePlaybackPause = (videoId: string) => {
@@ -563,10 +631,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onTimeUpdate={activeVideo ? handleTimeUpdate : undefined} onSeeked={activeVideo ? handleSeeked : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
+            {activeVideo && !error && duration !== null && duration > 0 && <label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label>}
             {activeVideo && !error && <button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button>}
             {activeVideo && !error && <div className="playback-tools" role="toolbar" aria-label="Controles de reprodução">
               {[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Velocidade ${rate}x`}>{rate}x</button>)}
@@ -574,7 +643,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
               {displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={() => setPip((value) => !value)} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}
               <button className="icon-save-button" type="button" onClick={goFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button>
             </div>}
-            {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume</p>}
+            {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume · J/L ∓10s</p>}
           </div>
         </div>
 
