@@ -72,7 +72,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .resume-session .secondary-button { flex: 0 0 auto; }
 
 .studio-grid { display: grid; min-height: 0; grid-template-columns: 1fr; grid-template-rows: clamp(380px, 66dvh, 660px) auto; align-content: start; gap: 0.5rem; }
-.player-surface { position: relative; z-index: 0; order: -1; display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr) auto auto auto auto auto; overflow: hidden; padding: 0.45rem; border: 1px solid rgba(225, 234, 255, 0.11); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.27); }
+.player-surface { position: relative; z-index: 0; order: -1; display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; padding: 0.45rem; border: 1px solid rgba(225, 234, 255, 0.11); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.27); }
 .player-stage { position: relative; display: grid; width: auto; height: 100%; min-height: 0; max-width: 100%; aspect-ratio: 16 / 9; justify-self: center; overflow: hidden; border: 1px solid rgba(222, 232, 255, 0.08); border-radius: 0.52rem; background: rgba(0, 2, 12, 0.88); place-items: center; box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.7); }
 .preview-badge { position: absolute; z-index: 2; top: 0.5rem; left: 0.5rem; padding: 0.22rem 0.55rem; border: 1px solid rgba(216, 227, 255, 0.25); border-radius: 999px; color: #e6edff; background: rgba(4, 10, 28, 0.72); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; backdrop-filter: blur(8px); pointer-events: none; }
 .playlist-progress { height: 4px; overflow: hidden; border-radius: 99px; background: rgba(190, 207, 248, 0.12); }
@@ -96,6 +96,16 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .pause-button { width: fit-content; margin: 0.35rem 0.15rem 0; }
 .playback-tools { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.15rem 0; flex-wrap: wrap; }
 .playback-tools .icon-save-button { width: 36px; height: 36px; }
+/* Barra única de controle: pausar + seek + volume + velocidade + tela. */
+.control-bar { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.1rem 0; flex-wrap: wrap; }
+.control-bar .pause-button { margin: 0; flex: 0 0 auto; }
+.control-bar .seek-control { flex: 1 1 160px; padding: 0; }
+.control-bar .volume-slider { flex: 0 1 90px; min-width: 56px; }
+.control-bar .playback-tools { padding: 0; flex: 0 0 auto; }
+.control-bar .playback-tools .mode-button { min-height: 32px; padding: 0.2rem 0.5rem; }
+@media (max-height: 700px) {
+  .keyboard-help { display: none; }
+}
 .seek-control { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.15rem 0; }
 .seek-control input[type="range"] { flex: 1; min-width: 0; }
 .seek-time { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; min-width: 2.8rem; text-align: center; }
