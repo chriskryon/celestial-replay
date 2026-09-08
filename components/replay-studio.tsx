@@ -1,23 +1,20 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Keyboard, ListMusic, Maximize, Orbit, Pause, PictureInPicture2, Play, RotateCcw, Save, SkipBack, SkipForward, SlidersHorizontal, StepBack, StepForward, Video, Volume2, VolumeX, X } from "lucide-react";
+import { ListMusic, Orbit, RotateCcw, Save, Video, X } from "lucide-react";
 import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
 import { PlaybackQueue } from "@/components/playback-queue";
 import { ReplayComposer } from "@/components/replay-composer";
-import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
+import { ReplayPlayerSurface } from "@/components/replay-player-surface";
+import { canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
-
-const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
-
 
 export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
   const session = authClient.useSession();
@@ -612,16 +609,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) setPlaybackRate(rate);
   };
 
-  const formatTime = (seconds: number | null) => {
-    if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--:--";
-    const s = Math.floor(seconds);
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
-    return `${h > 0 ? `${h}:` : ""}${mm}:${String(sec).padStart(2, "0")}`;
-  };
-
   // Slider de posição (padrão da demo oficial): lê do elemento, escreve no mouseUp.
   const handleTimeUpdate = () => {
     const node = playerRef.current;
@@ -720,23 +707,60 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
             source={source}
           />
 
-          <div className="player-surface">
-            <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
-              <div className="session-bar"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
-              {queue.length > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((completedRepetitions / totalRepetitions) * 100)} aria-label="Progresso da playlist"><i style={{ width: `${(completedRepetitions / totalRepetitions) * 100}%` }} /></div>}
-            </div>
-            <div className="player-stage">
-              {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
-              {displayedVideo && !error ? <ReactPlayer key={displayedVideo.src} className="replay-player" ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} preload="auto" light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onTimeUpdate={activeVideo ? handleTimeUpdate : undefined} onProgress={activeVideo ? handleProgress : undefined} onSeeked={activeVideo ? handleSeeked : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p>{error && activeVideo && <div className="player-recovery"><button className="secondary-button" type="button" onClick={retryCurrentVideo}>Tentar novamente</button>{hasNextVideo && <button className="secondary-button" type="button" onClick={() => playNextVideo(true)}>Pular vídeo</button>}</div>}</div>}
-            </div>
-            {activeVideo && !error && <div className="control-bar">
-              <div className="control-group control-primary"><button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button></div>
-              <div className="control-group control-navigation" role="toolbar" aria-label="Navegar">{hasPrevVideo && <button className="icon-save-button" type="button" onClick={playPreviousVideo} aria-label="Vídeo anterior" title="Vídeo anterior (B)"><SkipBack aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={playPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição" title="Voltar repetição"><StepBack aria-hidden="true" size={18} /></button><button className="icon-save-button" type="button" onClick={() => playNextRepetition(true)} disabled={!canSkipRepetition} aria-label="Pular repetição" title="Pular repetição"><SkipForward aria-hidden="true" size={18} /></button>{hasNextVideo && <button className="icon-save-button" type="button" onClick={() => playNextVideo(true)} aria-label="Próximo vídeo" title="Próximo vídeo (N)"><StepForward aria-hidden="true" size={18} /></button>}</div>
-              {duration !== null && duration > 0 && <div className="control-group seek-group control-timeline"><label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} style={{ background: `linear-gradient(90deg, rgba(220,231,255,.9) ${played * 100}%, rgba(190,207,248,.35) ${played * 100}%, rgba(190,207,248,.35) ${Math.max(played, Math.min(loaded, 1)) * 100}%, rgba(190,207,248,.12) ${Math.max(played, Math.min(loaded, 1)) * 100}%)` }} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label></div>}
-              <details className="control-group control-preferences"><summary aria-label="Opções de reprodução" title="Opções de reprodução"><SlidersHorizontal aria-hidden="true" size={18} /><span>Opções</span><ChevronDown aria-hidden="true" size={15} /></summary><div className="preferences-popover"><label className="preferences-volume"><span>Volume</span><button className="icon-save-button" type="button" onClick={toggleMute} aria-label={volume === 0 ? "Ativar som" : "Silenciar"} title={volume === 0 ? "Ativar som (M)" : "Silenciar (M)"}>{volume === 0 ? <VolumeX aria-hidden="true" size={18} /> : <Volume2 aria-hidden="true" size={18} />}</button><input className="volume-slider" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" /></label><div className="preferences-speed" role="toolbar" aria-label="Velocidade"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)}>{rate}x</button>)}</div><div className="preferences-screen">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={() => setPip((value) => !value)} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={goFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div></div></details>
-            </div>}
-            {activeVideo && <details className="keyboard-help"><summary title="Ver atalhos de teclado"><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>}
-          </div>
+          <ReplayPlayerSurface
+            activeIndex={activeIndex}
+            activeVideo={activeVideo}
+            canGoBackRepetition={canGoBackRepetition}
+            canSkipRepetition={canSkipRepetition}
+            completedRepetitions={completedRepetitions}
+            displayedVideo={displayedVideo}
+            duration={duration}
+            error={error}
+            hasNextVideo={hasNextVideo}
+            hasPlaybackStarted={hasPlaybackStarted}
+            hasPrevVideo={hasPrevVideo}
+            isPlaying={isPlaying}
+            loaded={loaded}
+            onDurationChange={setDuration}
+            onEnterPictureInPicture={() => setPip(true)}
+            onLeavePictureInPicture={() => setPip(false)}
+            onNextRepetition={() => playNextRepetition(true)}
+            onNextVideo={() => playNextVideo(true)}
+            onPause={handlePlaybackPause}
+            onPlaybackError={handlePlaybackError}
+            onPlaybackPlay={handlePlaybackPlay}
+            onPlaybackStarted={handlePlaybackStarted}
+            onPlayerReady={handlePlayerReady}
+            onPreviewError={() => setError("Não foi possível carregar esta URL para prévia.")}
+            onPreviousRepetition={playPreviousRepetition}
+            onPreviousVideo={playPreviousVideo}
+            onProgress={handleProgress}
+            onRateChange={handleRateChange}
+            onRetry={retryCurrentVideo}
+            onSeeked={handleSeeked}
+            onSeekSliderChange={handleSeekSliderChange}
+            onSeekSliderDown={handleSeekSliderDown}
+            onSeekSliderUp={handleSeekSliderUp}
+            onSetPlaybackRate={setPlaybackRate}
+            onSetVolume={setVolume}
+            onTimeUpdate={handleTimeUpdate}
+            onToggleMute={toggleMute}
+            onTogglePlay={togglePlay}
+            onTogglePip={() => setPip((value) => !value)}
+            onFullscreen={goFullscreen}
+            onVideoEnded={handleEnded}
+            pip={pip}
+            playbackRate={playbackRate}
+            played={played}
+            playerRef={playerRef}
+            playerStatus={playerStatus}
+            previewVideo={previewVideo}
+            progressLabel={progressLabel}
+            queueLength={queue.length}
+            remaining={remaining}
+            totalRepetitions={totalRepetitions}
+            volume={volume}
+          />
         </div>
 
         {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
