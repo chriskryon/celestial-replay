@@ -98,7 +98,11 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       : null;
   }, [activeVideo, canSubmitSingle, firstSimplePlaylistItem, mode, parsedRepetitions, playlistInputMode, playlistItems, source]);
   const displayedVideo = activeVideo ?? previewVideo;
-  const playerStatus = previewVideo && !error ? "Vídeo carregado. Clique em Iniciar para começar." : status;
+  const playerStatus = previewVideo && !error
+    ? "Vídeo carregado. Clique em Iniciar para começar."
+    : activeVideo && isPlaying && !error && !hasPlaybackStarted
+      ? `Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`
+      : status;
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -301,7 +305,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   };
 
   const handleEnded = () => {
-    if (!hasPlaybackStarted || !activeVideo || activeIndex === null) return;
+    if (!activeVideo || activeIndex === null) return;
+    if (!hasPlaybackStarted) setHasPlaybackStarted(true);
     if (remaining > 1) {
       const nextRemaining = remaining - 1;
       setRemaining(nextRemaining);
