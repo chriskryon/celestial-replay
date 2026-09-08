@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { CalendarClock, CircleCheck, ExternalLink, History, ListFilter, ListMusic, Play, Repeat2, RotateCcw, Video } from "lucide-react";
+import { AudioLines, CalendarClock, ExternalLink, History, ListFilter, ListMusic, Play, Repeat2, RotateCcw, Video, Youtube } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/current-user";
 import { db } from "@/lib/db";
@@ -16,6 +16,22 @@ function displayHost(url: string) {
   } catch {
     return url;
   }
+}
+
+function displaySource(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
+}
+
+function SourceIcon({ url }: { url: string }) {
+  const host = displayHost(url);
+  if (host.includes("youtube.com") || host === "youtu.be") return <Youtube aria-hidden="true" size={17} />;
+  if (host.includes("soundcloud.com")) return <AudioLines aria-hidden="true" size={17} />;
+  return <Video aria-hidden="true" size={17} />;
 }
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ period?: string; origin?: string }> }) {
@@ -38,9 +54,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   if (user) return <section className="studio-shell account-shell" aria-labelledby="history-title"><nav className="studio-tabs" aria-label="Áreas do Celestial Replay"><Link className="studio-tab" href="/"><Video aria-hidden="true" size={16} />Vídeo único</Link><Link className="studio-tab" href="/advanced"><ListMusic aria-hidden="true" size={16} />Playlist</Link><Link className="studio-tab" href="/playlists"><ListMusic aria-hidden="true" size={16} />Minhas playlists</Link><Link className="studio-tab is-selected" href="/history" aria-current="page"><History aria-hidden="true" size={16} />Histórico</Link></nav><div className="history-surface">
     <header className="history-heading"><span className="history-heading-icon"><History aria-hidden="true" size={22} /></span><div><h1 id="history-title">Seu histórico</h1><p>As sessões concluídas ficam aqui, em ordem do que você viu por último.</p></div></header>
     {playableEntries.length === 0 ? <div className="history-empty"><Play aria-hidden="true" size={22} /><p>Nenhuma sessão concluída ainda. Sua primeira repetição aparecerá aqui.</p><Link className="primary-button" href="/">Reproduzir um vídeo</Link></div> : <><form className="history-filters"><label><ListFilter aria-hidden="true" size={15}/><span>Período</span><select name="period" defaultValue={filters.period ?? ""}><option value="">Tudo</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></label><label><span>Origem</span><select name="origin" defaultValue={filters.origin ?? ""}><option value="">Todas</option>{origins.map((origin) => <option value={origin} key={origin}>{origin}</option>)}</select></label><button className="secondary-button" type="submit">Filtrar</button></form><ol className="history-feed">{groupedEntries.map((entry) => {
-      const host = displayHost(entry.url);
+      const source = displaySource(entry.url);
       const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "medium" }).format(entry.completedAt);
-      return <li key={entry.url}><article className="history-card"><span className="history-domain-icon"><CircleCheck aria-hidden="true" size={16} /></span><div className="history-card-copy"><a href={entry.url} target="_blank" rel="noreferrer" title={entry.url}><strong>{host}</strong><ExternalLink aria-hidden="true" size={14} /></a><p><CalendarClock aria-hidden="true" size={14} />{date}</p></div><div className="history-card-actions"><span className="timeline-count"><Repeat2 aria-hidden="true" size={14} />{entry.completedRepetitions}× em {entry.sessions} {entry.sessions === 1 ? "sessão" : "sessões"}</span><Link className="history-replay" href={`/?source=${encodeURIComponent(entry.url)}&repetitions=${entry.completedRepetitions}`}><RotateCcw aria-hidden="true" size={15} />Repetir</Link></div></article></li>;
+      return <li key={entry.url}><article className="history-card"><span className="history-domain-icon"><SourceIcon url={entry.url} /></span><div className="history-card-copy"><a href={entry.url} target="_blank" rel="noreferrer" title={entry.url}><strong>{source}</strong><ExternalLink aria-hidden="true" size={14} /></a><p><CalendarClock aria-hidden="true" size={14} />{date}</p></div><div className="history-card-actions"><span className="timeline-count"><Repeat2 aria-hidden="true" size={14} />{entry.completedRepetitions}× em {entry.sessions} {entry.sessions === 1 ? "sessão" : "sessões"}</span><Link className="history-replay" href={`/?source=${encodeURIComponent(entry.url)}&repetitions=${entry.completedRepetitions}`}><RotateCcw aria-hidden="true" size={15} />Repetir</Link></div></article></li>;
     })}</ol></>}
   </div></section>;
 
