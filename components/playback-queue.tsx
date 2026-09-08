@@ -1,0 +1,110 @@
+import { Save, Trash2 } from "lucide-react";
+
+import { canPlaySrc } from "@/components/react-player-client";
+import { isPlayableMediaUrl } from "@/lib/media-url";
+import { isPlayableItem, type VideoItem } from "@/lib/replay-playlist";
+
+type PlaybackQueueProps = {
+  activeIndex: number | null;
+  completedQueue: VideoItem[];
+  error: string | null;
+  hasPlaybackStarted: boolean;
+  isLoggedIn: boolean;
+  isPlaying: boolean;
+  isSaving: boolean;
+  onRemoveFutureItem: (id: string) => void;
+  onSave: () => void;
+  onUpdateUpcomingItem: (id: string, field: "src" | "repetitions", value: string) => void;
+  queue: VideoItem[];
+  saveMessage: string | null;
+  visibleQueue: VideoItem[];
+};
+
+export function PlaybackQueue({
+  activeIndex,
+  completedQueue,
+  error,
+  hasPlaybackStarted,
+  isLoggedIn,
+  isPlaying,
+  isSaving,
+  onRemoveFutureItem,
+  onSave,
+  onUpdateUpcomingItem,
+  queue,
+  saveMessage,
+  visibleQueue,
+}: PlaybackQueueProps) {
+  const renderQueueItem = (item: VideoItem, index: number) => {
+    const isCurrent = index === activeIndex;
+    const isFuture = activeIndex !== null && index > activeIndex;
+    const state = isCurrent
+      ? error
+        ? "Não reproduzível"
+        : hasPlaybackStarted
+          ? isPlaying ? "Tocando agora" : "Pausado"
+          : "Iniciando"
+      : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
+
+    return (
+      <li className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
+        <span className="queue-state">
+          <b>{index + 1}</b>
+          <small>{state}</small>
+        </span>
+        {isFuture ? <>
+          <label className="sr-only" htmlFor={`queue-url-${item.id}`}>URL do vídeo {index + 1}</label>
+          <input
+            id={`queue-url-${item.id}`}
+            value={item.src}
+            onChange={(event) => onUpdateUpcomingItem(item.id, "src", event.target.value)}
+            aria-invalid={!isPlayableMediaUrl(item.src.trim())}
+          />
+          <label className="sr-only" htmlFor={`queue-count-${item.id}`}>Repetições do vídeo {index + 1}</label>
+          <input
+            id={`queue-count-${item.id}`}
+            type="number"
+            min="1"
+            step="1"
+            value={Number.isFinite(item.repetitions) ? item.repetitions : ""}
+            onChange={(event) => onUpdateUpcomingItem(item.id, "repetitions", event.target.value)}
+            aria-invalid={!isPlayableItem(item, canPlaySrc)}
+          />
+          <button
+            className="queue-remove"
+            type="button"
+            onClick={() => onRemoveFutureItem(item.id)}
+            aria-label={`Remover vídeo ${index + 1} da fila`}
+            title="Remover da fila"
+          >
+            <Trash2 aria-hidden="true" size={15} />
+          </button>
+        </> : <>
+          <span className="queue-url" title={item.src}>{item.src}</span>
+          <span className="queue-count">{item.repetitions}×</span>
+        </>}
+      </li>
+    );
+  };
+
+  return <section className="queue-surface" aria-labelledby="queue-title">
+    <div className="queue-title">
+      <div>
+        <h2 id="queue-title">Playlist em execução</h2>
+        <p>Edite somente os vídeos que ainda não começaram.</p>
+      </div>
+      <span>{queue.length} vídeos</span>
+    </div>
+    {isLoggedIn && <div className="queue-save">
+      <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
+        <Save aria-hidden="true" size={18} />
+      </button>
+    </div>}
+    {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
+    <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
+    {completedQueue.length > 0 && <details className="queue-completed">
+      <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
+      <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>
+    </details>}
+  </section>;
+}

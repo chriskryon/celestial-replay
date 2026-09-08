@@ -8,6 +8,7 @@ import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
+import { PlaybackQueue } from "@/components/playback-queue";
 import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
@@ -663,22 +664,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setStatus("Reprodução pausada.");
   };
 
-  const renderQueueItem = (item: VideoItem, index: number) => {
-    const isCurrent = index === activeIndex;
-    const isFuture = activeIndex !== null && index > activeIndex;
-    const state = isCurrent ? error ? "Não reproduzível" : hasPlaybackStarted ? isPlaying ? "Tocando agora" : "Pausado" : "Iniciando" : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
-    return <li className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
-      <span className="queue-state"><b>{index + 1}</b><small>{state}</small></span>
-      {isFuture ? <>
-        <label className="sr-only" htmlFor={`queue-url-${item.id}`}>URL do vídeo {index + 1}</label>
-        <input id={`queue-url-${item.id}`} value={item.src} onChange={(event) => updateUpcomingItem(item.id, "src", event.target.value)} aria-invalid={!isPlayableMediaUrl(item.src.trim())} />
-        <label className="sr-only" htmlFor={`queue-count-${item.id}`}>Repetições do vídeo {index + 1}</label>
-        <input id={`queue-count-${item.id}`} type="number" min="1" step="1" value={Number.isFinite(item.repetitions) ? item.repetitions : ""} onChange={(event) => updateUpcomingItem(item.id, "repetitions", event.target.value)} aria-invalid={!isPlayableItem(item, canPlaySrc)} />
-        <button className="queue-remove" type="button" onClick={() => removeFutureItem(item.id)} aria-label={`Remover vídeo ${index + 1} da fila`} title="Remover da fila"><Trash2 aria-hidden="true" size={15} /></button>
-      </> : <><span className="queue-url" title={item.src}>{item.src}</span><span className="queue-count">{item.repetitions}×</span></>}
-    </li>;
-  };
-
   return (
     <>
       <header className="studio-heading">
@@ -771,13 +756,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
           </div>
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <section className="queue-surface" aria-labelledby="queue-title">
-          <div className="queue-title"><div><h2 id="queue-title">Playlist em execução</h2><p>Edite somente os vídeos que ainda não começaram.</p></div><span>{queue.length} vídeos</span></div>
-          {isLoggedIn && <div className="queue-save"><button className="icon-save-button" type="button" onClick={() => openSaveDialog("queue")} disabled={isSavingQueue} aria-label="Salvar playlist em execução" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button></div>}
-          {queueSaveMessage && <p className="field-help queue-save-message" role="status">{queueSaveMessage}</p>}
-          <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
-          {completedQueue.length > 0 && <details className="queue-completed"><summary>Já reproduzidos <span>{completedQueue.length}</span></summary><ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol></details>}
-        </section>}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>
         <section className="save-playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="save-playlist-title" onMouseDown={(event) => event.stopPropagation()}>
