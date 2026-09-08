@@ -96,6 +96,24 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
     : playlistItems.length > 0 && playlistItems.every((item) => isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.count) && item.count > 0);
+  // Motivo do Iniciar desabilitado — botão cinza sem explicação é beco sem saída.
+  const singleHint = !canSubmitSingle
+    ? !source.trim()
+      ? "Cole a URL do vídeo para liberar o início."
+      : !isPlayableMediaUrl(source.trim()) || !canPlaySrc(source.trim())
+        ? "Essa URL não é reproduzível aqui — use YouTube, Vimeo ou arquivo direto."
+        : "Repetições: número inteiro maior que zero."
+    : null;
+  const firstBadDraft = playlistInputMode === "advanced"
+    ? playlistItems.findIndex((item) => !(isPlayableMediaUrl(item.src.trim()) && canPlaySrc(item.src.trim()) && Number.isInteger(item.count) && item.count > 0))
+    : -1;
+  const playlistHint = !canSubmitPlaylist
+    ? playlistInputMode === "simple"
+      ? "Revise as linhas: cada uma precisa de link;quantidade válidos."
+      : firstBadDraft >= 0
+        ? `Revise o vídeo ${firstBadDraft + 1}: URL ou repetições inválidas.`
+        : "Revise os vídeos da playlist."
+    : null;
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
   const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
   const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
@@ -178,7 +196,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, [contenteditable='true']") || !activeVideo) return;
+      if (target?.matches("input, textarea, select, button, [contenteditable='true']") || !activeVideo) return;
       if (event.key === " ") {
         event.preventDefault();
         // Espaço é gesto do usuário: tenta play imperativo antes do estado.
@@ -221,6 +239,16 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
+    setError(null);
+  };
+
+  const removeFutureItem = (id: string) => {
+    // Só itens após o atual podem sair; o resto desloca sem mexer no índice ativo.
+    setQueue((items) => {
+      const idx = items.findIndex((item) => item.id === id);
+      if (idx < 0 || (activeIndex !== null && idx <= activeIndex)) return items;
+      return items.filter((item) => item.id !== id);
+    });
     setError(null);
   };
 
@@ -351,6 +379,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
   const start = (event: FormEvent) => {
     event.preventDefault();
+    // Tira o foco do botão submit: sem isso, Espaço depois do clique
+    // re-dispararia o submit e reiniciaria a sessão do zero.
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) document.activeElement.blur();
 
     if (mode === "single") {
       if (!canSubmitSingle) {
@@ -612,14 +643,18 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
                 <textarea id="simple-playlist" value={simplePlaylist} onChange={(event) => { setSimplePlaylist(event.target.value); setError(null); }} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" />
                 <p>Uma linha por vídeo: <code>link;quantidade</code>.</p>
               </div> : <div className="playlist-editor" aria-label="Vídeos da playlist">
-                {drafts.map((draft, index) => <div className="playlist-row" key={draft.id}>
+                {drafts.map((draft, index) => {
+                  const count = Number(draft.repetitions);
+                  const touched = draft.src.trim() !== "" || draft.repetitions !== "1";
+                  const rowInvalid = touched && !(isPlayableMediaUrl(draft.src.trim()) && canPlaySrc(draft.src.trim()) && Number.isInteger(count) && count > 0);
+                  return <div className="playlist-row" key={draft.id}>
                   <span className="row-number" aria-hidden="true">{index + 1}</span>
                   <label className="sr-only" htmlFor={`playlist-url-${draft.id}`}>URL do vídeo {index + 1}</label>
-                  <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => updateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" />
+                  <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => updateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" aria-invalid={rowInvalid} />
                   <label className="sr-only" htmlFor={`playlist-count-${draft.id}`}>Repetições do vídeo {index + 1}</label>
-                  <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => updateDraft(draft.id, "repetitions", event.target.value)} />
+                  <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => updateDraft(draft.id, "repetitions", event.target.value)} aria-invalid={rowInvalid} />
                 {drafts.length > 1 && <button className="remove-row" type="button" onClick={() => setDrafts((items) => items.filter((item) => item.id !== draft.id))} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={18} /></button>}
-                </div>)}
+                </div>;})}
               </div>}
               {playlistInputMode === "advanced" && <button className="add-row" type="button" onClick={() => setDrafts((items) => [...items, makeDraft()])}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>}
               {isLoggedIn && <div className="playlist-save"><button className="icon-save-button" type="button" onClick={() => openSaveDialog("draft")} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button></div>}
@@ -627,13 +662,16 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
             </>}
             {error && <p className="field-error" role="alert">{error}</p>}
             {!isEditingQueue && <button className="primary-button" type="submit" disabled={mode === "single" ? !canSubmitSingle : !canSubmitPlaylist}><Play aria-hidden="true" size={18} />{mode === "single" ? "Iniciar repetição" : "Iniciar playlist"}</button>}
+            {!isEditingQueue && (mode === "single" ? singleHint : playlistHint) && <p className="field-help" role="status">{mode === "single" ? singleHint : playlistHint}</p>}
           </form>
 
           <div className="player-surface">
             <div className="player-stage">
+              {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
               {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} muted={volume === 0} playbackRate={playbackRate} pip={pip} width="100%" style={{ width: "100%", height: "auto", aspectRatio: "16/9" }} config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }} onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onRateChange={activeVideo ? handleRateChange : undefined} onTimeUpdate={activeVideo ? handleTimeUpdate : undefined} onSeeked={activeVideo ? handleSeeked : undefined} onEnterPictureInPicture={activeVideo ? () => setPip(true) : undefined} onLeavePictureInPicture={activeVideo ? () => setPip(false) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => { const d = event.currentTarget?.duration; if (Number.isFinite(d)) setDuration(d); } : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
+            {queue.length > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((completedRepetitions / totalRepetitions) * 100)} aria-label="Progresso da playlist"><i style={{ width: `${(completedRepetitions / totalRepetitions) * 100}%` }} /></div>}
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
             {activeVideo && !error && duration !== null && duration > 0 && <label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label>}
             {activeVideo && !error && <button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button>}
@@ -662,6 +700,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
                 <input id={`queue-url-${item.id}`} value={item.src} onChange={(event) => updateUpcomingItem(item.id, "src", event.target.value)} aria-invalid={!isPlayableMediaUrl(item.src.trim())} />
                 <label className="sr-only" htmlFor={`queue-count-${item.id}`}>Repetições do vídeo {index + 1}</label>
                 <input id={`queue-count-${item.id}`} type="number" min="1" step="1" value={Number.isFinite(item.repetitions) ? item.repetitions : ""} onChange={(event) => updateUpcomingItem(item.id, "repetitions", event.target.value)} aria-invalid={!isPlayableItem(item)} />
+                <button className="queue-remove" type="button" onClick={() => removeFutureItem(item.id)} aria-label={`Remover vídeo ${index + 1} da fila`} title="Remover da fila"><Trash2 aria-hidden="true" size={15} /></button>
               </> : <><span className="queue-url">{item.src}</span><span className="queue-count">{item.repetitions}×</span></>}
             </li>;
           })}</ol>
