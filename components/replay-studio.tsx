@@ -82,6 +82,18 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   }, [mode]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const replaySource = params.get("source");
+    const replayRepetitions = Number(params.get("repetitions"));
+    if (!replaySource || !isPlayableMediaUrl(replaySource) || !Number.isInteger(replayRepetitions) || replayRepetitions < 1) return;
+    setMode("single");
+    setSource(replaySource);
+    setRepetitions(String(replayRepetitions));
+    setStatus("Vídeo carregado do histórico. Inicie quando quiser.");
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
+  useEffect(() => {
     if (!session.data?.user) return;
     void fetch("/api/playback-session").then(async (response) => {
       if (!response.ok) return;

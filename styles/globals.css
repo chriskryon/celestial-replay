@@ -212,6 +212,11 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .history-heading-icon { width: 42px; height: 42px; border-radius: 50%; }
 .history-heading h1 { margin: 0; font-size: clamp(1.2rem, 4vw, 1.45rem); letter-spacing: -0.035em; }
 .history-heading p { margin: 0.18rem 0 0; color: var(--muted); font-size: 0.84rem; }
+.history-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 0.45rem; padding-bottom: 0.2rem; }
+.history-filters label { display: grid; gap: 0.25rem; color: var(--muted); font-size: 0.72rem; font-weight: 650; }
+.history-filters label:first-child span { display: inline-flex; gap: 0.28rem; align-items: center; }
+.history-filters select { min-height: 34px; border: 1px solid rgba(216, 227, 255, 0.13); border-radius: 0.52rem; padding: 0 0.48rem; color: var(--ink); background: rgba(1, 7, 22, 0.26); font: inherit; }
+.history-filters .secondary-button { min-height: 34px; }
 .history-timeline { display: grid; gap: 0.28rem; margin: 0; padding: 0; list-style: none; }
 .history-timeline > li { position: relative; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0.58rem; padding: 0.32rem 0; }
 .history-timeline > li:not(:last-child)::before { position: absolute; top: 25px; bottom: 0; left: 12px; width: 1px; content: ""; background: linear-gradient(rgba(166, 190, 255, 0.36), rgba(166, 190, 255, 0.06)); }
@@ -224,6 +229,9 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .history-timeline a:hover { border-color: rgba(184, 206, 255, 0.42); background: rgba(104, 134, 207, 0.13); }
 .history-timeline a strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
 .history-timeline a svg { flex: 0 0 auto; color: var(--muted); }
+.history-entry-actions { display: flex; min-width: 0; gap: 0.38rem; }
+.history-entry-actions > a:first-child { flex: 1; }
+.history-replay { flex: 0 0 auto; font-size: 0.75rem; font-weight: 650; }
 .history-empty { display: grid; justify-items: start; gap: 0.7rem; padding: 1.25rem 0.15rem 0.1rem; color: var(--muted); }
 .history-empty svg { color: #b8ceff; }
 .playlist-library { display: grid; width: min(100%, 1100px); align-content: start; gap: 1rem; margin: 0; padding: clamp(1rem, 3vw, 1.35rem); border: 1px solid rgba(216, 227, 255, 0.17); border-radius: 0.85rem; background: rgba(11, 21, 48, 0.4); box-shadow: inset 0 1px rgba(255, 255, 255, 0.07); backdrop-filter: blur(24px) saturate(120%); }
@@ -312,6 +320,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .library-items .playlist-row { grid-template-columns: 24px 24px minmax(0, 1fr) 56px; }
   .library-items .row-actions { grid-column: 3 / -1; justify-content: flex-end; }
   .history-timeline article { grid-template-columns: 1fr; gap: 0.35rem; }
+  .history-filters { display: grid; grid-template-columns: 1fr 1fr; }
+  .history-filters .secondary-button { grid-column: 1 / -1; justify-self: stretch; }
 }
 
 @media (prefers-reduced-motion: reduce) {
