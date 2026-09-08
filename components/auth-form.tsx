@@ -72,6 +72,7 @@ export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: Aut
     </form>
     <div className="auth-divider"><span>ou</span></div>
     <button className="secondary-button google-button" type="button" onClick={continueWithGoogle} disabled={isSubmitting}>Continuar com Google</button>
+    <p className="auth-persistence-note">Sem conta, você pode reproduzir livremente. Ao entrar, playlists, histórico e sessões ficam salvos só para você.</p>
     <p className="auth-switch">{isSignUp ? "Já tem uma conta?" : "Ainda não tem uma conta?"} <button type="button" onClick={() => setMode(isSignUp ? "sign-in" : "sign-up")}>{isSignUp ? "Entrar" : "Criar conta"}</button></p>
   </section>;
 }
