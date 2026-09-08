@@ -66,6 +66,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [remaining, setRemaining] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
+  const [playBlocked, setPlayBlocked] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
@@ -106,7 +107,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const playerStatus = previewVideo && !error
     ? "Vídeo carregado. Clique em Iniciar para começar."
     : activeVideo && isPlaying && !hasPlaybackStarted && !error
-      ? "Iniciando reprodução…"
+      ? playBlocked
+        ? "O navegador bloqueou o início automático. Clique em Continuar."
+        : "Iniciando reprodução…"
       : activeVideo && isPlaying && !error
         ? `Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`
         : activeVideo && !error
@@ -168,7 +171,18 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     const handleKeydown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.matches("input, textarea, select, [contenteditable='true']") || !activeVideo) return;
-      if (event.key === " ") { event.preventDefault(); setIsPlaying((value) => !value); }
+      if (event.key === " ") {
+        event.preventDefault();
+        // Espaço é gesto do usuário: tenta play imperativo antes do estado.
+        try {
+          const node = playerRef.current;
+          if (node && (node as HTMLVideoElement).paused) {
+            const r = (node as HTMLVideoElement).play() as unknown as Promise<void> | undefined;
+            if (r && typeof r.catch === "function") r.catch(() => undefined);
+          } else node?.pause();
+        } catch { /* segue para estado */ }
+        setIsPlaying((value) => !value);
+      }
       if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
       if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
       if (event.key === "ArrowDown") { event.preventDefault(); setVolume((value) => Math.max(0, Number((value - 0.05).toFixed(2)))); }
@@ -176,6 +190,24 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [activeVideo]);
+
+  // Watchdog: o Player.js interno tenta play() uma única vez por render.
+  useEffect(() => {
+    if (!activeVideo || !isPlaying || hasPlaybackStarted || error) { setPlayBlocked(false); return; }
+    setPlayBlocked(false);
+    const interval = window.setInterval(() => {
+      try {
+        const node = playerRef.current;
+        if (!node) return;
+        if ((node as HTMLVideoElement).paused) {
+          const r = (node as HTMLVideoElement).play() as unknown as Promise<void> | undefined;
+          if (r && typeof r.catch === "function") r.catch(() => undefined);
+        }
+      } catch { /* tenta no próximo tick */ }
+    }, 600);
+    const timeout = window.setTimeout(() => setPlayBlocked(true), 8000);
+    return () => { window.clearInterval(interval); window.clearTimeout(timeout); };
+  }, [activeVideo?.id, isPlaying, hasPlaybackStarted, error]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -515,7 +547,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} width="100%" height="100%" onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={displayedVideo.src} ref={playerRef} innerRef={playerRef} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} light={false} controls playsInline volume={volume} width="100%" height="100%" onReady={activeVideo ? () => handlePlayerReady(activeVideo.id) : undefined} onStart={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlay={activeVideo ? () => handlePlaybackPlay(activeVideo.id) : undefined} onPlaying={activeVideo ? () => handlePlaybackStarted(activeVideo.id) : undefined} onPause={activeVideo ? () => handlePlaybackPause(activeVideo.id) : undefined} onEnded={activeVideo ? () => handleEnded(activeVideo.id) : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
