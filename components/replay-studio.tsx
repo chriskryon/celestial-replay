@@ -3,7 +3,6 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ListMusic, Orbit, RotateCcw, Save, Video, X } from "lucide-react";
-import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
@@ -15,6 +14,7 @@ import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
+import { usePlayerMedia } from "@/hooks/use-player-media";
 
 export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
   const session = authClient.useSession();
@@ -41,22 +41,12 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
   const [playBlocked, setPlayBlocked] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [pip, setPip] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
-  const [duration, setDuration] = useState<number | null>(null);
-  const [played, setPlayed] = useState(0);
-  const [loaded, setLoaded] = useState(0);
-  const seekingRef = useRef(false);
-  const programmaticSeekRef = useRef(false);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
-  // Ref do elemento de mídia interno do ReactPlayer v3 (HTMLMediaElement).
-  // playerRef.current.play() / .pause() / .seekTo via currentTime.
-  const playerRef = useRef<HTMLVideoElement | null>(null);
+  const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
   activeVideoIdRef.current = activeVideo?.id ?? null;
@@ -265,32 +255,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setHasPlaybackStarted(false);
     setError(null);
     setStatus("Pronto para montar uma nova playlist.");
-  };
-
-  const attemptPlay = () => {
-    // Chamado DENTRO de gesto do usuário (submit / Continuar) e no onReady
-    // como fallback. No v3 o ref é o elemento de mídia real.
-    try {
-      const node = playerRef.current as (HTMLVideoElement & {
-        playVideo?: () => void;
-        getInternalPlayer?: () => any;
-      }) | null;
-      if (!node) return false;
-      if (typeof node.playVideo === "function") { node.playVideo(); return true; }
-      if (typeof node.play === "function") {
-        const r = node.play() as unknown as Promise<void> | undefined;
-        if (r && typeof r.catch === "function") r.catch(() => undefined);
-        return true;
-      }
-      const inner = node.getInternalPlayer?.();
-      if (inner && typeof inner.playVideo === "function") { inner.playVideo(); return true; }
-      if (inner && typeof inner.play === "function") {
-        const r = inner.play();
-        if (r && typeof r.catch === "function") r.catch(() => undefined);
-        return true;
-      }
-    } catch { /* autoplay bloqueado: o prop playing=true assume em seguida */ }
-    return false;
   };
 
   const playLoadedVideo = attemptPlay;
@@ -589,60 +553,6 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setHasPlaybackStarted(false);
     setIsPlaying(true);
     setStatus("Tentando carregar este vídeo novamente…");
-  };
-
-  const seekBy = (seconds: number) => {
-    const node = playerRef.current;
-    if (!node || !Number.isFinite(node.duration) || node.duration <= 0) return;
-    try {
-      node.currentTime = Math.min(Math.max(0, node.currentTime + seconds), node.duration);
-    } catch { /* provider não suporta seek */ }
-  };
-
-  const goFullscreen = () => {
-    const el = document.querySelector(".replay-player");
-    if (el && screenfull.isEnabled) void screenfull.request(el);
-  };
-
-  const handleRateChange = () => {
-    const rate = playerRef.current?.playbackRate;
-    if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) setPlaybackRate(rate);
-  };
-
-  // Slider de posição (padrão da demo oficial): lê do elemento, escreve no mouseUp.
-  const handleTimeUpdate = () => {
-    const node = playerRef.current;
-    if (!node || seekingRef.current || !Number.isFinite(node.duration) || !node.duration) return;
-    setPlayed(node.currentTime / node.duration);
-  };
-
-  // Faixa "carregado" atrás do seek (guards da demo: sem buffered, sem update).
-  const handleProgress = () => {
-    const node = playerRef.current;
-    if (!node || !node.buffered?.length || !Number.isFinite(node.duration) || !node.duration) return;
-    try {
-      setLoaded(node.buffered.end(node.buffered.length - 1) / node.duration);
-    } catch { /* buffered indisponível neste provider */ }
-  };
-
-  const handleSeekSliderDown = () => { seekingRef.current = true; };
-
-  const handleSeekSliderChange = (value: number) => {
-    if (Number.isFinite(value)) setPlayed(Math.min(Math.max(0, value), 1));
-  };
-
-  const handleSeekSliderUp = (value: number) => {
-    const node = playerRef.current;
-    seekingRef.current = false;
-    if (node && Number.isFinite(node.duration) && node.duration > 0 && Number.isFinite(value)) {
-      try { node.currentTime = Math.min(Math.max(0, value), 1) * node.duration; } catch { /* provider não suporta seek */ }
-    }
-  };
-
-  // Seeks programáticos (repetição: volta ao 0 no ended) não podem sujar a
-  // contagem; seeks manuais só movem currentTime, a contagem segue por ended.
-  const handleSeeked = () => {
-    if (programmaticSeekRef.current) programmaticSeekRef.current = false;
   };
 
   const handlePlaybackPause = (videoId: string) => {
