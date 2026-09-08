@@ -94,15 +94,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .volume-control span { min-width: 3.4rem; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
 input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .pause-button { width: fit-content; margin: 0.35rem 0.15rem 0; }
-.playback-tools { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.15rem 0; flex-wrap: wrap; }
-.playback-tools .icon-save-button { width: 36px; height: 36px; }
-/* Barra única de controle: pausar + seek + volume + velocidade + tela. */
-.control-bar { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.1rem 0; flex-wrap: wrap; }
-.control-bar .pause-button { margin: 0; flex: 0 0 auto; }
-.control-bar .seek-control { flex: 1 1 160px; padding: 0; }
-.control-bar .volume-slider { flex: 0 1 90px; min-width: 56px; }
-.control-bar .playback-tools { padding: 0; flex: 0 0 auto; }
-.control-bar .playback-tools .mode-button { min-height: 32px; padding: 0.2rem 0.5rem; }
+/* Barra única de controle: grupos em pílulas (play, seek, volume, velocidade, tela). */
+.control-bar { display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.35rem 0.1rem 0; flex-wrap: wrap; }
+.control-group { display: flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.4rem; border: 1px solid rgba(218, 228, 255, 0.13); border-radius: 0.65rem; background: rgba(2, 7, 25, 0.36); }
+.control-group .pause-button { margin: 0; border: 0; background: transparent; }
+.control-group .seek-control { padding: 0; }
+.control-group .volume-slider { flex: 0 1 90px; min-width: 56px; }
+.control-group .mode-button { min-height: 32px; padding: 0.2rem 0.5rem; }
+.control-group .icon-save-button { width: 34px; height: 34px; border: 0; background: transparent; box-shadow: none; }
+.seek-group { flex: 1 1 200px; }
+.seek-group .seek-control { flex: 1; }
 @media (max-height: 700px) {
   .keyboard-help { display: none; }
 }
