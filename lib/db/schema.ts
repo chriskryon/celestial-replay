@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { check, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const playlists = pgTable(
   "playlists",
@@ -55,6 +55,7 @@ export const playbackSessions = pgTable(
     remaining: integer("remaining").notNull(),
     playlistName: text("playlist_name").notNull(),
     volume: integer("volume").notNull(),
+    playbackRate: real("playback_rate").notNull().default(1),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

@@ -15,6 +15,7 @@ const sessionInput = z.object({
   remaining: z.number().int().positive(),
   playlistName: z.string().trim().min(1).max(80),
   volume: z.number().int().min(0).max(100),
+  playbackRate: z.number().min(0.25).max(4).default(1),
 }).refine((value) => value.activeIndex < value.queue.length && value.remaining <= value.queue[value.activeIndex].repetitions);
 
 async function requireUser() {

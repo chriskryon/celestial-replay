@@ -1,0 +1,1 @@
+ALTER TABLE "playback_sessions" ADD COLUMN "playback_rate" real DEFAULT 1 NOT NULL;
