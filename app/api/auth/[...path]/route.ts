@@ -14,7 +14,8 @@ function unavailable() {
 
 async function handle(method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH", request: Request, context: AuthContext) {
   if (method !== "GET") {
-    const rateLimitError = await requireWithinRateLimit(request, "auth");
+    const { path } = await context.params;
+    const rateLimitError = await requireWithinRateLimit(request, path.at(-1) === "sign-out" ? "auth-signout" : "auth");
     if (rateLimitError) return rateLimitError;
   }
   const auth = getNeonAuth();

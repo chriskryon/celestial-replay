@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, LogIn, LogOut, Pencil, UserRound, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
@@ -14,8 +15,10 @@ export function AuthControls() {
   const [profileImage, setProfileImage] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const { openSignIn } = useAuthDialog();
+  const router = useRouter();
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -54,6 +57,21 @@ export function AuthControls() {
     }
   };
 
+  const signOut = async () => {
+    setSignOutError(null);
+    try {
+      const result = await authClient.signOut();
+      if (result.error) {
+        setSignOutError(result.error.message || "Não foi possível sair agora. Tente novamente.");
+        return;
+      }
+      setIsOpen(false);
+      router.refresh();
+    } catch {
+      setSignOutError("Não foi possível sair agora. Tente novamente.");
+    }
+  };
+
   return <div className="account-menu" ref={menuRef}>
     <button className="avatar-trigger" type="button" aria-label="Abrir menu da conta" aria-haspopup="menu" aria-expanded={isOpen} onClick={() => setIsOpen((value) => !value)}>
       {user.image ? <img src={user.image} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden="true">{initial || <UserRound size={16} />}</span>}
@@ -62,7 +80,8 @@ export function AuthControls() {
     {isOpen && <div className="account-popover" role="menu" aria-label="Conta">
       <div className="account-summary"><span className="account-summary-avatar" aria-hidden="true">{user.image ? <img src={user.image} alt="" referrerPolicy="no-referrer" /> : initial}</span><div className="account-summary-copy"><strong>{name}</strong>{user.email && <small>{user.email}</small>}</div></div>
       <button role="menuitem" type="button" onClick={openProfile}><Pencil aria-hidden="true" size={16} />Editar perfil</button>
-      <button role="menuitem" type="button" onClick={() => { setIsOpen(false); void authClient.signOut(); }}><LogOut aria-hidden="true" size={16} />Sair</button>
+      <button role="menuitem" type="button" onClick={() => void signOut()}><LogOut aria-hidden="true" size={16} />Sair</button>
+      {signOutError && <p className="account-menu-error" role="alert">{signOutError}</p>}
     </div>}
     {isProfileOpen && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsProfileOpen(false)}>
       <section className="profile-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-title" onMouseDown={(event) => event.stopPropagation()}>
