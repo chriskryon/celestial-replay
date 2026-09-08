@@ -23,25 +23,27 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!input.success) return NextResponse.json({ error: "Informe um nome, URLs válidas e repetições maiores que zero." }, { status: 400 });
 
   const { id } = await context.params;
-  const saved = await db.transaction(async (tx) => {
-    const [playlist] = await tx.update(playlists)
+  const [ownedPlaylist] = await db.select({ id: playlists.id }).from(playlists)
+    .where(and(eq(playlists.id, id), eq(playlists.ownerId, ownerId)))
+    .limit(1);
+  if (!ownedPlaylist) return NextResponse.json({ error: "Playlist não encontrada." }, { status: 404 });
+
+  const [updatedPlaylists, , savedItems] = await db.batch([
+    db.update(playlists)
       .set({ name: input.data.name, updatedAt: new Date() })
       .where(and(eq(playlists.id, id), eq(playlists.ownerId, ownerId)))
-      .returning();
-    if (!playlist) return null;
-
-    await tx.delete(playlistItems).where(eq(playlistItems.playlistId, playlist.id));
-    const items = await tx.insert(playlistItems).values(input.data.items.map((item, position) => ({
-      playlistId: playlist.id,
+      .returning(),
+    db.delete(playlistItems).where(eq(playlistItems.playlistId, ownedPlaylist.id)),
+    db.insert(playlistItems).values(input.data.items.map((item, position) => ({
+      playlistId: ownedPlaylist.id,
       url: item.url,
       repetitions: item.repetitions,
       position,
-    }))).returning();
-    return { playlist, items };
-  });
-  if (!saved) return NextResponse.json({ error: "Playlist não encontrada." }, { status: 404 });
+    }))).returning(),
+  ]);
+  const playlist = updatedPlaylists[0];
 
-  return NextResponse.json({ playlist: { ...saved.playlist, items: saved.items } });
+  return NextResponse.json({ playlist: { ...playlist, items: savedItems } });
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {

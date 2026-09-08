@@ -1,4 +1,5 @@
 import { asc, desc, eq, inArray } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -49,16 +50,17 @@ export async function POST(request: Request) {
   const result = playlistInput.safeParse(await request.json().catch(() => null));
   if (!result.success) return NextResponse.json({ error: "A playlist precisa de nome, links de vídeo válidos e repetições maiores que zero." }, { status: 400 });
 
-  const saved = await db.transaction(async (tx) => {
-    const [playlist] = await tx.insert(playlists).values({ ownerId: user.id, name: result.data.name }).returning();
-    const items = await tx.insert(playlistItems).values(result.data.items.map((item, position) => ({
-      playlistId: playlist.id,
+  const playlistId = randomUUID();
+  const [savedPlaylists, savedItems] = await db.batch([
+    db.insert(playlists).values({ id: playlistId, ownerId: user.id, name: result.data.name }).returning(),
+    db.insert(playlistItems).values(result.data.items.map((item, position) => ({
+      playlistId,
       url: item.url,
       repetitions: item.repetitions,
       position,
-    }))).returning();
-    return { playlist, items };
-  });
+    }))).returning(),
+  ]);
+  const playlist = savedPlaylists[0];
 
-  return NextResponse.json({ playlist: { ...saved.playlist, items: saved.items } }, { status: 201 });
+  return NextResponse.json({ playlist: { ...playlist, items: savedItems } }, { status: 201 });
 }
