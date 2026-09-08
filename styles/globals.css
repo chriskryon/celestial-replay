@@ -79,7 +79,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
    (youtube-video-element, vimeo, hls, file <video>, etc.) é filho direto do
    wrapper e nasce sem tamanho próprio. O iframe interno fica no shadow DOM,
    então dimensionar o host é tudo que dá — e tudo que precisa. */
-.player-stage .replay-player { display: block; width: 100% !important; height: 100% !important; min-height: 220px; aspect-ratio: 16 / 9; background: #000; }
+.player-stage .replay-player { display: block; width: 100% !important; height: auto !important; aspect-ratio: 16 / 9; background: #000; }
 .player-stage .replay-player > * { display: block; width: 100% !important; height: 100% !important; }
 .player-empty { display: grid !important; place-items: center; gap: 0.5rem; padding: 1.5rem; color: var(--muted); text-align: center; }
 .player-empty p { margin: 0; }
