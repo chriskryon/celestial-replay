@@ -12,6 +12,7 @@ import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistLine, parsePlaylistLines } from "@/lib/replay-playlist";
+import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
 
@@ -58,7 +59,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   // playerRef.current.play() / .pause() / .seekTo via currentTime.
   const playerRef = useRef<HTMLVideoElement | null>(null);
 
-  const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
+  const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
   activeVideoIdRef.current = activeVideo?.id ?? null;
   const parsedRepetitions = Number(repetitions);
   const canSubmitSingle = isPlayableMediaUrl(source.trim()) && canPlaySrc(source.trim()) && Number.isInteger(parsedRepetitions) && parsedRepetitions > 0;
@@ -95,16 +96,10 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     })
     : -1;
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
-  const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
-  const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
   const progressLabel = activeIndex === null || error || !hasPlaybackStarted ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const isLoggedIn = Boolean(session.data?.user);
-  const hasNextVideo = activeIndex !== null && activeIndex + 1 < queue.length;
-  const hasPrevVideo = activeIndex !== null && activeIndex > 0;
   const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
-  const completedQueue = activeIndex === null ? [] : queue.slice(0, activeIndex);
-  const visibleQueue = activeIndex === null ? queue : queue.slice(activeIndex);
   const previewVideo = useMemo<VideoItem | null>(() => {
     if (activeVideo) return null;
     if (mode === "single" && canSubmitSingle) return { id: "single-preview", src: source.trim(), repetitions: parsedRepetitions };
@@ -116,17 +111,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       : null;
   }, [activeVideo, canSubmitSingle, firstSimplePlaylistItem, mode, parsedRepetitions, playlistInputMode, playlistItems, source]);
   const displayedVideo = activeVideo ?? previewVideo;
-  const playerStatus = previewVideo && !error
-    ? "Vídeo carregado. Clique em Iniciar para começar."
-    : activeVideo && isPlaying && !hasPlaybackStarted && !error
-      ? playBlocked
-        ? "O navegador bloqueou o início automático. Clique em Continuar."
-        : "Iniciando reprodução…"
-      : activeVideo && isPlaying && !error
-        ? `Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`
-        : activeVideo && !error
-          ? "Reprodução pausada."
-          : status;
+  const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
 
   useEffect(() => {
     if (mode !== "playlist") return;
