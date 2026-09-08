@@ -66,6 +66,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const [remaining, setRemaining] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
+  const [playbackNonce, setPlaybackNonce] = useState(0);
   const [volume, setVolume] = useState(0.7);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
@@ -182,6 +183,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setRemaining(0);
     setIsPlaying(false);
     setHasPlaybackStarted(false);
+    setPlaybackNonce(0);
     setError(null);
     setStatus("Pronto para montar uma nova playlist.");
   };
@@ -196,6 +198,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setVolume(resumeSession.volume / 100);
     setIsPlaying(true);
     setHasPlaybackStarted(false);
+    setPlaybackNonce(0);
     setStatus(`Retomando vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}…`);
     setResumeSession(null);
   };
@@ -273,6 +276,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       setRemaining(item.repetitions);
       setIsPlaying(true);
       setHasPlaybackStarted(false);
+      setPlaybackNonce(0);
       setError(null);
       setStatus("Carregando vídeo…");
       return;
@@ -290,6 +294,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setRemaining(nextQueue[0].repetitions);
     setIsPlaying(true);
     setHasPlaybackStarted(false);
+    setPlaybackNonce(0);
     setError(null);
     setStatus("Carregando o primeiro vídeo…");
     setDuration(null);
@@ -301,6 +306,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       const nextRemaining = remaining - 1;
       setRemaining(nextRemaining);
       setHasPlaybackStarted(false);
+      setPlaybackNonce((value) => value + 1);
       setStatus("Preparando a próxima repetição…");
       return;
     }
@@ -411,7 +417,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
 
           <div className="player-surface">
             <div className="player-stage">
-              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={`${displayedVideo.id}-${activeVideo ? remaining : "preview"}`} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} controls={Boolean(activeVideo)} playsInline volume={volume} width="100%" height="100%" onStart={activeVideo ? handlePlaybackStart : undefined} onEnded={activeVideo ? handleEnded : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
+              {displayedVideo && !error ? <ReactPlayer className="replay-player" key={`${displayedVideo.src}-${playbackNonce}`} src={displayedVideo.src} playing={activeVideo ? isPlaying : false} controls={Boolean(activeVideo)} playsInline volume={volume} width="100%" height="100%" onStart={activeVideo ? handlePlaybackStart : undefined} onEnded={activeVideo ? handleEnded : undefined} onDurationChange={activeVideo ? (event) => setDuration(event.currentTarget.duration) : undefined} onError={activeVideo ? handlePlaybackError : () => setError("Não foi possível carregar esta URL para prévia.")} /> : <div className="player-empty"><Play aria-hidden="true" size={30} /><p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p></div>}
             </div>
             <div className="session-bar" role="status" aria-live="polite" aria-atomic="true"><span>{progressLabel ?? playerStatus}{duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}</span>{activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}</div>
             <label className="volume-control" htmlFor="volume"><Volume2 aria-hidden="true" size={18} /><span>Volume</span><input id="volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} /></label>
