@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Keyboard, ListMusic, ListPlus, Maximize, Orbit, Pause, PictureInPicture2, Play, Plus, RotateCcw, Save, Trash2, Video, Volume2, VolumeX, X } from "lucide-react";
+import { Keyboard, ListMusic, ListPlus, Maximize, Orbit, Pause, PictureInPicture2, Play, Plus, RotateCcw, Save, SkipForward, StepForward, Trash2, Video, Volume2, VolumeX, X } from "lucide-react";
 import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
@@ -119,6 +119,8 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
   const completedRepetitions = activeIndex === null ? 0 : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
   const progressLabel = activeIndex === null || error || !hasPlaybackStarted ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const isLoggedIn = Boolean(session.data?.user);
+  const hasNextVideo = activeIndex !== null && activeIndex + 1 < queue.length;
+  const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
   const previewVideo = useMemo<VideoItem | null>(() => {
     if (activeVideo) return null;
     if (mode === "single" && canSubmitSingle) return { id: "single-preview", src: source.trim(), repetitions: parsedRepetitions };
@@ -210,6 +212,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         setIsPlaying((value) => !value);
       }
       if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
+      if (event.key.toLowerCase() === "n" && activeIndex !== null) playNextVideo(true);
       if (event.key.toLowerCase() === "j") seekBy(-10);
       if (event.key.toLowerCase() === "l") seekBy(10);
       if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
@@ -217,7 +220,7 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     };
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
-  }, [activeVideo]);
+  }, [activeVideo, activeIndex, remaining]);
 
   // Watchdog: o Player.js interno tenta play() uma única vez por render.
   useEffect(() => {
@@ -433,31 +436,33 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setDuration(null);
   };
 
-  const handleEnded = (videoId: string) => {
-    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || videoId !== activeVideoIdRef.current) return;
-    endedVideoIdRef.current = videoId;
-    if (remaining > 1) {
-      const nextRemaining = remaining - 1;
-      setRemaining(nextRemaining);
-      setHasPlaybackStarted(false);
-      try {
-        programmaticSeekRef.current = true;
-        const node = playerRef.current;
-        if (node) {
-          if ("currentTime" in node) node.currentTime = 0;
-          const maybeSeek = (node as unknown as { seekTo?: (s: number, t?: string) => void }).seekTo;
-          if (typeof maybeSeek === "function") maybeSeek.call(node, 0, "seconds");
-        }
-      } catch { programmaticSeekRef.current = false; /* segue para play */ }
-      // O seek acima pausa alguns providers; re-dispara play no próximo tick,
-      // ainda dentro da cadeia do evento `ended`.
-      window.setTimeout(() => { attemptPlay(); }, 0);
-      setIsPlaying(true);
-      setStatus(`Reproduzindo ${activeVideo.repetitions - nextRemaining + 1} de ${activeVideo.repetitions}.`);
-      return;
-    }
+  // Avança uma repetição do vídeo atual (manual = botão; automático = ended).
+  const playNextRepetition = (manual: boolean) => {
+    if (!activeVideo || activeIndex === null) return;
+    if (remaining <= 1) { playNextVideo(manual); return; }
+    const nextRemaining = remaining - 1;
+    setRemaining(nextRemaining);
+    setHasPlaybackStarted(false);
+    try {
+      programmaticSeekRef.current = true;
+      const node = playerRef.current;
+      if (node) {
+        if ("currentTime" in node) node.currentTime = 0;
+        const maybeSeek = (node as unknown as { seekTo?: (s: number, t?: string) => void }).seekTo;
+        if (typeof maybeSeek === "function") maybeSeek.call(node, 0, "seconds");
+      }
+    } catch { programmaticSeekRef.current = false; /* segue para play */ }
+    // O seek acima pausa alguns providers; re-dispara play no próximo tick.
+    window.setTimeout(() => { attemptPlay(); }, manual ? 60 : 0);
+    setIsPlaying(true);
+    setStatus(`Reproduzindo ${activeVideo.repetitions - nextRemaining + 1} de ${activeVideo.repetitions}.`);
+  };
+
+  // Avança para o próximo vídeo (manual = botão, sem gravar histórico).
+  const playNextVideo = (manual: boolean) => {
+    if (!activeVideo || activeIndex === null) return;
     const nextIndex = activeIndex + 1;
-    recordCompletedVideo(activeVideo);
+    if (!manual) recordCompletedVideo(activeVideo);
     if (nextIndex < queue.length) {
       const nextVideo = queue[nextIndex];
       if (!isPlayableItem(nextVideo)) {
@@ -467,8 +472,9 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         return;
       }
       setActiveIndex(nextIndex);
-      setRemaining(nextVideo.repetitions);(0);
-(0);
+      setRemaining(nextVideo.repetitions);
+      setPlayed(0);
+      setLoaded(0);
       seekingRef.current = false;
       setHasPlaybackStarted(false);
       setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
@@ -478,6 +484,13 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setStatus("Sessão concluída. Entre para manter este histórico.");
     setResumeSession(null);
     if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+  };
+
+  const handleEnded = (videoId: string) => {
+    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || videoId !== activeVideoIdRef.current) return;
+    endedVideoIdRef.current = videoId;
+    if (remaining > 1) playNextRepetition(false);
+    else playNextVideo(false);
   };
 
   const handlePlaybackError = () => {
@@ -690,12 +703,13 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
             {queue.length > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((completedRepetitions / totalRepetitions) * 100)} aria-label="Progresso da playlist"><i style={{ width: `${(completedRepetitions / totalRepetitions) * 100}%` }} /></div>}
             {activeVideo && !error && <div className="control-bar">
               <div className="control-group"><button className="pause-button" type="button" onClick={togglePlay}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}{isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando…" : "Continuar"}</button></div>
+              <div className="control-group" role="toolbar" aria-label="Avançar"><button className="icon-save-button" type="button" onClick={() => playNextRepetition(true)} disabled={!canSkipRepetition} aria-label="Pular repetição" title="Pular repetição"><SkipForward aria-hidden="true" size={18} /></button>{hasNextVideo && <button className="icon-save-button" type="button" onClick={() => playNextVideo(true)} aria-label="Próximo vídeo" title="Próximo vídeo (N)"><StepForward aria-hidden="true" size={18} /></button>}</div>
               {duration !== null && duration > 0 && <div className="control-group seek-group"><label className="seek-control" htmlFor="seek"><span className="seek-time">{formatTime(played * duration)}</span><input id="seek" type="range" min={0} max={0.999999} step="any" value={played} style={{ background: `linear-gradient(90deg, rgba(220,231,255,.9) ${played * 100}%, rgba(190,207,248,.35) ${played * 100}%, rgba(190,207,248,.35) ${Math.max(played, Math.min(loaded, 1)) * 100}%, rgba(190,207,248,.12) ${Math.max(played, Math.min(loaded, 1)) * 100}%)` }} onMouseDown={handleSeekSliderDown} onTouchStart={handleSeekSliderDown} onChange={(event) => handleSeekSliderChange(Number(event.target.value))} onMouseUp={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} onTouchEnd={(event) => handleSeekSliderUp(Number(event.currentTarget.value))} /><span className="seek-time">{formatTime(duration)}</span></label></div>}
               <div className="control-group"><button className="icon-save-button" type="button" onClick={toggleMute} aria-label={volume === 0 ? "Ativar som" : "Silenciar"} title={volume === 0 ? "Ativar som (M)" : "Silenciar (M)"}>{volume === 0 ? <VolumeX aria-hidden="true" size={18} /> : <Volume2 aria-hidden="true" size={18} />}</button><input className="volume-slider" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => setVolume(Number(event.target.value))} aria-label="Volume" title="Volume" /></div>
               <div className="control-group" role="toolbar" aria-label="Velocidade">{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Velocidade ${rate}x`}>{rate}x</button>)}</div>
               <div className="control-group" role="toolbar" aria-label="Tela">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={() => setPip((value) => !value)} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={goFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
             </div>}
-            {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume · J/L ∓10s</p>}
+            {activeVideo && <p className="keyboard-help"><Keyboard aria-hidden="true" size={14} />Espaço pausa · M silencia · ↑ ↓ volume · J/L ∓10s · N próximo vídeo</p>}
           </div>
         </div>
 
