@@ -3,12 +3,13 @@
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Keyboard, ListMusic, ListPlus, Maximize, Orbit, Pause, PictureInPicture2, Play, Plus, RotateCcw, Save, SkipBack, SkipForward, SlidersHorizontal, StepBack, StepForward, Trash2, Video, Volume2, VolumeX, X } from "lucide-react";
+import { ChevronDown, Keyboard, ListMusic, Maximize, Orbit, Pause, PictureInPicture2, Play, RotateCcw, Save, SkipBack, SkipForward, SlidersHorizontal, StepBack, StepForward, Video, Volume2, VolumeX, X } from "lucide-react";
 import screenfull from "screenfull";
 
 import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
 import { PlaybackQueue } from "@/components/playback-queue";
+import { ReplayComposer } from "@/components/replay-composer";
 import { canEnablePIP, canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
@@ -683,59 +684,41 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
         {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length}</span></div><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></aside>}
 
         <div className="studio-grid">
-          <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={start}>
-            {mode === "single" ? <>
-              <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Configurar repetição</h2></div>
-              <label htmlFor="source">URL do vídeo</label>
-              <input id="source" value={source} onChange={(event) => { setSource(event.target.value); setError(null); }} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" autoComplete="url" />
-              <label htmlFor="repetitions">Repetições</label>
-              <input id="repetitions" type="number" min="1" step="1" value={repetitions} onChange={(event) => setRepetitions(event.target.value)} />
-              <p className="field-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
-            </> : isEditingQueue ? <div className="playlist-running-note">
-              <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Playlist em andamento</h2></div>
-              <p>Os próximos vídeos podem ser editados logo abaixo.</p>
-              <button className="add-row" type="button" onClick={startNewPlaylist}>Nova playlist</button>
-            </div> : <>
-              <div className="playlist-heading">
-                <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Monte sua playlist</h2></div>
-                <p>Escolha a forma que for mais confortável. A playlist só começa quando tudo estiver válido.</p>
-              </div>
-              <div className="playlist-input-mode" role="tablist" aria-label="Forma de montar a playlist">
-                <button className={playlistInputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "simple"} onClick={() => setPlaylistInputMode("simple")}>Simples: linhas</button>
-                <button className={playlistInputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "advanced"} onClick={() => setPlaylistInputMode("advanced")}>Avançado: campos</button>
-              </div>
-              {savedPlaylists.length > 0 && <section className="saved-playlists" aria-labelledby="saved-playlists-title">
-                <h3 id="saved-playlists-title">Minhas playlists</h3>
-                <div>{savedPlaylists.map((playlist) => <button className="saved-playlist" type="button" key={playlist.id} onClick={() => loadSavedPlaylist(playlist)}>{playlist.name}<span>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</span></button>)}</div>
-              </section>}
-              {playlistInputMode === "simple" ? <div className="simple-playlist-input">
-                <label htmlFor="simple-playlist">Vídeos e repetições</label>
-                <textarea id="simple-playlist" value={simplePlaylist} onChange={(event) => { setSimplePlaylist(event.target.value); setError(null); }} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" />
-                <p>Uma linha por vídeo: <code>link;quantidade</code>.{simplePlaylistLineCount > 0 && <span className="playlist-summary">{simplePlaylistLineCount} {simplePlaylistLineCount === 1 ? "vídeo" : "vídeos"} · {simplePlaylistItems?.reduce((total, item) => total + item.count, 0) ?? 0} repetições</span>}</p>
-                {invalidSimpleLine >= 0 && <p className="field-error" role="alert">Revise a linha {invalidSimpleLine + 1}: use <code>link;quantidade</code>.</p>}
-              </div> : <div className="playlist-editor" aria-label="Vídeos da playlist">
-                {drafts.map((draft, index) => {
-                  const count = Number(draft.repetitions);
-                  const touched = draft.src.trim() !== "" || draft.repetitions !== "1";
-                  const rowInvalid = touched && !(isPlayableMediaUrl(draft.src.trim()) && canPlaySrc(draft.src.trim()) && Number.isInteger(count) && count > 0);
-                  return <div className="playlist-row" key={draft.id}>
-                  <span className="row-number" aria-hidden="true">{index + 1}</span>
-                  <label className="sr-only" htmlFor={`playlist-url-${draft.id}`}>URL do vídeo {index + 1}</label>
-                  <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => updateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" aria-invalid={rowInvalid} />
-                  <label className="sr-only" htmlFor={`playlist-count-${draft.id}`}>Repetições do vídeo {index + 1}</label>
-                  <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => updateDraft(draft.id, "repetitions", event.target.value)} aria-invalid={rowInvalid} />
-                {drafts.length > 1 && <button className="remove-row" type="button" onClick={() => setDrafts((items) => items.filter((item) => item.id !== draft.id))} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={18} /></button>}
-                </div>;})}
-              </div>}
-              {playlistInputMode === "advanced" && <button className="add-row" type="button" onClick={() => setDrafts((items) => [...items, makeDraft()])}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>}
-              {isLoggedIn && <div className="playlist-save"><button className="icon-save-button" type="button" onClick={() => openSaveDialog("draft")} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button></div>}
-              {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
-            </>}
-            {error && <p className="field-error" role="alert">{error}</p>}
-            {!isEditingQueue && <button className="primary-button" type="submit" disabled={mode === "single" ? !canSubmitSingle : !canSubmitPlaylist}><Play aria-hidden="true" size={18} />{mode === "single" ? "Iniciar" : "Iniciar playlist"}</button>}
-            {!isEditingQueue && (mode === "single" ? singleHint : playlistHint) && <p className="field-help" role="status">{mode === "single" ? singleHint : playlistHint}</p>}
-            {!isEditingQueue && !activeVideo && previewVideo && !error && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => setPlaybackRate(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
-          </form>
+          <ReplayComposer
+            canSubmitPlaylist={canSubmitPlaylist}
+            canSubmitSingle={canSubmitSingle}
+            drafts={drafts}
+            error={error}
+            invalidSimpleLine={invalidSimpleLine}
+            isEditingQueue={isEditingQueue}
+            isLoggedIn={isLoggedIn}
+            isSavingPlaylist={isSavingPlaylist}
+            mode={mode}
+            onAddDraft={() => setDrafts((items) => [...items, makeDraft()])}
+            onLoadSavedPlaylist={loadSavedPlaylist}
+            onOpenSaveDialog={() => openSaveDialog("draft")}
+            onPlaylistInputModeChange={setPlaylistInputMode}
+            onPlaybackRateChange={setPlaybackRate}
+            onRemoveDraft={(id) => setDrafts((items) => items.filter((item) => item.id !== id))}
+            onRepetitionsChange={setRepetitions}
+            onSimplePlaylistChange={(value) => { setSimplePlaylist(value); setError(null); }}
+            onSourceChange={(value) => { setSource(value); setError(null); }}
+            onStart={start}
+            onStartNewPlaylist={startNewPlaylist}
+            onUpdateDraft={updateDraft}
+            playbackRate={playbackRate}
+            playlistHint={playlistHint}
+            playlistInputMode={playlistInputMode}
+            playlistSaveMessage={playlistSaveMessage}
+            previewAvailable={!activeVideo && Boolean(previewVideo) && !error}
+            repetitions={repetitions}
+            savedPlaylists={savedPlaylists}
+            simplePlaylist={simplePlaylist}
+            simplePlaylistItemsCount={simplePlaylistItems?.reduce((total, item) => total + item.count, 0) ?? 0}
+            simplePlaylistLineCount={simplePlaylistLineCount}
+            singleHint={singleHint}
+            source={source}
+          />
 
           <div className="player-surface">
             <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
