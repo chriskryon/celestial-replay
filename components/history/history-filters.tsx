@@ -15,8 +15,7 @@ export function HistoryFilters({ filters, origins }: { filters: HistoryFiltersVa
         <input defaultValue={filters.q ?? ""} name="q" placeholder="Buscar vídeo ou origem" />
       </label>
       <label>
-        <ListFilter aria-hidden="true" size={15} />
-        <span>Período</span>
+        <span className="history-filter-label"><ListFilter aria-hidden="true" size={15} />Período</span>
         <select defaultValue={filters.period ?? ""} name="period">
           <option value="">Tudo</option>
           <option value="7">Últimos 7 dias</option>
@@ -25,7 +24,7 @@ export function HistoryFilters({ filters, origins }: { filters: HistoryFiltersVa
         </select>
       </label>
       <label>
-        <span>Origem</span>
+        <span className="history-filter-label">Origem</span>
         <select defaultValue={filters.origin ?? ""} name="origin">
           <option value="">Todas</option>
           {origins.map((origin) => <option key={origin} value={origin}>{origin}</option>)}
