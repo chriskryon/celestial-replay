@@ -32,7 +32,9 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
   }, [snapshot.source]);
 
   useEffect(() => {
-    const handleScroll = () => setIsNavbarScrolled(window.scrollY > 28);
+    const handleScroll = () => {
+      if (window.scrollY > 28) setIsNavbarScrolled(true);
+    };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);

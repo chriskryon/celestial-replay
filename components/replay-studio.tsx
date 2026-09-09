@@ -68,6 +68,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
   const [videoMetadata, setVideoMetadata] = useState<{ authorName: string | null; title: string | null }>({ authorName: null, title: null });
+  const [queueMetadata, setQueueMetadata] = useState<Record<string, { authorName: string | null; title: string | null; loading: boolean }>>({});
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
@@ -151,6 +152,22 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       .catch(() => undefined);
     return () => controller.abort();
   }, [activeVideo?.src, previewVideo?.src]);
+
+  useEffect(() => {
+    const sources = Array.from(new Set(queue.map((item) => item.src).filter((src) => /youtube(?:-nocookie)?\.com|youtu\.be/.test(src))));
+    if (sources.length === 0) { setQueueMetadata({}); return; }
+    const controller = new AbortController();
+    setQueueMetadata((current) => Object.fromEntries(sources.map((src) => [src, { authorName: current[src]?.authorName ?? null, title: current[src]?.title ?? null, loading: true }])));
+    void Promise.all(sources.map(async (src) => {
+      try {
+        const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(src)}&format=json`, { signal: controller.signal });
+        if (!response.ok) return [src, { authorName: null, title: null, loading: false }] as const;
+        const result = await response.json() as { author_name?: string; title?: string };
+        return [src, { authorName: result.author_name ?? null, title: result.title ?? null, loading: false }] as const;
+      } catch { return [src, { authorName: null, title: null, loading: false }] as const; }
+    })).then((entries) => setQueueMetadata(Object.fromEntries(entries))).catch(() => undefined);
+    return () => controller.abort();
+  }, [queue]);
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -543,6 +560,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setRemaining(prevVideo.repetitions);
     setPlayed(0);
     setLoaded(0);
+    setDuration(null);
     seekingRef.current = false;
     setHasPlaybackStarted(false);
     setIsPlaying(true);
@@ -581,6 +599,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       if (!manual && usesNativeYoutubePlaylist) ignoreStaleEndedRef.current = true;
       setPlayed(0);
       setLoaded(0);
+      setDuration(null);
       seekingRef.current = false;
       setHasPlaybackStarted(false);
       setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
@@ -628,6 +647,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   const handlePlaybackStarted = (videoId: string) => {
     if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current) return;
+    const mediaDuration = playerRef.current?.duration;
+    if (typeof mediaDuration === "number" && Number.isFinite(mediaDuration) && mediaDuration > 0) setDuration(mediaDuration);
     ignoreStaleEndedRef.current = false;
     endedVideoIdRef.current = null;
     setIsPlaying(true);
@@ -821,7 +842,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>
         <section className="save-playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="save-playlist-title" onMouseDown={(event) => event.stopPropagation()}>

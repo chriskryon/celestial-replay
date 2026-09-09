@@ -1,5 +1,5 @@
-import { Save, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ExternalLink, Save, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
@@ -13,6 +13,7 @@ type PlaybackQueueProps = {
   isLoggedIn: boolean;
   isPlaying: boolean;
   isSaving: boolean;
+  metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
   onRemoveFutureItem: (id: string) => void;
   onSave: () => void;
   onUpdateUpcomingItem: (id: string, field: "src" | "repetitions", value: string) => void;
@@ -29,6 +30,7 @@ export function PlaybackQueue({
   isLoggedIn,
   isPlaying,
   isSaving,
+  metadata,
   onRemoveFutureItem,
   onSave,
   onUpdateUpcomingItem,
@@ -37,9 +39,14 @@ export function PlaybackQueue({
   visibleQueue,
 }: PlaybackQueueProps) {
   const currentItemRef = useRef<HTMLLIElement | null>(null);
+  const [recentIndex, setRecentIndex] = useState<number | null>(null);
 
   useEffect(() => {
     currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (activeIndex === null) return;
+    setRecentIndex(activeIndex);
+    const timeout = window.setTimeout(() => setRecentIndex(null), 1200);
+    return () => window.clearTimeout(timeout);
   }, [activeIndex]);
 
   const renderQueueItem = (item: VideoItem, index: number) => {
@@ -52,9 +59,13 @@ export function PlaybackQueue({
           ? isPlaying ? "Tocando agora" : "Pausado"
           : "Iniciando"
       : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
+    const itemMetadata = metadata[item.src];
+    const displayTitle = itemMetadata?.title ?? (() => {
+      try { return new URL(item.src).hostname.replace(/^www\./, ""); } catch { return item.src; }
+    })();
 
     return (
-      <li ref={isCurrent ? currentItemRef : undefined} className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
+      <li ref={isCurrent ? currentItemRef : undefined} className={`queue-item${isCurrent ? " is-current" : ""}${recentIndex === index ? " is-recent" : ""}`} key={item.id}>
         <span className="queue-state">
           <b>{index + 1}</b>
           <small>{state}</small>
@@ -87,7 +98,11 @@ export function PlaybackQueue({
             <Trash2 aria-hidden="true" size={15} />
           </button>
         </> : <>
-          <span className="queue-url" title={item.src}>{item.src}</span>
+          <span className="queue-media-copy">
+            {itemMetadata?.loading ? <span className="cosmic-skeleton queue-title-skeleton" aria-label="Carregando título do vídeo" /> : <strong>{displayTitle}</strong>}
+            {itemMetadata?.authorName && <small>{itemMetadata.authorName}</small>}
+            <a className="queue-url" href={item.src} target="_blank" rel="noreferrer" title={item.src}><ExternalLink aria-hidden="true" size={12} />Abrir origem</a>
+          </span>
           <span className="queue-count">{item.repetitions}×</span>
         </>}
       </li>
@@ -108,6 +123,7 @@ export function PlaybackQueue({
       </div>
     </div>
     {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
+    {activeIndex !== null && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
     <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
     {completedQueue.length > 0 && <details className="queue-completed">
       <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
