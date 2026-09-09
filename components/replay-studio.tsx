@@ -10,6 +10,7 @@ import { ReplayPlayerSurface } from "@/components/replay-player-surface";
 import { canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { playbackErrorMessage } from "@/lib/playback-error";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 import { usePlayerMedia } from "@/hooks/use-player-media";
@@ -627,14 +628,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setDuration(null);
 (0);
 (0);
-    const src = activeVideo?.src ?? "";
-    // Diferencia fonte não suportada (nem o ReactPlayer reconhece) de falha
-    // de rede/embed privado — cada caso pede uma ação diferente do usuário.
-    setError(
-      src && !canPlaySrc(src)
-        ? "Esta fonte não é suportada pelo player. Use YouTube, Vimeo, HLS/DASH ou um arquivo de vídeo/áudio direto."
-        : "Não foi possível carregar este vídeo. Pode ser embed desativado, vídeo privado/restrito ou falha de rede — tente outra fonte.",
-    );
+    setError(playbackErrorMessage(activeVideo?.src ?? ""));
     setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
     setResumeSession(null);
     if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
@@ -805,7 +799,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onPlaybackPlay={handlePlaybackPlay}
             onPlaybackStarted={handlePlaybackStarted}
             onPlayerReady={handlePlayerReady}
-            onPreviewError={() => setError("Não foi possível carregar esta URL para prévia.")}
+            onPreviewError={() => setError(playbackErrorMessage(previewVideo?.src ?? source))}
             onPreviousRepetition={playPreviousRepetition}
             onPreviousVideo={playPreviousVideo}
             onProgress={handleProgress}
