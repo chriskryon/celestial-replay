@@ -75,8 +75,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .player-surface { position: relative; z-index: 0; order: -1; display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto auto; overflow: hidden; padding: 0.45rem; border: 1px solid rgba(225, 234, 255, 0.11); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.27); }
 .player-stage { position: relative; display: grid; width: auto; height: 100%; min-height: 0; max-width: 100%; aspect-ratio: 16 / 9; justify-self: center; overflow: hidden; border: 1px solid rgba(222, 232, 255, 0.08); border-radius: 0.52rem; background: rgba(0, 2, 12, 0.88); place-items: center; box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.7); }
 .preview-badge { position: absolute; z-index: 2; top: 0.5rem; left: 0.5rem; padding: 0.22rem 0.55rem; border: 1px solid rgba(216, 227, 255, 0.25); border-radius: 999px; color: #e6edff; background: rgba(4, 10, 28, 0.72); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; backdrop-filter: blur(8px); pointer-events: none; }
-.playlist-progress { height: 4px; overflow: hidden; border-radius: 99px; background: rgba(190, 207, 248, 0.12); }
-.playlist-progress i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #9db4ec, #dce7ff); transition: width 300ms ease; }
+.playlist-progress { display: flex; height: 8px; gap: 2px; overflow: hidden; padding: 1px; border-radius: 99px; background: rgba(190, 207, 248, 0.1); }
+.playlist-progress-segment { min-width: 2px; flex: 1; border-radius: 99px; opacity: .22; transition: opacity 220ms ease, box-shadow 220ms ease, filter 220ms ease; }
+.playlist-progress-segment.tone-0 { background: #a7baf1; }
+.playlist-progress-segment.tone-1 { background: #b6a8e8; }
+.playlist-progress-segment.tone-2 { background: #8fc4d2; }
+.playlist-progress-segment.tone-3 { background: #d0a9c7; }
+.playlist-progress-segment.is-complete { opacity: .72; }
+.playlist-progress-segment.is-current { opacity: 1; filter: saturate(1.08) brightness(1.12); box-shadow: 0 0 7px currentColor; }
 .player-stage > div { width: 100%; height: 100%; }
 /* Genérico para todos os providers do ReactPlayer v3: o elemento de mídia
    (youtube-video-element, vimeo, hls, file <video>, etc.) é filho direto do
@@ -113,8 +119,6 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .persistent-mini-player .icon-save-button { width: 36px; height: 36px; flex: 0 0 auto; border-color: rgba(202, 217, 255, .18); }
 .persistent-mini-open { display: inline-flex; min-height: 36px; align-items: center; padding: 0 .38rem; border-radius: .5rem; color: var(--ink); font-size: .74rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .persistent-mini-open:hover { color: white; background: rgba(197, 213, 255, .1); }
-.playlist-progress { position: relative; overflow: hidden; }
-.playlist-progress-break { position: absolute; z-index: 2; top: 0; bottom: 0; width: 1px; background: rgba(7, 16, 36, .72); box-shadow: 0 0 0 1px rgba(222, 233, 255, .18); pointer-events: none; }
 .control-group { display: flex; min-height: 40px; align-items: center; gap: 0.35rem; padding: 0.22rem 0.4rem; border: 1px solid rgba(218, 228, 255, 0.13); border-radius: 0.65rem; background: rgba(2, 7, 25, 0.36); }
 .control-group .pause-button { margin: 0; border: 0; background: transparent; }
 .control-group .seek-control { padding: 0; }
