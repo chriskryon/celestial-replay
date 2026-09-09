@@ -58,6 +58,7 @@ type ReplayPlayerSurfaceProps = {
   playerStatus: string;
   previewVideo: VideoItem | null;
   progressLabel: string | null;
+  queue: VideoItem[];
   queueLength: number;
   remaining: number;
   totalRepetitions: number;
@@ -113,6 +114,7 @@ export function ReplayPlayerSurface({
   playerStatus,
   previewVideo,
   progressLabel,
+  queue,
   queueLength,
   remaining,
   totalRepetitions,
@@ -135,6 +137,11 @@ export function ReplayPlayerSurface({
 
   const playbackProgress = totalRepetitions > 0 ? (completedRepetitions / totalRepetitions) * 100 : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
+  const videoBreaks = queue.slice(0, -1).reduce<number[]>((breaks, item) => {
+    const previous = breaks.at(-1) ?? 0;
+    breaks.push(previous + (item.repetitions / totalRepetitions) * 100);
+    return breaks;
+  }, []);
 
   return <div className="player-surface">
     <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
@@ -145,7 +152,7 @@ export function ReplayPlayerSurface({
         </span>
         {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}
       </div>
-      {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label="Progresso da playlist"><i style={{ width: `${playbackProgress}%` }} /></div>}
+      {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label="Progresso da playlist"><i style={{ width: `${playbackProgress}%` }} />{videoBreaks.map((position) => <b className="playlist-progress-break" key={position} style={{ left: `${position}%` }} aria-hidden="true" />)}</div>}
     </div>
 
     <div className="player-stage">

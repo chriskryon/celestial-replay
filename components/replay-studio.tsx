@@ -690,6 +690,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             playerStatus={playerStatus}
             previewVideo={previewVideo}
             progressLabel={progressLabel}
+            queue={queue}
             queueLength={queue.length}
             remaining={remaining}
             totalRepetitions={totalRepetitions}

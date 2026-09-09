@@ -106,6 +106,8 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .persistent-mini-copy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .persistent-mini-open { color: var(--text-primary); font-size: .78rem; font-weight: 650; text-decoration: none; white-space: nowrap; }
 .persistent-mini-open:hover { color: white; }
+.playlist-progress { position: relative; overflow: hidden; }
+.playlist-progress-break { position: absolute; z-index: 2; top: 0; bottom: 0; width: 1px; background: rgba(7, 16, 36, .72); box-shadow: 0 0 0 1px rgba(222, 233, 255, .18); pointer-events: none; }
 .control-group { display: flex; min-height: 40px; align-items: center; gap: 0.35rem; padding: 0.22rem 0.4rem; border: 1px solid rgba(218, 228, 255, 0.13); border-radius: 0.65rem; background: rgba(2, 7, 25, 0.36); }
 .control-group .pause-button { margin: 0; border: 0; background: transparent; }
 .control-group .seek-control { padding: 0; }
