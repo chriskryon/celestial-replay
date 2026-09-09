@@ -157,15 +157,18 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .control-primary { border-color: rgba(188, 204, 255, 0.27); background: rgba(135, 164, 234, 0.15); }
 .control-primary .pause-button { color: #eef4ff; font-weight: 700; }
 .control-navigation { background: rgba(2, 7, 25, 0.22); }
-.player-surface .control-primary { border-color: rgba(193, 214, 255, .32); background: radial-gradient(circle at 50% 42%, rgba(181, 204, 255, .18), rgba(80, 111, 192, .08) 72%); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 14px rgba(119, 156, 240, .1); }
+.player-surface .control-primary { padding: 0; border-color: transparent; background: transparent; box-shadow: none; }
 .player-surface .control-primary .pause-button {
-  border: 1px solid rgba(216, 229, 255, .34);
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(196, 216, 255, .28);
+  border-radius: .58rem;
   color: #f2f6ff;
-  background: radial-gradient(circle at 35% 28%, rgba(233, 241, 255, .34), rgba(146, 180, 246, .19) 55%, rgba(73, 103, 184, .18));
-  box-shadow: inset 0 1px rgba(255, 255, 255, .18), 0 0 13px rgba(142, 177, 255, .25);
+  background: linear-gradient(145deg, rgba(177, 203, 255, .2), rgba(77, 108, 187, .12));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .13), 0 5px 14px rgba(0, 0, 0, .18), 0 0 10px rgba(142, 177, 255, .12);
 }
 .player-surface .control-primary .pause-button:hover,
-.player-surface .control-primary .pause-button:focus-visible { border-color: rgba(232, 240, 255, .72); box-shadow: inset 0 1px rgba(255, 255, 255, .24), 0 0 20px rgba(147, 184, 255, .46); }
+.player-surface .control-primary .pause-button:focus-visible { border-color: rgba(224, 235, 255, .56); background: linear-gradient(145deg, rgba(197, 219, 255, .28), rgba(94, 132, 219, .18)); box-shadow: inset 0 1px rgba(255, 255, 255, .2), 0 7px 16px rgba(0, 0, 0, .22), 0 0 15px rgba(147, 184, 255, .24); }
 .player-surface .control-navigation .icon-save-button,
 .player-surface .player-volume-control .icon-save-button,
 .player-surface .player-display-control .icon-save-button,
