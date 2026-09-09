@@ -131,9 +131,9 @@ export function ReplayComposer({
     {!isEditingQueue && mode === "playlist" && <div className="playlist-actions">
       {isLoggedIn && <button className="icon-save-button" type="button" onClick={onOpenSaveDialog} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button>}
       {previewAvailable && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
-      <button className="primary-button" type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
+      <button className="primary-button celestial-start-button" type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
     </div>}
-    {!isEditingQueue && mode === "single" && <button className="primary-button" type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
+    {!isEditingQueue && mode === "single" && <button className="primary-button celestial-start-button" type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
     {!isEditingQueue && formHint && <p className="field-help" role="status">{formHint}</p>}
     {!isEditingQueue && previewAvailable && mode === "single" && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
   </form>;

@@ -157,6 +157,15 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .control-primary { border-color: rgba(188, 204, 255, 0.27); background: rgba(135, 164, 234, 0.15); }
 .control-primary .pause-button { color: #eef4ff; font-weight: 700; }
 .control-navigation { background: rgba(2, 7, 25, 0.22); }
+.player-surface .control-primary { border-color: rgba(193, 214, 255, .32); background: radial-gradient(circle at 50% 42%, rgba(181, 204, 255, .18), rgba(80, 111, 192, .08) 72%); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 14px rgba(119, 156, 240, .1); }
+.player-surface .control-primary .pause-button {
+  border: 1px solid rgba(216, 229, 255, .34);
+  color: #f2f6ff;
+  background: radial-gradient(circle at 35% 28%, rgba(233, 241, 255, .34), rgba(146, 180, 246, .19) 55%, rgba(73, 103, 184, .18));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .18), 0 0 13px rgba(142, 177, 255, .25);
+}
+.player-surface .control-primary .pause-button:hover,
+.player-surface .control-primary .pause-button:focus-visible { border-color: rgba(232, 240, 255, .72); box-shadow: inset 0 1px rgba(255, 255, 255, .24), 0 0 20px rgba(147, 184, 255, .46); }
 .player-surface .control-navigation .icon-save-button,
 .player-surface .player-volume-control .icon-save-button,
 .player-surface .player-display-control .icon-save-button,
@@ -178,6 +187,16 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
   background: radial-gradient(circle at 35% 25%, rgba(211, 225, 255, .2), rgba(111, 146, 234, .1) 70%);
   box-shadow: inset 0 1px rgba(255, 255, 255, .14), 0 0 16px rgba(128, 166, 255, .18);
 }
+.player-surface .player-speed-control .mode-button,
+.preview-rate .mode-button {
+  border: 1px solid rgba(178, 201, 251, .13);
+  background: linear-gradient(135deg, rgba(192, 214, 255, .09), rgba(89, 123, 208, .045));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .06);
+}
+.player-surface .player-speed-control .mode-button:hover,
+.preview-rate .mode-button:hover { border-color: rgba(195, 216, 255, .28); background: linear-gradient(135deg, rgba(204, 222, 255, .16), rgba(104, 141, 229, .09)); }
+.player-surface .player-speed-control .mode-button.is-selected,
+.preview-rate .mode-button.is-selected { border-color: rgba(198, 218, 255, .38); background: radial-gradient(circle at 40% 22%, rgba(224, 235, 255, .22), rgba(123, 157, 237, .15) 72%); box-shadow: inset 0 1px rgba(255, 255, 255, .16), 0 0 10px rgba(136, 171, 247, .15); }
 .control-timeline { min-width: 0; padding-inline: 0.55rem; }
 .player-preferences-strip { display: flex; width: fit-content; max-width: 100%; min-height: 42px; align-items: center; justify-self: center; gap: .45rem; margin: .35rem auto 0; padding: .28rem .42rem; border: 1px solid rgba(218, 228, 255, .12); border-radius: .68rem; background: rgba(2, 7, 25, .22); }
 .player-volume-control, .player-speed-control, .player-display-control { display: flex; min-height: 34px; align-items: center; gap: .28rem; }
@@ -232,10 +251,11 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .control-surface .primary-button { grid-column: 3; grid-row: 3; }
 .control-surface .preview-rate { grid-column: 1 / -1; grid-row: 4; width: fit-content; margin-top: 0.3rem; }
 .preview-rate span { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
-input:not([type="range"]), .simple-playlist-input textarea { width: 100%; min-height: 36px; border: 1px solid rgba(218, 229, 255, 0.14); border-radius: 0.55rem; padding: 0.45rem 0.6rem; color: var(--ink); background: rgba(0, 4, 18, 0.42); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22); }
-input:not([type="range"])[aria-invalid="true"], .simple-playlist-input textarea[aria-invalid="true"] { border-color: var(--danger); }
-input:not([type="range"]):hover, .simple-playlist-input textarea:hover { border-color: rgba(195, 213, 255, 0.3); background: rgba(4, 11, 30, 0.52); }
-input::placeholder, .simple-playlist-input textarea::placeholder { color: #b8c2d9; }
+input:not([type="range"]), textarea { width: 100%; min-height: 36px; border: 1px solid rgba(218, 229, 255, 0.14); border-radius: 0.55rem; padding: 0.45rem 0.6rem; color: var(--ink); background: radial-gradient(circle at 18% 0%, rgba(145, 178, 255, .08), transparent 42%), rgba(0, 4, 18, 0.42); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(143, 175, 248, .025); }
+input:not([type="range"])[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--danger); }
+input:not([type="range"]):hover, textarea:hover { border-color: rgba(195, 213, 255, 0.3); background: radial-gradient(circle at 18% 0%, rgba(158, 189, 255, .13), transparent 46%), rgba(4, 11, 30, 0.52); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .2), 0 0 12px rgba(121, 160, 240, .07); }
+input:not([type="range"]):focus, textarea:focus { border-color: rgba(201, 220, 255, .5); background: radial-gradient(circle at 18% 0%, rgba(177, 204, 255, .17), transparent 48%), rgba(5, 13, 35, .66); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18), 0 0 16px rgba(132, 169, 251, .15); }
+input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .field-help { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 0.72rem; line-height: 1.35; }
 .field-error { grid-column: 1 / -1; margin: 0; color: var(--danger); font-size: 0.8rem; }
 .control-surface .primary-button { grid-row: 1; grid-column: 4; align-self: end; }
@@ -257,6 +277,8 @@ input::placeholder, .simple-playlist-input textarea::placeholder { color: #b8c2d
 .playlist-form .primary-button { align-self: flex-end; margin-top: 0; grid-column: auto; grid-row: auto; }
 .playlist-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; margin-top: .12rem; }
 .playlist-actions .primary-button { min-width: 10.5rem; }
+.celestial-start-button { border-color: rgba(207, 223, 255, .4); background: radial-gradient(circle at 22% 25%, rgba(230, 239, 255, .25), rgba(141, 176, 244, .19) 54%, rgba(72, 103, 185, .16)); box-shadow: inset 0 1px rgba(255, 255, 255, .17), 0 0 15px rgba(134, 171, 250, .18); }
+.celestial-start-button:hover:not(:disabled), .celestial-start-button:focus-visible { border-color: rgba(229, 238, 255, .68); background: radial-gradient(circle at 22% 25%, rgba(239, 246, 255, .36), rgba(157, 190, 250, .26) 56%, rgba(82, 119, 209, .2)); box-shadow: inset 0 1px rgba(255, 255, 255, .24), 0 0 22px rgba(145, 184, 255, .36); }
 .playlist-actions .preview-rate { margin: 0; }
 .playlist-form .field-error { margin-right: 10rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
