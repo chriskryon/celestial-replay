@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { RefObject, SyntheticEvent } from "react";
-import { Clapperboard, Keyboard, Maximize, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
+import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
 import type { VideoItem } from "@/lib/replay-playlist";
@@ -157,16 +157,20 @@ export function ReplayPlayerSurface({
     .filter((id): id is string => Boolean(id));
   const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1;
   const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
+  const sourceHost = displayedVideo?.src ? (() => {
+    try { return new URL(displayedVideo.src).hostname.replace(/^www\./, ""); } catch { return ""; }
+  })() : "";
+  const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
 
   return <div className="player-surface">
-    <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
+    <div className="player-status-band">
       <div className="session-bar">
         <div className="player-context">
           <span className="player-context-icon"><Clapperboard aria-hidden="true" size={17} /></span>
           <div className="player-context-copy">
-            {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? displayedVideo.src}</strong>}
-            {videoAuthor && <small className="player-video-author">{videoAuthor}</small>}
-            <span className="player-context-status">{progressLabel ?? playerStatus}</span>
+            {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? fallbackTitle}</strong>}
+            <small className="player-video-author">{videoAuthor ?? sourceHost}</small>
+            <span className="player-context-status" role="status" aria-live="polite">{progressLabel ?? playerStatus}</span>
             {duration && activeVideo && !error && hasPlaybackStarted ? <small className="player-context-duration">≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}
           </div>
         </div>
@@ -176,7 +180,6 @@ export function ReplayPlayerSurface({
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
           {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} title={segment.label} aria-hidden="true" />)}
         </div>
-        <p className="playlist-progress-label">Vídeo {activeIndex + 1} de {queueLength} · {completedRepetitions} de {totalRepetitions} repetições concluídas</p>
       </>}
     </div>
 
@@ -194,7 +197,6 @@ export function ReplayPlayerSurface({
         innerRef={playerRef}
         src={playerSource}
         playing={activeVideo ? isPlaying : false}
-        autoPlay={Boolean(activeVideo && isPlaying)}
         preload="auto"
         light={false}
         controls
@@ -246,9 +248,19 @@ export function ReplayPlayerSurface({
     {activeVideo && !error && <div className="player-preferences-strip" role="group" aria-label="Preferências de reprodução">
       <label className="player-volume-control"><span>Volume</span><button className="icon-save-button" type="button" onClick={onToggleMute} aria-label={volume === 0 ? "Ativar som" : "Silenciar"} title={volume === 0 ? "Ativar som (M)" : "Silenciar (M)"}>{volume === 0 ? <VolumeX aria-hidden="true" size={18} /> : <Volume2 aria-hidden="true" size={18} />}</button><input className="volume-slider" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => onSetVolume(Number(event.target.value))} aria-label="Volume" /></label>
       <span className="player-preferences-divider" aria-hidden="true" />
-      <div className="player-speed-control" role="toolbar" aria-label="Velocidade"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
-      <span className="player-preferences-divider" aria-hidden="true" />
-      <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
+      <div className="player-secondary-controls">
+        <div className="player-speed-control" role="toolbar" aria-label="Velocidade"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
+        <span className="player-preferences-divider" aria-hidden="true" />
+        <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
+      </div>
+      <details className="player-more-menu">
+        <summary aria-label="Mais opções" title="Mais opções"><MoreHorizontal aria-hidden="true" size={18} /></summary>
+        <div className="player-more-panel">
+          <div className="player-speed-control" role="toolbar" aria-label="Velocidade"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
+          <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
+          <details className="player-more-shortcuts"><summary><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>
+        </div>
+      </details>
     </div>}
     {activeVideo && <details className="keyboard-help"><summary title="Ver atalhos de teclado"><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>}
   </div>;

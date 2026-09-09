@@ -77,7 +77,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .player-stage { position: relative; display: grid; width: auto; height: 100%; min-height: 0; max-width: 100%; aspect-ratio: 16 / 9; justify-self: center; overflow: hidden; border: 1px solid rgba(222, 232, 255, 0.08); border-radius: 0.52rem; background: rgba(0, 2, 12, 0.88); place-items: center; box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.7); }
 .preview-badge { position: absolute; z-index: 2; top: 0.5rem; left: 0.5rem; padding: 0.22rem 0.55rem; border: 1px solid rgba(216, 227, 255, 0.25); border-radius: 999px; color: #e6edff; background: rgba(4, 10, 28, 0.72); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; backdrop-filter: blur(8px); pointer-events: none; }
 .playlist-progress { display: flex; height: 8px; gap: 2px; overflow: hidden; padding: 1px; border-radius: 99px; background: rgba(190, 207, 248, 0.1); }
-.playlist-progress-label { margin: .28rem 0 0; color: var(--muted); font-size: .7rem; font-variant-numeric: tabular-nums; }
 .playlist-progress-segment { min-width: 2px; flex: 1; border-radius: 99px; opacity: .22; transition: opacity 220ms ease, box-shadow 220ms ease, filter 220ms ease; }
 .playlist-progress-segment.tone-0 { background: #a7baf1; }
 .playlist-progress-segment.tone-1 { background: #b6a8e8; }
@@ -151,6 +150,16 @@ input[type="range"] { flex: 1; accent-color: #c0cceb; }
 .control-timeline { min-width: 0; padding-inline: 0.55rem; }
 .player-preferences-strip { display: flex; width: fit-content; max-width: 100%; min-height: 42px; align-items: center; justify-self: center; gap: .45rem; margin: .35rem auto 0; padding: .28rem .42rem; border: 1px solid rgba(218, 228, 255, .12); border-radius: .68rem; background: rgba(2, 7, 25, .22); }
 .player-volume-control, .player-speed-control, .player-display-control { display: flex; min-height: 34px; align-items: center; gap: .28rem; }
+.player-secondary-controls { display: flex; align-items: center; gap: .45rem; }
+.player-more-menu { display: none; position: relative; }
+.player-more-menu > summary { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(218, 228, 255, .14); border-radius: .5rem; color: var(--muted); cursor: pointer; list-style: none; }
+.player-more-menu > summary::-webkit-details-marker, .player-more-shortcuts summary::-webkit-details-marker { display: none; }
+.player-more-menu > summary:hover, .player-more-menu[open] > summary { color: var(--ink); background: rgba(197, 213, 255, .1); }
+.player-more-panel { position: absolute; right: 0; bottom: calc(100% + .5rem); z-index: 4; display: grid; min-width: 13rem; gap: .55rem; padding: .55rem; border: 1px solid rgba(216, 227, 255, .2); border-radius: .7rem; background: rgba(8, 16, 38, .96); box-shadow: 0 16px 36px rgba(0, 0, 0, .34); }
+.player-more-panel .player-speed-control, .player-more-panel .player-display-control { justify-content: space-between; }
+.player-more-shortcuts { border-top: 1px solid rgba(218, 228, 255, .12); padding-top: .4rem; }
+.player-more-shortcuts summary { display: inline-flex; align-items: center; gap: .3rem; color: var(--muted); cursor: pointer; font-size: .72rem; }
+.player-more-shortcuts p { max-width: 25ch; margin: .35rem 0 0; color: var(--muted); font-size: .68rem; line-height: 1.4; }
 .player-volume-control > span, .player-speed-control > span { color: var(--muted); font-size: .68rem; font-weight: 700; }
 .player-volume-control .icon-save-button, .player-display-control .icon-save-button { width: 34px; height: 34px; border: 0; background: transparent; box-shadow: none; }
 .player-volume-control .volume-slider { width: clamp(5.5rem, 12vw, 8.5rem); min-width: 4.5rem; }
@@ -485,6 +494,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .control-primary .pause-button { min-width: 9rem; }
   .control-navigation { order: 1; }
   .player-preferences-strip { width: 100%; justify-content: center; gap: 0.32rem; }
+  .player-secondary-controls { display: none; }
+  .player-more-menu { display: block; }
   .player-volume-control { min-width: 0; flex: 1 1 11rem; }
   .player-volume-control .volume-slider { flex: 1; width: auto; }
   .player-speed-control { flex: 0 1 auto; }
