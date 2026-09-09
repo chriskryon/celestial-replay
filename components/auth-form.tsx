@@ -12,6 +12,20 @@ type AuthFormProps = {
   onSuccess?: () => void;
 };
 
+async function settleWithin<T>(promise: Promise<T>, timeoutMs = 15_000): Promise<T> {
+  let timeoutId: number | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error("A autenticação demorou mais que o esperado. Tente novamente.")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  }
+}
+
 export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState(initialMode);
@@ -31,19 +45,25 @@ export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: Aut
     setError(null);
     setIsSubmitting(true);
 
-    const callbackURL = callbackUrlForCurrentPage();
-    const result = isSignUp
-      ? await authClient.signUp.email({ name, email, password, callbackURL })
-      : await authClient.signIn.email({ email, password, callbackURL });
-
-    setIsSubmitting(false);
-    if (result.error) {
-      setError(result.error.message || "Não foi possível concluir. Revise seus dados e tente novamente.");
-      return;
+    try {
+      const callbackURL = callbackUrlForCurrentPage();
+      const result = await settleWithin(
+        isSignUp
+          ? authClient.signUp.email({ name, email, password, callbackURL })
+          : authClient.signIn.email({ email, password, callbackURL }),
+      );
+      if (result.error) {
+        setError(result.error.message || "Não foi possível concluir. Revise seus dados e tente novamente.");
+        return;
+      }
+      if (onSuccess) onSuccess();
+      else router.replace("/");
+      router.refresh();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível concluir a autenticação. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
     }
-    if (onSuccess) onSuccess();
-    else router.replace("/");
-    router.refresh();
   };
 
   const continueWithGoogle = async () => {
