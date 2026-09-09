@@ -1,4 +1,5 @@
 import { Save, Trash2 } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
@@ -35,6 +36,12 @@ export function PlaybackQueue({
   saveMessage,
   visibleQueue,
 }: PlaybackQueueProps) {
+  const currentItemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeIndex]);
+
   const renderQueueItem = (item: VideoItem, index: number) => {
     const isCurrent = index === activeIndex;
     const isFuture = activeIndex !== null && index > activeIndex;
@@ -47,7 +54,7 @@ export function PlaybackQueue({
       : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
 
     return (
-      <li className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
+      <li ref={isCurrent ? currentItemRef : undefined} className={isCurrent ? "queue-item is-current" : "queue-item"} key={item.id}>
         <span className="queue-state">
           <b>{index + 1}</b>
           <small>{state}</small>

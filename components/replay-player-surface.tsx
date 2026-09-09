@@ -22,6 +22,7 @@ type ReplayPlayerSurfaceProps = {
   hasPlaybackStarted: boolean;
   hasPrevVideo: boolean;
   isPlaying: boolean;
+  isSessionComplete: boolean;
   loaded: number;
   onDurationChange: (duration: number) => void;
   onEnterPictureInPicture: () => void;
@@ -39,6 +40,7 @@ type ReplayPlayerSurfaceProps = {
   onProgress: () => void;
   onRateChange: () => void;
   onRetry: () => void;
+  onRestartSession: () => void;
   onSeeked: () => void;
   onSeekSliderChange: (value: number) => void;
   onSeekSliderDown: () => void;
@@ -62,6 +64,8 @@ type ReplayPlayerSurfaceProps = {
   queueLength: number;
   remaining: number;
   totalRepetitions: number;
+  videoAuthor: string | null;
+  videoTitle: string | null;
   youtubePlaylistSources: string[];
   volume: number;
 };
@@ -79,6 +83,7 @@ export function ReplayPlayerSurface({
   hasPlaybackStarted,
   hasPrevVideo,
   isPlaying,
+  isSessionComplete,
   loaded,
   onDurationChange,
   onEnterPictureInPicture,
@@ -96,6 +101,7 @@ export function ReplayPlayerSurface({
   onProgress,
   onRateChange,
   onRetry,
+  onRestartSession,
   onSeeked,
   onSeekSliderChange,
   onSeekSliderDown,
@@ -119,6 +125,8 @@ export function ReplayPlayerSurface({
   queueLength,
   remaining,
   totalRepetitions,
+  videoAuthor,
+  videoTitle,
   youtubePlaylistSources,
   volume,
 }: ReplayPlayerSurfaceProps) {
@@ -154,19 +162,29 @@ export function ReplayPlayerSurface({
     <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
       <div className="session-bar">
         <span>
+          {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? displayedVideo.src}</strong>}
+          {videoAuthor && <small className="player-video-author">{videoAuthor}</small>}
           {progressLabel ?? playerStatus}
           {duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}
         </span>
         {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}
       </div>
-      {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
-        {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} title={segment.label} aria-hidden="true" />)}
-      </div>}
+      {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
+        <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
+          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} title={segment.label} aria-hidden="true" />)}
+        </div>
+        <p className="playlist-progress-label">Vídeo {activeIndex + 1} de {queueLength} · {completedRepetitions} de {totalRepetitions} repetições concluídas</p>
+      </>}
     </div>
 
     <div className="player-stage">
+      {isSessionComplete && <div className="player-complete-state">
+        <strong>Playlist concluída</strong>
+        <span>{queueLength} {queueLength === 1 ? "vídeo" : "vídeos"} · {totalRepetitions} {totalRepetitions === 1 ? "repetição" : "repetições"}</span>
+        <button className="primary-button" type="button" onClick={onRestartSession}>Reproduzir novamente</button>
+      </div>}
       {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
-      {playerSource && !error ? <ReactPlayer
+      {playerSource && !error && !isSessionComplete ? <ReactPlayer
         key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : undefined}
         className="replay-player"
         ref={playerRef}

@@ -66,8 +66,10 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlaybackStarted, setHasPlaybackStarted] = useState(false);
   const [playBlocked, setPlayBlocked] = useState(false);
+  const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
+  const [videoMetadata, setVideoMetadata] = useState<{ authorName: string | null; title: string | null }>({ authorName: null, title: null });
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
@@ -135,6 +137,22 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   }, [activeVideo, firstSimplePlaylistItem, mode, playlistInputMode, playlistItems, singleReplay]);
   const displayedVideo = activeVideo ?? previewVideo;
   const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
+
+  useEffect(() => {
+    const src = activeVideo?.src ?? previewVideo?.src;
+    if (!src || !/youtube(?:-nocookie)?\.com|youtu\.be/.test(src)) {
+      setVideoMetadata({ authorName: null, title: null });
+      return;
+    }
+    const controller = new AbortController();
+    void fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(src)}&format=json`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<{ author_name?: string; title?: string }> : null)
+      .then((result) => {
+        if (result) setVideoMetadata({ authorName: result.author_name ?? null, title: result.title ?? null });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [activeVideo?.src, previewVideo?.src]);
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -303,8 +321,24 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setRemaining(0);
     setIsPlaying(false);
     setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
     setError(null);
     setStatus("Pronto para montar uma nova playlist.");
+  };
+
+  const restartSession = () => {
+    if (queue.length === 0) return;
+    const firstVideo = queue[0];
+    setActiveIndex(0);
+    setRemaining(firstVideo.repetitions);
+    setPlayed(0);
+    setLoaded(0);
+    setDuration(null);
+    setIsPlaying(true);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setError(null);
+    setStatus(`Reproduzindo vídeo 1 de ${queue.length}.`);
   };
 
   const playLoadedVideo = attemptPlay;
@@ -320,6 +354,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setPlaybackRate(Number.isFinite(resumeSession.playbackRate) && (resumeSession.playbackRate as number) >= 0.25 && (resumeSession.playbackRate as number) <= 4 ? resumeSession.playbackRate as number : 1);
     setIsPlaying(true);
     setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
     setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
     setResumeSession(null);
   };
@@ -419,6 +454,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       seekingRef.current = false;
       setIsPlaying(true);
       setHasPlaybackStarted(false);
+      setIsSessionComplete(false);
       setError(null);
       setStatus(`Reproduzindo 1 de ${item.repetitions}.`);
       return;
@@ -441,6 +477,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     seekingRef.current = false;
     setIsPlaying(true);
     setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
     setError(null);
     setStatus(`Reproduzindo vídeo 1 de ${nextQueue.length}.`);
     setDuration(null);
@@ -552,6 +589,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       return;
     }
     setIsPlaying(false);
+    setIsSessionComplete(true);
     setStatus("Sessão concluída. Entre para manter este histórico.");
     setResumeSession(null);
     if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
@@ -743,6 +781,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             hasPlaybackStarted={hasPlaybackStarted}
             hasPrevVideo={hasPrevVideo}
             isPlaying={isPlaying}
+            isSessionComplete={isSessionComplete}
             loaded={loaded}
             onDurationChange={setDuration}
             onEnterPictureInPicture={() => setPip(true)}
@@ -760,6 +799,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onProgress={handleProgress}
             onRateChange={handleRateChange}
             onRetry={retryCurrentVideo}
+            onRestartSession={restartSession}
             onSeeked={handleSeeked}
             onSeekSliderChange={handleSeekSliderChange}
             onSeekSliderDown={handleSeekSliderDown}
@@ -783,6 +823,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             queueLength={queue.length}
             remaining={remaining}
             totalRepetitions={totalRepetitions}
+            videoAuthor={videoMetadata.authorName}
+            videoTitle={videoMetadata.title}
             youtubePlaylistSources={youtubePlaylistSources}
             volume={volume}
           />
