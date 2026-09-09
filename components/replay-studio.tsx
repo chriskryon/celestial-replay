@@ -61,6 +61,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
+  const ignoreStaleEndedRef = useRef(false);
+  const scheduledEndRef = useRef<number | null>(null);
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
@@ -70,6 +72,13 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const playlistItems = useMemo(() => parsePlaylistDrafts(drafts, canPlaySrc), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist, canPlaySrc), [simplePlaylist]);
+  const youtubePlaylistSources = useMemo(() => {
+    if (mode !== "playlist") return [];
+    if (activeVideo) return queue.map((item) => item.src);
+    const entries = playlistInputMode === "simple" ? simplePlaylistItems : playlistItems;
+    return entries?.map((item) => item.src) ?? [];
+  }, [activeVideo, mode, playlistInputMode, playlistItems, queue, simplePlaylistItems]);
+  const usesNativeYoutubePlaylist = youtubePlaylistSources.length > 1;
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
     : playlistItems !== null;
@@ -225,6 +234,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   useEffect(() => {
     if (!activeVideo || !isPlaying || hasPlaybackStarted || error) { setPlayBlocked(false); return; }
     setPlayBlocked(false);
+    attemptPlay();
     const interval = window.setInterval(() => {
       try {
         const node = playerRef.current;
@@ -238,6 +248,21 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     const timeout = window.setTimeout(() => setPlayBlocked(true), 8000);
     return () => { window.clearInterval(interval); window.clearTimeout(timeout); };
   }, [activeVideo?.id, isPlaying, hasPlaybackStarted, error]);
+
+  useEffect(() => {
+    if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
+    scheduledEndRef.current = null;
+    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0) return;
+    const remainingTime = Math.max(0, duration * (1 - played) - 0.25);
+    scheduledEndRef.current = window.setTimeout(() => {
+      scheduledEndRef.current = null;
+      handleEnded(activeVideo.id);
+    }, remainingTime * 1000);
+    return () => {
+      if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
+      scheduledEndRef.current = null;
+    };
+  }, [activeVideo?.id, duration, error, hasPlaybackStarted, isPlaying, played]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -378,7 +403,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       const item = makeItem(singleReplay!.src, singleReplay!.count);
       setQueue([item]);
       setActiveIndex(0);
-      setRemaining(item.repetitions);(0);
+      setRemaining(item.repetitions);
+(0);
 (0);
       seekingRef.current = false;
       setIsPlaying(true);
@@ -399,7 +425,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setQueuePlaylistName(playlistName.trim() || "Minha playlist");
     setQueue(nextQueue);
     setActiveIndex(0);
-    setRemaining(nextQueue[0].repetitions);(0);
+    setRemaining(nextQueue[0].repetitions);
+(0);
 (0);
     seekingRef.current = false;
     setIsPlaying(true);
@@ -483,6 +510,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       }
       setActiveIndex(nextIndex);
       setRemaining(nextVideo.repetitions);
+      if (!manual && usesNativeYoutubePlaylist) ignoreStaleEndedRef.current = true;
       setPlayed(0);
       setLoaded(0);
       seekingRef.current = false;
@@ -497,7 +525,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const handleEnded = (videoId: string) => {
-    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || videoId !== activeVideoIdRef.current) return;
+    if (ignoreStaleEndedRef.current) return;
+    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === videoId) return;
     endedVideoIdRef.current = videoId;
     if (remaining > 1) playNextRepetition(false);
     else playNextVideo(false);
@@ -507,7 +536,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setRemaining(0);
-    setDuration(null);(0);
+    setDuration(null);
+(0);
 (0);
     const src = activeVideo?.src ?? "";
     // Diferencia fonte não suportada (nem o ReactPlayer reconhece) de falha
@@ -529,6 +559,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   const handlePlaybackStarted = (videoId: string) => {
     if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current) return;
+    ignoreStaleEndedRef.current = false;
     endedVideoIdRef.current = null;
     setIsPlaying(true);
     setHasPlaybackStarted(true);
@@ -540,6 +571,18 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   // YouTube em buffering ou autoplay bloqueado trava em "Iniciando…".
   const handlePlaybackPlay = (videoId: string) => {
     if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current) return;
+    const media = playerRef.current;
+    const nativePlaylistAdvanced = usesNativeYoutubePlaylist
+      && hasPlaybackStarted
+      && remaining === 1
+      && isPlaying
+      && media
+      && Number.isFinite(media.currentTime)
+      && media.currentTime < 0.5;
+    if (nativePlaylistAdvanced) {
+      playNextVideo(false);
+      return;
+    }
     endedVideoIdRef.current = null;
     setIsPlaying(true);
     // Marca started já no `play` para sair do "Iniciando…" mesmo em buffering.
@@ -694,6 +737,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             queueLength={queue.length}
             remaining={remaining}
             totalRepetitions={totalRepetitions}
+            youtubePlaylistSources={youtubePlaylistSources}
             volume={volume}
           />
         </div>

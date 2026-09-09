@@ -62,6 +62,7 @@ type ReplayPlayerSurfaceProps = {
   queueLength: number;
   remaining: number;
   totalRepetitions: number;
+  youtubePlaylistSources: string[];
   volume: number;
 };
 
@@ -118,6 +119,7 @@ export function ReplayPlayerSurface({
   queueLength,
   remaining,
   totalRepetitions,
+  youtubePlaylistSources,
   volume,
 }: ReplayPlayerSurfaceProps) {
   const syncDuration = (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -142,6 +144,11 @@ export function ReplayPlayerSurface({
     label: `Vídeo ${videoIndex + 1}, repetição ${repetitionIndex + 1}`,
     tone: videoIndex % 4,
   })));
+  const youtubePlaylistIds = youtubePlaylistSources
+    .map((source) => source.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/)?.[1])
+    .filter((id): id is string => Boolean(id));
+  const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1;
+  const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
 
   return <div className="player-surface">
     <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
@@ -159,13 +166,14 @@ export function ReplayPlayerSurface({
 
     <div className="player-stage">
       {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
-      {displayedVideo && !error ? <ReactPlayer
-        key={displayedVideo.src}
+      {playerSource && !error ? <ReactPlayer
+        key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : undefined}
         className="replay-player"
         ref={playerRef}
         innerRef={playerRef}
-        src={displayedVideo.src}
+        src={playerSource}
         playing={activeVideo ? isPlaying : false}
+        autoPlay={Boolean(activeVideo && isPlaying)}
         preload="auto"
         light={false}
         controls
@@ -176,7 +184,7 @@ export function ReplayPlayerSurface({
         pip={pip}
         width="100%"
         style={{ width: "100%", height: "auto", aspectRatio: "16/9" }}
-        config={{ youtube: { color: "white" }, vimeo: { color: "ffffff" } }}
+        config={{ youtube: { color: "white", ...(useNativeYoutubePlaylist ? { playlist: youtubePlaylistIds.join(",") } : {}) }, vimeo: { color: "ffffff" } }}
         onReady={activeVideo ? () => onPlayerReady(activeVideo.id) : undefined}
         onStart={activeVideo ? () => onPlaybackPlay(activeVideo.id) : undefined}
         onPlay={activeVideo ? () => onPlaybackPlay(activeVideo.id) : undefined}
