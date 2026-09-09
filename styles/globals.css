@@ -90,10 +90,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .playlist-progress-segment.tone-2 { --segment-color: #8fc4d2; background: var(--segment-color); }
 .playlist-progress-segment.tone-3 { --segment-color: #d0a9c7; background: var(--segment-color); }
 .playlist-progress-segment.is-complete { height: 4px; opacity: .42; filter: saturate(1.02) brightness(1.03); }
-.playlist-progress-segment.is-complete::after, .playlist-progress-segment.is-current::after { position: absolute; inset: 0; content: ""; transform-origin: left center; background: linear-gradient(90deg, color-mix(in srgb, var(--segment-color) 74%, white), var(--segment-color) 42%, color-mix(in srgb, var(--segment-color) 76%, white)); background-size: 180% 100%; }
+.playlist-progress-segment.is-complete::after, .playlist-progress-segment.is-current::after { position: absolute; inset: 0; content: ""; transform-origin: left center; background: linear-gradient(90deg, color-mix(in srgb, var(--segment-color) 58%, white), var(--segment-color) 38%, color-mix(in srgb, var(--segment-color) 62%, white)); background-size: 180% 100%; }
 .playlist-progress-segment.is-complete::after { transform: scaleX(1); opacity: .72; animation: segment-complete 380ms cubic-bezier(.22, 1, .36, 1); }
-.playlist-progress-segment.is-current { height: 8px; opacity: .48; filter: saturate(1.1) brightness(1.12); box-shadow: 0 0 7px color-mix(in srgb, var(--segment-color) 42%, transparent); }
-.playlist-progress-segment.is-current::after { transform: scaleX(var(--segment-progress, 0)); box-shadow: inset 0 1px rgba(255, 255, 255, .45), 0 0 10px color-mix(in srgb, var(--segment-color) 72%, transparent); transition: transform 180ms linear; }
+.playlist-progress-segment.is-current { height: 8px; opacity: .62; filter: saturate(1.22) brightness(1.16); box-shadow: 0 0 8px color-mix(in srgb, var(--segment-color) 52%, transparent); }
+.playlist-progress-segment.is-current::after { transform: scaleX(var(--segment-progress, 0)); box-shadow: inset 0 1px rgba(255, 255, 255, .58), 0 0 12px color-mix(in srgb, var(--segment-color) 82%, transparent); transition: transform 180ms linear; }
 .playlist-progress-segment.is-current.is-playing::after { animation: liquid-progress 1.8s ease-in-out infinite; }
 .player-stage > div { width: 100%; height: 100%; }
 /* Genérico para todos os providers do ReactPlayer v3: o elemento de mídia
