@@ -31,7 +31,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   return (
     <>
       <AccountNavigation activeArea="history" />
-      <main className="studio-shell account-shell" aria-labelledby="history-title">
+      <section className="studio-shell account-shell" aria-labelledby="history-title">
         <section className="history-surface">
           <HistoryHeading totalSessions={history.length} />
           {history.length === 0 ? <HistoryEmptyState filters={filters} /> : (
@@ -43,7 +43,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
             </>
           )}
         </section>
-      </main>
+      </section>
     </>
   );
 }
@@ -52,9 +52,9 @@ function HistoryVisitorPage() {
   return (
     <>
       <AccountNavigation activeArea="history" />
-      <main className="studio-shell account-shell" aria-labelledby="history-title">
+      <section className="studio-shell account-shell" aria-labelledby="history-title">
         <HistoryAccessPanel />
-      </main>
+      </section>
     </>
   );
 }

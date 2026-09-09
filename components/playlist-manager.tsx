@@ -129,7 +129,7 @@ export function PlaylistManager({ initialPlaylists }: { initialPlaylists: Playli
 
   return <>
     <AccountNavigation activeArea="playlists" />
-    <main className="studio-shell account-shell" aria-labelledby="playlist-library-title">
+    <section className="studio-shell account-shell" aria-labelledby="playlist-library-title">
       <div className="playlist-library">
         <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
         <div className="library-grid">
@@ -139,7 +139,7 @@ export function PlaylistManager({ initialPlaylists }: { initialPlaylists: Playli
         <Toast message={message} tone={message?.includes("não foi") || message?.includes("Informe") ? "error" : "success"} />
         {deleteTarget && <DeletePlaylistDialog onCancel={() => setDeleteTarget(null)} onConfirm={() => void remove(deleteTarget)} playlist={deleteTarget} />}
       </div>
-    </main>
+    </section>
   </>;
 }
 

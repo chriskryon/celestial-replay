@@ -8,7 +8,7 @@ export function PlaylistAccessPanel() {
   return (
     <>
       <AccountNavigation activeArea="playlists" />
-      <main className="studio-shell account-shell" aria-labelledby="playlist-access-title">
+      <section className="studio-shell account-shell" aria-labelledby="playlist-access-title">
         <section className="history-access-panel playlist-access-panel">
           <span className="history-access-icon"><ListMusic aria-hidden="true" size={26} /></span>
           <div className="history-access-copy">
@@ -26,7 +26,7 @@ export function PlaylistAccessPanel() {
             <Link className="secondary-button" href="/advanced">Montar sem conta</Link>
           </div>
         </section>
-      </main>
+      </section>
     </>
   );
 }
