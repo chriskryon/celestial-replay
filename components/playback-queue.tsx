@@ -93,13 +93,13 @@ export function PlaybackQueue({
         <h2 id="queue-title">Playlist em execução</h2>
         <p>Edite somente os vídeos que ainda não começaram.</p>
       </div>
-      <span>{queue.length} vídeos</span>
+      <div className="queue-title-actions">
+        <span>{queue.length} vídeos</span>
+        {isLoggedIn && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
+          <Save aria-hidden="true" size={18} />
+        </button>}
+      </div>
     </div>
-    {isLoggedIn && <div className="queue-save">
-      <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
-        <Save aria-hidden="true" size={18} />
-      </button>
-    </div>}
     {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
     <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
     {completedQueue.length > 0 && <details className="queue-completed">
