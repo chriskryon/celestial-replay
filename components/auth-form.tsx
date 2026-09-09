@@ -38,7 +38,10 @@ export function AuthForm({ mode: initialMode, variant = "page", onSuccess }: Aut
 
   useEffect(() => setMode(initialMode), [initialMode]);
 
-  const callbackUrlForCurrentPage = () => variant === "dialog" ? `${window.location.pathname}${window.location.search}` : "/";
+  const callbackUrlForCurrentPage = () => {
+    const destination = variant === "dialog" ? `${window.location.pathname}${window.location.search}` : "/";
+    return new URL(destination, window.location.origin).toString();
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();

@@ -13,6 +13,17 @@ No painel do Neon Auth, habilite os provedores **Email and password** e
 Vercel conforme exibidas pelo Neon Auth. Não coloque o segredo do cliente
 Google no repositório.
 
+Em **Allowed callback URLs** (ou Redirect URLs), autorize pelo menos:
+
+```text
+https://celestial-replay.vercel.app/
+http://localhost:3000/
+```
+
+O cliente envia URLs absolutas para entrar, criar conta e continuar com o
+Google. Se usar um domínio de preview para login, adicione-o explicitamente;
+evite curingas mais amplos que o necessário.
+
 Com as variáveis presentes, as rotas abaixo passam a usar a sessão do Neon:
 
 - `POST /api/history`: grava uma reprodução concluída para o usuário atual.
