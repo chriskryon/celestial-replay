@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ListMusic, Orbit, RotateCcw, Save, Video, X } from "lucide-react";
 
@@ -16,7 +16,22 @@ import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type Vid
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 
-export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single" | "playlist" }) {
+export type ReplayStudioHandle = {
+  selectMode: (mode: "single" | "playlist") => void;
+  togglePlayback: () => void;
+};
+
+export type PlaybackSnapshot = {
+  isPlaying: boolean;
+  source: string | null;
+};
+
+type ReplayStudioProps = {
+  initialMode?: "single" | "playlist";
+  onPlaybackChange?: (snapshot: PlaybackSnapshot) => void;
+};
+
+export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(function ReplayStudio({ initialMode = "single", onPlaybackChange }, ref) {
   const session = authClient.useSession();
   const [mode, setMode] = useState(initialMode);
   const [source, setSource] = useState("");
@@ -562,6 +577,15 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
     setStatus("Reprodução pausada.");
   };
 
+  useEffect(() => {
+    onPlaybackChange?.({ isPlaying, source: activeVideo?.src ?? null });
+  }, [activeVideo?.src, isPlaying, onPlaybackChange]);
+
+  useImperativeHandle(ref, () => ({
+    selectMode: setMode,
+    togglePlayback: togglePlay,
+  }), [togglePlay]);
+
   return (
     <>
       <header className="studio-heading">
@@ -687,4 +711,4 @@ export function ReplayStudio({ initialMode = "single" }: { initialMode?: "single
       </div>}
     </>
   );
-}
+});
