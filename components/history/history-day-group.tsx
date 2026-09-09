@@ -3,6 +3,8 @@ import { AudioLines, CalendarClock, ExternalLink, Repeat2, RotateCcw, Video, You
 
 import { displayHost, displaySource, historyDateTimeFormatter, historyDayLabel, type HistorySummary } from "@/lib/history-presentation";
 
+type HistoryViewSummary = HistorySummary & { authorName: string | null; title: string };
+
 function SourceIcon({ url }: { url: string }) {
   const host = displayHost(url);
   if (host.includes("youtube.com") || host === "youtu.be") return <Youtube aria-hidden="true" size={17} />;
@@ -10,7 +12,7 @@ function SourceIcon({ url }: { url: string }) {
   return <Video aria-hidden="true" size={17} />;
 }
 
-export function HistoryDayGroup({ entries }: { entries: HistorySummary[] }) {
+export function HistoryDayGroup({ entries }: { entries: HistoryViewSummary[] }) {
   const [firstEntry] = entries;
   return (
     <section className="history-day">
@@ -28,9 +30,10 @@ export function HistoryDayGroup({ entries }: { entries: HistorySummary[] }) {
                 <span className="history-domain-icon"><SourceIcon url={entry.url} /></span>
                 <div className="history-card-copy">
                   <a href={entry.url} rel="noreferrer" target="_blank" title={entry.url}>
-                    <strong>{source}</strong><ExternalLink aria-hidden="true" size={14} />
+                    <strong>{entry.title}</strong><ExternalLink aria-hidden="true" size={14} />
                   </a>
-                  <p><CalendarClock aria-hidden="true" size={14} />{date}</p>
+                  <p><CalendarClock aria-hidden="true" size={14} />{date}{entry.authorName ? ` · ${entry.authorName}` : ""}</p>
+                  <a className="history-source-link" href={entry.url} rel="noreferrer" target="_blank" title={entry.url}>{source}</a>
                 </div>
                 <div className="history-card-actions">
                   <span className="timeline-count"><Repeat2 aria-hidden="true" size={14} />{entry.completedRepetitions}× em {entry.sessions} {entry.sessions === 1 ? "sessão" : "sessões"}</span>
