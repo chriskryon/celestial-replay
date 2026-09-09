@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { RefObject } from "react";
+import type { RefObject, SyntheticEvent } from "react";
 import { ChevronDown, Keyboard, Maximize, Pause, PictureInPicture2, Play, SkipBack, SkipForward, SlidersHorizontal, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
@@ -118,6 +118,11 @@ export function ReplayPlayerSurface({
   totalRepetitions,
   volume,
 }: ReplayPlayerSurfaceProps) {
+  const syncDuration = (event: SyntheticEvent<HTMLVideoElement>) => {
+    const nextDuration = event.currentTarget?.duration;
+    if (Number.isFinite(nextDuration) && nextDuration > 0) onDurationChange(nextDuration);
+  };
+
   const formatTime = (seconds: number | null) => {
     if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--:--";
     const totalSeconds = Math.floor(seconds);
@@ -175,10 +180,10 @@ export function ReplayPlayerSurface({
         onEnterPictureInPicture={activeVideo ? onEnterPictureInPicture : undefined}
         onLeavePictureInPicture={activeVideo ? onLeavePictureInPicture : undefined}
         onEnded={activeVideo ? () => onVideoEnded(activeVideo.id) : undefined}
-        onDurationChange={activeVideo ? (event) => {
-          const nextDuration = event.currentTarget?.duration;
-          if (Number.isFinite(nextDuration)) onDurationChange(nextDuration);
-        } : undefined}
+        onLoadedMetadata={syncDuration}
+        onLoadedData={syncDuration}
+        onCanPlay={syncDuration}
+        onDurationChange={syncDuration}
         onError={activeVideo ? onPlaybackError : onPreviewError}
       /> : <div className="player-empty">
         <Play aria-hidden="true" size={30} />
