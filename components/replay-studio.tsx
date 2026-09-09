@@ -17,13 +17,23 @@ import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 
 export type ReplayStudioHandle = {
+  nextVideo: () => void;
+  seekBy: (seconds: number) => void;
   selectMode: (mode: "single" | "playlist") => void;
+  toggleMute: () => void;
   togglePlayback: () => void;
 };
 
 export type PlaybackSnapshot = {
+  duration: number | null;
+  hasNextVideo: boolean;
+  hasPrevVideo: boolean;
   isPlaying: boolean;
+  played: number;
+  remaining: number;
   source: string | null;
+  totalRepetitions: number;
+  volume: number;
 };
 
 type ReplayStudioProps = {
@@ -73,8 +83,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const youtubePlaylistSources = useMemo(() => {
-    if (mode !== "playlist") return [];
     if (activeVideo) return queue.map((item) => item.src);
+    if (mode !== "playlist") return [];
     const entries = playlistInputMode === "simple" ? simplePlaylistItems : playlistItems;
     return entries?.map((item) => item.src) ?? [];
   }, [activeVideo, mode, playlistInputMode, playlistItems, queue, simplePlaylistItems]);
@@ -252,7 +262,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   useEffect(() => {
     if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
     scheduledEndRef.current = null;
-    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0) return;
+    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0 || (remaining <= 1 && !hasNextVideo)) return;
     const remainingTime = Math.max(0, duration * (1 - played) - 0.25);
     scheduledEndRef.current = window.setTimeout(() => {
       scheduledEndRef.current = null;
@@ -262,7 +272,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
       scheduledEndRef.current = null;
     };
-  }, [activeVideo?.id, duration, error, hasPlaybackStarted, isPlaying, played]);
+  }, [activeVideo?.id, duration, error, hasNextVideo, hasPlaybackStarted, isPlaying, played, remaining]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
@@ -442,11 +452,15 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (remaining <= 1) { playNextVideo(manual); return; }
     const nextRemaining = remaining - 1;
     setRemaining(nextRemaining);
+    setPlayed(0);
     setHasPlaybackStarted(false);
     try {
       programmaticSeekRef.current = true;
       const node = playerRef.current;
-      if (node) {
+      if (usesNativeYoutubePlaylist) {
+        sendNativeYoutubeCommand("seekTo", [0, true]);
+        sendNativeYoutubeCommand("playVideo");
+      } else if (node) {
         if ("currentTime" in node) node.currentTime = 0;
         const maybeSeek = (node as unknown as { seekTo?: (s: number, t?: string) => void }).seekTo;
         if (typeof maybeSeek === "function") maybeSeek.call(node, 0, "seconds");
@@ -465,11 +479,15 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (remaining >= activeVideo.repetitions) return;
     const nextRemaining = remaining + 1;
     setRemaining(nextRemaining);
+    setPlayed(0);
     setHasPlaybackStarted(false);
     try {
       programmaticSeekRef.current = true;
       const node = playerRef.current;
-      if (node && "currentTime" in node) node.currentTime = 0;
+      if (usesNativeYoutubePlaylist) {
+        sendNativeYoutubeCommand("seekTo", [0, true]);
+        sendNativeYoutubeCommand("playVideo");
+      } else if (node && "currentTime" in node) node.currentTime = 0;
     } catch { programmaticSeekRef.current = false; /* segue para play */ }
     window.setTimeout(() => { attemptPlay(); }, 60);
     setIsPlaying(true);
@@ -494,6 +512,21 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setHasPlaybackStarted(false);
     setIsPlaying(true);
     setStatus(`Reproduzindo vídeo ${activeIndex} de ${queue.length}.`);
+  };
+
+  const sendNativeYoutubeCommand = (command: "nextVideo" | "previousVideo" | "seekTo" | "playVideo", args: unknown[] = []) => {
+    const player = playerRef.current as (HTMLVideoElement & { shadowRoot?: ShadowRoot | null }) | null;
+    const iframe = player?.shadowRoot?.querySelector("iframe");
+    if (!iframe?.contentWindow) return;
+    try {
+      const targetOrigin = new URL(iframe.src).origin;
+      iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: command, args }), targetOrigin);
+    } catch { /* o player mantém o controle nativo */ }
+  };
+
+  const nextVideo = () => {
+    if (usesNativeYoutubePlaylist) sendNativeYoutubeCommand("nextVideo");
+    playNextVideo(true);
   };
   // Avança para o próximo vídeo (manual = botão, sem gravar histórico).
   const playNextVideo = (manual: boolean) => {
@@ -621,13 +654,26 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   useEffect(() => {
-    onPlaybackChange?.({ isPlaying, source: activeVideo?.src ?? null });
-  }, [activeVideo?.src, isPlaying, onPlaybackChange]);
+    onPlaybackChange?.({
+      duration,
+      hasNextVideo,
+      hasPrevVideo,
+      isPlaying,
+      played,
+      remaining,
+      source: activeVideo?.src ?? null,
+      totalRepetitions,
+      volume,
+    });
+  }, [activeVideo?.src, duration, hasNextVideo, hasPrevVideo, isPlaying, onPlaybackChange, played, remaining, totalRepetitions, volume]);
 
   useImperativeHandle(ref, () => ({
+    nextVideo,
+    seekBy,
     selectMode: setMode,
+    toggleMute,
     togglePlayback: togglePlay,
-  }), [togglePlay]);
+  }), [nextVideo, seekBy, toggleMute, togglePlay]);
 
   return (
     <>
