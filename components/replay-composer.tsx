@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
+import { CheckCircle2, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
 
 import { canPlaySrc } from "@/components/react-player-client";
 import { type PlaylistDraft, type SavedPlaylist, parseSingleReplay } from "@/lib/replay-playlist";
@@ -85,6 +85,7 @@ export function ReplayComposer({
       <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Configurar repetição</h2></div>
       <label htmlFor="source">URL do vídeo</label>
       <input id="source" value={source} onChange={(event) => onSourceChange(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." inputMode="url" autoComplete="url" />
+      {canSubmitSingle && <span className="source-validity" role="status"><CheckCircle2 aria-hidden="true" size={14} />Fonte suportada</span>}
       <label htmlFor="repetitions">Repetições</label>
       <input id="repetitions" type="number" min="1" step="1" value={repetitions} onChange={(event) => onRepetitionsChange(event.target.value)} />
       <p className="field-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
@@ -133,7 +134,7 @@ export function ReplayComposer({
       {previewAvailable && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
       <button className="primary-button celestial-start-button" type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
     </div>}
-    {!isEditingQueue && mode === "single" && <button className="primary-button celestial-start-button" type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
+    {!isEditingQueue && mode === "single" && <button className={`primary-button celestial-start-button ${canSubmitSingle ? "is-ready" : ""}`} type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
     {!isEditingQueue && formHint && <p className="field-help" role="status">{formHint}</p>}
     {!isEditingQueue && previewAvailable && mode === "single" && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
   </form>;

@@ -738,7 +738,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
         {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length}</span></div><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></aside>}
 
-        <div className="studio-grid">
+        <div className={`studio-grid ${displayedVideo ? "has-media" : "is-empty"}`}>
           <ReplayComposer
             canSubmitPlaylist={canSubmitPlaylist}
             canSubmitSingle={canSubmitSingle}

@@ -213,7 +213,9 @@ export function ReplayPlayerSurface({
   })() : "";
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
 
-  return <div className="player-surface">
+  const playerSurfaceState = activeVideo ? "is-active" : previewVideo ? "is-preview" : "is-empty";
+
+  return <div className={`player-surface ${playerSurfaceState}`}>
     <div className="player-status-band">
       <div className="session-bar">
         <div className="player-context">
@@ -277,8 +279,12 @@ export function ReplayPlayerSurface({
         onDurationChange={syncDuration}
         onError={activeVideo ? onPlaybackError : onPreviewError}
       /> : <div className="player-empty">
-        <Play aria-hidden="true" size={30} />
-        <p>{error ? "A reprodução foi interrompida para esta fonte." : "O player aparece aqui quando a sessão começar."}</p>
+        <span className="player-empty-icon"><Play aria-hidden="true" size={25} /></span>
+        <div>
+          <strong>{error ? "Não foi possível carregar esta fonte" : "Pronto para uma nova sessão"}</strong>
+          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : "Cole uma URL abaixo para carregar a prévia."}</p>
+          {!error && <small>A prévia só começa quando você clicar em Iniciar.</small>}
+        </div>
         {error && activeVideo && <div className="player-recovery">
           <button className="secondary-button" type="button" onClick={onRetry}>Tentar novamente</button>
           {hasNextVideo && <button className="secondary-button" type="button" onClick={onNextVideo}>Pular vídeo</button>}
