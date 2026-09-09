@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, FastForward, Pause, Play, Radio, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
+import { ExternalLink, FastForward, Orbit, Pause, Play, Radio, RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ReplayStudio, type PlaybackSnapshot, type ReplayStudioHandle } from "@/components/replay-studio";
+import { AuthControls } from "@/components/auth-controls";
 
 const studioModeByPath = {
   "/": "single",
@@ -18,6 +19,7 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
   const studioRef = useRef<ReplayStudioHandle>(null);
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ duration: null, hasNextVideo: false, hasPrevVideo: false, isPlaying: false, played: 0, remaining: 0, source: null, totalRepetitions: 0, volume: 0.7 });
   const [isMiniPlayerDismissed, setIsMiniPlayerDismissed] = useState(false);
+  const [isNavbarScrolled, setIsNavbarScrolled] = useState(false);
   const studioMode = studioModeByPath[pathname as keyof typeof studioModeByPath];
   const isStudioRoute = Boolean(studioMode);
 
@@ -28,6 +30,13 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
   useEffect(() => {
     setIsMiniPlayerDismissed(false);
   }, [snapshot.source]);
+
+  useEffect(() => {
+    const handleScroll = () => setIsNavbarScrolled(window.scrollY > 28);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const sourceLabel = snapshot.source ? (() => {
     try {
@@ -46,6 +55,12 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
   const progressLabel = snapshot.duration ? `${formatTime(progress * snapshot.duration)} / ${formatTime(snapshot.duration)}` : "Reprodução em andamento";
 
   return <>
+    <header className={isNavbarScrolled ? "studio-heading is-scrolled" : "studio-heading"}>
+      <div className="navbar-inner">
+        <h1 id="studio-title"><Link className="brand-mark" href="/"><span aria-hidden="true"><Orbit size={20} /></span>Celestial Replay</Link></h1>
+        <AuthControls />
+      </div>
+    </header>
     <div className={isStudioRoute ? "persistent-studio" : "persistent-studio is-background"} aria-hidden={!isStudioRoute}>
       <ReplayStudio ref={studioRef} initialMode={studioMode ?? "single"} onPlaybackChange={setSnapshot} />
     </div>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { History, ListMusic, Video } from "lucide-react";
 
-import { AuthControls } from "@/components/auth-controls";
 
 type AccountArea = "playlists" | "history";
 
@@ -11,23 +10,6 @@ const tabs: Array<{ href: string; label: string; icon: typeof Video; area?: Acco
   { href: "/playlists", label: "Minhas playlists", icon: ListMusic, area: "playlists" },
   { href: "/history", label: "Histórico", icon: History, area: "history" },
 ];
-
-/** Shared header keeps account pages visually consistent without affecting their layout. */
-export function AccountNavigation() {
-  return (
-    <header className="studio-heading">
-      <div className="navbar-inner">
-        <h1>
-          <Link className="brand-mark" href="/">
-            <span aria-hidden="true"><ListMusic size={19} /></span>
-            Celestial Replay
-          </Link>
-        </h1>
-        <AuthControls />
-      </div>
-    </header>
-  );
-}
 
 export function AccountAreaTabs({ activeArea }: { activeArea: AccountArea }) {
   return (

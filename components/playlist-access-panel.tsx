@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { ListMusic, Repeat2, Video } from "lucide-react";
 
-import { AccountAreaTabs, AccountNavigation } from "@/components/account-navigation";
+import { AccountAreaTabs } from "@/components/account-navigation";
 import { OpenAuthButton } from "@/components/open-auth-button";
 
 export function PlaylistAccessPanel() {
   return (
-    <>
-      <AccountNavigation />
-      <section className="studio-shell account-shell" aria-labelledby="playlist-access-title">
+    <section className="studio-shell account-shell" aria-labelledby="playlist-access-title">
         <AccountAreaTabs activeArea="playlists" />
         <section className="history-access-panel playlist-access-panel">
           <span className="history-access-icon"><ListMusic aria-hidden="true" size={26} /></span>
@@ -27,7 +25,6 @@ export function PlaylistAccessPanel() {
             <Link className="secondary-button" href="/advanced">Montar sem conta</Link>
           </div>
         </section>
-      </section>
-    </>
+    </section>
   );
 }

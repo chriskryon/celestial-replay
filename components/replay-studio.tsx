@@ -1,10 +1,8 @@
 "use client";
 
 import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { ListMusic, Orbit, RotateCcw, Save, Video, X } from "lucide-react";
+import { ListMusic, RotateCcw, Save, Video, X } from "lucide-react";
 
-import { AuthControls } from "@/components/auth-controls";
 import { AccountStudioTabs } from "@/components/account-studio-tabs";
 import { PlaybackQueue } from "@/components/playback-queue";
 import { ReplayComposer } from "@/components/replay-composer";
@@ -715,13 +713,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   return (
     <>
-      <header className="studio-heading">
-        <div className="navbar-inner">
-          <h1 id="studio-title"><Link className="brand-mark" href="/"><span aria-hidden="true"><Orbit size={20} /></span>Celestial Replay</Link></h1>
-          <AuthControls />
-        </div>
-      </header>
-
       <section className="studio-shell" aria-labelledby="studio-title">
         <nav className="studio-tabs" aria-label="Áreas do Celestial Replay">
           <button className={mode === "single" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("single")} aria-pressed={mode === "single"}><Video aria-hidden="true" size={16} />Vídeo único</button>

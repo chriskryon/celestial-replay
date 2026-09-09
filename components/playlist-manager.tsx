@@ -3,7 +3,7 @@
 import { ListMusic } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { AccountAreaTabs, AccountNavigation } from "@/components/account-navigation";
+import { AccountAreaTabs } from "@/components/account-navigation";
 import { PlaylistEditor } from "@/components/playlists/playlist-editor";
 import { PlaylistLibrary } from "@/components/playlists/playlist-library";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
@@ -127,9 +127,7 @@ export function PlaylistManager({ initialPlaylists }: { initialPlaylists: Playli
     setDeleteTarget(null);
   }
 
-  return <>
-    <AccountNavigation />
-    <section className="studio-shell account-shell" aria-labelledby="playlist-library-title">
+  return <section className="studio-shell account-shell" aria-labelledby="playlist-library-title">
       <AccountAreaTabs activeArea="playlists" />
       <div className="playlist-library">
         <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
@@ -140,8 +138,7 @@ export function PlaylistManager({ initialPlaylists }: { initialPlaylists: Playli
         <Toast message={message} tone={message?.includes("não foi") || message?.includes("Informe") ? "error" : "success"} />
         {deleteTarget && <DeletePlaylistDialog onCancel={() => setDeleteTarget(null)} onConfirm={() => void remove(deleteTarget)} playlist={deleteTarget} />}
       </div>
-    </section>
-  </>;
+    </section>;
 }
 
 function isPlaylistDraftValid(name: string, mode: PlaylistInputMode, items: DraftItem[], parsedSimple: ReturnType<typeof parseSimplePlaylist>) {

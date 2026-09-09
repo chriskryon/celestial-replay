@@ -2,7 +2,7 @@ import Link from "next/link";
 import { History, Play } from "lucide-react";
 import { desc, eq } from "drizzle-orm";
 
-import { AccountAreaTabs, AccountNavigation } from "@/components/account-navigation";
+import { AccountAreaTabs } from "@/components/account-navigation";
 import { HistoryAccessPanel } from "@/components/history/history-access-panel";
 import { HistoryDayGroup } from "@/components/history/history-day-group";
 import { HistoryFilters, type HistoryFiltersValue } from "@/components/history/history-filters";
@@ -31,7 +31,6 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 
   return (
     <>
-      <AccountNavigation />
       <section className="studio-shell account-shell" aria-labelledby="history-title">
         <AccountAreaTabs activeArea="history" />
         <section className="history-surface">
@@ -53,7 +52,6 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
 function HistoryVisitorPage() {
   return (
     <>
-      <AccountNavigation />
       <section className="studio-shell account-shell" aria-labelledby="history-title">
         <AccountAreaTabs activeArea="history" />
         <HistoryAccessPanel />
