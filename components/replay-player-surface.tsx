@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { RefObject, SyntheticEvent } from "react";
-import { Keyboard, Maximize, Pause, PictureInPicture2, Play, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
+import { Clapperboard, Keyboard, Maximize, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
 import type { VideoItem } from "@/lib/replay-playlist";
@@ -161,13 +161,16 @@ export function ReplayPlayerSurface({
   return <div className="player-surface">
     <div className="player-status-band" role="status" aria-live="polite" aria-atomic="true">
       <div className="session-bar">
-        <span>
-          {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? displayedVideo.src}</strong>}
-          {videoAuthor && <small className="player-video-author">{videoAuthor}</small>}
-          {progressLabel ?? playerStatus}
-          {duration && activeVideo && !error && hasPlaybackStarted ? <small>≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}
-        </span>
-        {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <strong>{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</strong>}
+        <div className="player-context">
+          <span className="player-context-icon"><Clapperboard aria-hidden="true" size={17} /></span>
+          <div className="player-context-copy">
+            {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? displayedVideo.src}</strong>}
+            {videoAuthor && <small className="player-video-author">{videoAuthor}</small>}
+            <span className="player-context-status">{progressLabel ?? playerStatus}</span>
+            {duration && activeVideo && !error && hasPlaybackStarted ? <small className="player-context-duration">≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}
+          </div>
+        </div>
+        {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <span className="player-repeat-badge"><Repeat2 aria-hidden="true" size={14} />{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</span>}
       </div>
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
