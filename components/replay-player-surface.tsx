@@ -65,6 +65,7 @@ type ReplayPlayerSurfaceProps = {
   remaining: number;
   totalRepetitions: number;
   videoAuthor: string | null;
+  videoDurations: Record<string, number>;
   videoTitle: string | null;
   youtubePlaylistSources: string[];
   volume: number;
@@ -126,6 +127,7 @@ export function ReplayPlayerSurface({
   remaining,
   totalRepetitions,
   videoAuthor,
+  videoDurations,
   videoTitle,
   youtubePlaylistSources,
   volume,
@@ -165,14 +167,42 @@ export function ReplayPlayerSurface({
     return `${hours > 0 ? `${hours}:` : ""}${displayMinutes}:${String(secondsPart).padStart(2, "0")}`;
   };
 
+  const formatRemainingTime = (seconds: number) => {
+    const roundedMinutes = Math.max(1, Math.ceil(seconds / 60));
+    const hours = Math.floor(roundedMinutes / 60);
+    const minutes = roundedMinutes % 60;
+    return hours > 0 ? `${hours} h ${minutes ? `${minutes} min` : ""}`.trim() : `${minutes} min`;
+  };
+
   const currentRepetitionProgress = activeVideo && hasPlaybackStarted ? Math.max(0, Math.min(1, played)) : 0;
-  const playbackProgress = totalRepetitions > 0 ? ((completedRepetitions + currentRepetitionProgress) / totalRepetitions) * 100 : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
-  const playlistSegments = queue.flatMap((item, videoIndex) => Array.from({ length: item.repetitions }, (_, repetitionIndex) => ({
+  const knownDurations = queue.map((item) => videoDurations[item.id]).filter((item): item is number => Number.isFinite(item) && item > 0);
+  const fallbackDuration = duration && duration > 0
+    ? duration
+    : knownDurations.length > 0
+      ? knownDurations.reduce((total, item) => total + item, 0) / knownDurations.length
+      : 1;
+  const playlistSegments = queue.flatMap((item, videoIndex) => {
+    const segmentDuration = videoDurations[item.id] ?? (item.id === activeVideo?.id && duration && duration > 0 ? duration : fallbackDuration);
+    return Array.from({ length: item.repetitions }, (_, repetitionIndex) => ({
     id: `${item.id}-${repetitionIndex}`,
     label: `Vídeo ${videoIndex + 1}, repetição ${repetitionIndex + 1}`,
     tone: videoIndex % 4,
-  })));
+    weight: segmentDuration,
+    }));
+  });
+  const totalPlaylistDuration = playlistSegments.reduce((total, segment) => total + segment.weight, 0);
+  const completedPlaylistDuration = playlistSegments.slice(0, completedRepetitions).reduce((total, segment) => total + segment.weight, 0);
+  const activeSegmentDuration = playlistSegments[completedRepetitions]?.weight ?? 0;
+  const playbackProgress = totalPlaylistDuration > 0
+    ? ((completedPlaylistDuration + activeSegmentDuration * currentRepetitionProgress) / totalPlaylistDuration) * 100
+    : 0;
+  const remainingPlaylistDuration = Math.max(0, totalPlaylistDuration - completedPlaylistDuration - activeSegmentDuration * currentRepetitionProgress);
+  const durationStatus = queueLength > 1 && activeVideo && !error && hasPlaybackStarted && totalPlaylistDuration > 0
+    ? `≈ ${formatRemainingTime(remainingPlaylistDuration)} restantes`
+    : duration && activeVideo && !error && hasPlaybackStarted
+      ? `≈ ${Math.ceil((duration * remaining) / 60)} min neste vídeo`
+      : null;
   const youtubePlaylistIds = youtubePlaylistSources
     .map((source) => source.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/)?.[1])
     .filter((id): id is string => Boolean(id));
@@ -192,14 +222,14 @@ export function ReplayPlayerSurface({
             {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? fallbackTitle}</strong>}
             <small className="player-video-author">{videoAuthor ?? sourceHost}</small>
             <span className="player-context-status" role="status" aria-live="polite">{progressLabel ?? playerStatus}</span>
-            {duration && activeVideo && !error && hasPlaybackStarted ? <small className="player-context-duration">≈ {Math.ceil((duration * remaining) / 60)} min neste vídeo</small> : null}
+            {durationStatus ? <small className="player-context-duration">{durationStatus}</small> : null}
           </div>
         </div>
         {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <span className="player-repeat-badge"><Repeat2 aria-hidden="true" size={14} />{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</span>}
       </div>
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
-        <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
-          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} style={index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } as CSSProperties : undefined} title={segment.label} aria-hidden="true" />)}
+        <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`} style={{ "--playlist-progress": playbackProgress / 100 } as CSSProperties}>
+          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} style={{ "--segment-weight": segment.weight, ...(index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } : {}) } as CSSProperties} title={`${segment.label} · ≈ ${formatTime(segment.weight)}`} aria-hidden="true" />)}
         </div>
       </>}
     </div>

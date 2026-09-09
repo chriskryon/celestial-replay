@@ -53,6 +53,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false);
   const [queuePlaylistName, setQueuePlaylistName] = useState("Minha playlist");
   const [queueSaveMessage, setQueueSaveMessage] = useState<string | null>(null);
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
   const [isSavingQueue, setIsSavingQueue] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveTarget, setSaveTarget] = useState<"draft" | "queue">("draft");
@@ -789,7 +790,12 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             isPlaying={isPlaying}
             isSessionComplete={isSessionComplete}
             loaded={loaded}
-            onDurationChange={setDuration}
+            onDurationChange={(nextDuration) => {
+              setDuration(nextDuration);
+              if (activeVideo && Number.isFinite(nextDuration) && nextDuration > 0) {
+                setVideoDurations((current) => current[activeVideo.id] === nextDuration ? current : { ...current, [activeVideo.id]: nextDuration });
+              }
+            }}
             onEnterPictureInPicture={() => setPip(true)}
             onLeavePictureInPicture={() => setPip(false)}
             onNextRepetition={() => playNextRepetition(true)}
@@ -830,6 +836,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             remaining={remaining}
             totalRepetitions={totalRepetitions}
             videoAuthor={videoMetadata.authorName}
+            videoDurations={videoDurations}
             videoTitle={videoMetadata.title}
             youtubePlaylistSources={youtubePlaylistSources}
             volume={volume}
