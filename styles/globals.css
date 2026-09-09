@@ -92,9 +92,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .playlist-progress-segment.is-complete { height: 3px; opacity: .24; filter: saturate(1.02) brightness(1.03); }
 .playlist-progress-segment.is-complete::after, .playlist-progress-segment.is-current::after { position: absolute; inset: 0; content: ""; transform-origin: left center; background: linear-gradient(90deg, color-mix(in srgb, var(--segment-color) 58%, white), var(--segment-color) 38%, color-mix(in srgb, var(--segment-color) 62%, white)); background-size: 180% 100%; }
 .playlist-progress-segment.is-complete::after { transform: scaleX(1); opacity: .72; animation: segment-complete 380ms cubic-bezier(.22, 1, .36, 1); }
-.playlist-progress-segment.is-current { height: 8px; opacity: .3; filter: saturate(1.22) brightness(1.16); box-shadow: 0 0 8px color-mix(in srgb, var(--segment-color) 52%, transparent); }
-.playlist-progress-segment.is-current::after { transform: scaleX(var(--segment-progress, 0)); filter: saturate(1.35) brightness(1.28); box-shadow: inset 0 1px rgba(255, 255, 255, .66), 0 0 14px color-mix(in srgb, var(--segment-color) 92%, transparent); transition: transform 180ms linear; }
-.playlist-progress-segment.is-current.is-playing::after { animation: liquid-progress 1.8s ease-in-out infinite; }
+.playlist-progress-segment.is-current { height: 8px; opacity: 1; background: color-mix(in srgb, var(--segment-color) 24%, transparent); filter: saturate(1.18) brightness(1.1); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 8px color-mix(in srgb, var(--segment-color) 45%, transparent); }
+.playlist-progress-segment.is-current::after { transform: scaleX(var(--segment-progress, 0)); background: linear-gradient(90deg, color-mix(in srgb, var(--segment-color) 45%, white), var(--segment-color) 32%, color-mix(in srgb, var(--segment-color) 54%, white)); filter: saturate(1.4) brightness(1.38); box-shadow: inset 0 1px rgba(255, 255, 255, .72), 0 0 15px color-mix(in srgb, var(--segment-color) 92%, transparent); transition: transform 180ms linear; }
 .player-stage > div { width: 100%; height: 100%; }
 /* Genérico para todos os providers do ReactPlayer v3: o elemento de mídia
    (youtube-video-element, vimeo, hls, file <video>, etc.) é filho direto do
@@ -528,10 +527,6 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 @keyframes skeleton-shift{from{background-position:100% 0}to{background-position:-80% 0}}
 @keyframes cosmic-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @keyframes queue-current-pulse { 0% { box-shadow: 0 0 0 0 rgba(160, 190, 255, .44); } 100% { box-shadow: 0 0 0 8px rgba(160, 190, 255, 0); } }
-@keyframes liquid-progress {
-  0%, 100% { background-position: 100% 48%; border-radius: 52% 48% 56% 44% / 54% 44% 56% 46%; clip-path: polygon(0 0, 100% 8%, 100% 88%, 76% 100%, 46% 92%, 18% 100%, 0 91%); }
-  50% { background-position: -70% 54%; border-radius: 42% 58% 43% 57% / 47% 60% 40% 53%; clip-path: polygon(0 9%, 20% 0, 53% 8%, 82% 0, 100% 12%, 100% 92%, 72% 100%, 38% 91%, 14% 100%, 0 88%); }
-}
 @keyframes segment-complete { from { transform: scaleX(.72); opacity: .25; } to { transform: scaleX(1); opacity: .72; } }
 
 @media (prefers-reduced-motion: reduce) {

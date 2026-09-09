@@ -199,7 +199,7 @@ export function ReplayPlayerSurface({
       </div>
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
-          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? ` is-current${isPlaying && hasPlaybackStarted ? " is-playing" : ""}` : ""}`} style={index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } as CSSProperties : undefined} title={segment.label} aria-hidden="true" />)}
+          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} style={index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } as CSSProperties : undefined} title={segment.label} aria-hidden="true" />)}
         </div>
       </>}
     </div>
