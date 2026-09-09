@@ -204,10 +204,6 @@ export function ReplayPlayerSurface({
     </div>
 
     <div className="player-stage">
-      {playerSource && activeVideo && isPlaying && !hasPlaybackStarted && !error && !isSessionComplete && <div className="player-loading-state" role="status" aria-live="polite">
-        <span className="cosmic-skeleton" aria-hidden="true" />
-        <span>Preparando reprodução…</span>
-      </div>}
       {isSessionComplete && <div className="player-complete-state">
         <strong>Playlist concluída</strong>
         <span>{queueLength} {queueLength === 1 ? "vídeo" : "vídeos"} · {totalRepetitions} {totalRepetitions === 1 ? "repetição" : "repetições"}</span>

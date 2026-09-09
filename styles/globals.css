@@ -83,17 +83,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .player-surface { position: relative; z-index: 0; order: -1; display: grid; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto auto; overflow: visible; padding: 0.45rem; border: 1px solid rgba(225, 234, 255, 0.11); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.27); }
 .player-stage { position: relative; display: grid; width: auto; height: 100%; min-height: 0; max-width: 100%; aspect-ratio: 16 / 9; justify-self: center; overflow: hidden; border: 1px solid rgba(222, 232, 255, 0.08); border-radius: 0.52rem; background: rgba(0, 2, 12, 0.88); place-items: center; box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.7); }
 .preview-badge { position: absolute; z-index: 2; top: 0.5rem; left: 0.5rem; padding: 0.22rem 0.55rem; border: 1px solid rgba(216, 227, 255, 0.25); border-radius: 999px; color: #e6edff; background: rgba(4, 10, 28, 0.72); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; backdrop-filter: blur(8px); pointer-events: none; }
-.playlist-progress { display: flex; height: 8px; gap: 2px; overflow: hidden; padding: 1px; border: 1px solid rgba(179, 204, 255, .15); border-radius: 99px; background: linear-gradient(90deg, rgba(131, 164, 236, .13), rgba(199, 216, 255, .07)); box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 0 12px rgba(128, 165, 248, .1); }
-.playlist-progress-segment { min-width: 2px; flex: 1; border-radius: 99px; opacity: .22; box-shadow: inset 0 1px rgba(255, 255, 255, .16); transition: opacity 220ms ease, box-shadow 220ms ease, filter 220ms ease; }
+.playlist-progress { display: flex; height: 10px; align-items: center; gap: 3px; overflow: hidden; padding: 1px 2px; border: 1px solid rgba(179, 204, 255, .13); border-radius: 99px; background: linear-gradient(90deg, rgba(131, 164, 236, .1), rgba(199, 216, 255, .05)); box-shadow: inset 0 1px rgba(255, 255, 255, .08), 0 0 10px rgba(128, 165, 248, .07); }
+.playlist-progress-segment { min-width: 2px; height: 3px; flex: 1; border-radius: 99px; opacity: .17; transition: height 180ms ease, opacity 180ms ease, box-shadow 180ms ease, filter 180ms ease; }
 .playlist-progress-segment.tone-0 { background: #a7baf1; }
 .playlist-progress-segment.tone-1 { background: #b6a8e8; }
 .playlist-progress-segment.tone-2 { background: #8fc4d2; }
 .playlist-progress-segment.tone-3 { background: #d0a9c7; }
-.playlist-progress-segment.is-complete { opacity: .78; filter: saturate(1.05) brightness(1.06); box-shadow: inset 0 1px rgba(255, 255, 255, .24), 0 0 6px currentColor; }
-.playlist-progress-segment.is-current { opacity: 1; filter: saturate(1.12) brightness(1.18); box-shadow: inset 0 1px rgba(255, 255, 255, .34), 0 0 11px currentColor, 0 0 18px color-mix(in srgb, currentColor 52%, transparent); }
+.playlist-progress-segment.is-complete { height: 4px; opacity: .42; filter: saturate(1.02) brightness(1.03); }
+.playlist-progress-segment.is-current { height: 8px; opacity: 1; filter: saturate(1.15) brightness(1.24); box-shadow: inset 0 1px rgba(255, 255, 255, .42), 0 0 9px currentColor, 0 0 14px color-mix(in srgb, currentColor 44%, transparent); }
 .player-stage > div { width: 100%; height: 100%; }
-.player-loading-state { position: absolute; z-index: 4; right: .55rem; bottom: .55rem; display: flex; min-height: 30px; align-items: center; gap: .42rem; padding: .35rem .5rem; border: 1px solid rgba(203, 220, 255, .18); border-radius: .55rem; color: #dce7ff; background: rgba(4, 10, 28, .76); box-shadow: 0 8px 20px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .08); font-size: .68rem; backdrop-filter: blur(10px); pointer-events: none; }
-.player-loading-state .cosmic-skeleton { width: 1.1rem; height: .5rem; }
 /* Genérico para todos os providers do ReactPlayer v3: o elemento de mídia
    (youtube-video-element, vimeo, hls, file <video>, etc.) é filho direto do
    wrapper e nasce sem tamanho próprio. O iframe interno fica no shadow DOM,
@@ -284,8 +282,8 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .playlist-form .primary-button { align-self: flex-end; margin-top: 0; grid-column: auto; grid-row: auto; }
 .playlist-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; margin-top: .12rem; }
 .playlist-actions .primary-button { min-width: 10.5rem; }
-.celestial-start-button { border-color: rgba(207, 223, 255, .4); background: radial-gradient(circle at 22% 25%, rgba(230, 239, 255, .25), rgba(141, 176, 244, .19) 54%, rgba(72, 103, 185, .16)); box-shadow: inset 0 1px rgba(255, 255, 255, .17), 0 0 15px rgba(134, 171, 250, .18); }
-.celestial-start-button:hover:not(:disabled), .celestial-start-button:focus-visible { border-color: rgba(229, 238, 255, .68); background: radial-gradient(circle at 22% 25%, rgba(239, 246, 255, .36), rgba(157, 190, 250, .26) 56%, rgba(82, 119, 209, .2)); box-shadow: inset 0 1px rgba(255, 255, 255, .24), 0 0 22px rgba(145, 184, 255, .36); }
+.celestial-start-button { border-color: rgba(207, 223, 255, .27); background: linear-gradient(140deg, rgba(184, 207, 255, .16), rgba(96, 130, 210, .1)); box-shadow: inset 0 1px rgba(255, 255, 255, .11); }
+.celestial-start-button:hover:not(:disabled), .celestial-start-button:focus-visible { border-color: rgba(220, 233, 255, .5); background: linear-gradient(140deg, rgba(200, 220, 255, .23), rgba(108, 148, 235, .15)); box-shadow: inset 0 1px rgba(255, 255, 255, .17), 0 0 12px rgba(145, 184, 255, .18); }
 .playlist-actions .preview-rate { margin: 0; }
 .playlist-form .field-error { margin-right: 10rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
