@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { CSSProperties, RefObject, SyntheticEvent } from "react";
-import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
+import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
 import type { VideoItem } from "@/lib/replay-playlist";
@@ -130,6 +130,26 @@ export function ReplayPlayerSurface({
   youtubePlaylistSources,
   volume,
 }: ReplayPlayerSurfaceProps) {
+  const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
+  const mobileOptionsDialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = mobileOptionsDialogRef.current;
+    if (!dialog) return;
+
+    if (isMobileOptionsOpen && !dialog.open) dialog.showModal();
+    if (!isMobileOptionsOpen && dialog.open) dialog.close();
+  }, [isMobileOptionsOpen]);
+
+  const renderMoreOptions = () => <>
+    <div className="player-mobile-repeat-actions" role="toolbar" aria-label="Repetições">
+      <button className="icon-save-button" type="button" onClick={onPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição"><StepBack aria-hidden="true" size={18} /></button>
+      <button className="icon-save-button" type="button" onClick={onNextRepetition} disabled={!canSkipRepetition} aria-label="Pular repetição"><SkipForward aria-hidden="true" size={18} /></button>
+    </div>
+    <div className="player-speed-control" role="toolbar" aria-label="Velocidade">{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-label={`Velocidade ${rate}x`} aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
+    <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
+    <details className="player-more-shortcuts"><summary><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>
+  </>;
   const syncDuration = (event: SyntheticEvent<HTMLVideoElement>) => {
     const nextDuration = event.currentTarget?.duration;
     if (Number.isFinite(nextDuration) && nextDuration > 0) onDurationChange(nextDuration);
@@ -255,17 +275,16 @@ export function ReplayPlayerSurface({
       </div>
       <details className="player-more-menu">
         <summary aria-label="Mais opções" title="Mais opções"><MoreHorizontal aria-hidden="true" size={18} /></summary>
-        <div className="player-more-panel">
-          <div className="player-mobile-repeat-actions" role="toolbar" aria-label="Repetições">
-            <button className="icon-save-button" type="button" onClick={onPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição"><StepBack aria-hidden="true" size={18} /></button>
-            <button className="icon-save-button" type="button" onClick={onNextRepetition} disabled={!canSkipRepetition} aria-label="Pular repetição"><SkipForward aria-hidden="true" size={18} /></button>
-          </div>
-          <div className="player-speed-control" role="toolbar" aria-label="Velocidade">{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-label={`Velocidade ${rate}x`} aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
-          <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
-          <details className="player-more-shortcuts"><summary><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>
-        </div>
+        <div className="player-more-panel">{renderMoreOptions()}</div>
       </details>
+      <button className="player-mobile-options-trigger" type="button" onClick={() => setIsMobileOptionsOpen(true)} aria-haspopup="dialog" aria-label="Mais opções"><MoreHorizontal aria-hidden="true" size={20} /></button>
     </div>}
+    <dialog ref={mobileOptionsDialogRef} className="player-mobile-sheet" aria-labelledby="mobile-options-title" onCancel={() => setIsMobileOptionsOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setIsMobileOptionsOpen(false); }}>
+      <div className="player-mobile-sheet-content">
+        <div className="player-mobile-sheet-heading"><div><span>Preferências</span><h2 id="mobile-options-title">Mais opções</h2></div><button className="icon-save-button" type="button" onClick={() => setIsMobileOptionsOpen(false)} aria-label="Fechar opções"><X aria-hidden="true" size={18} /></button></div>
+        {renderMoreOptions()}
+      </div>
+    </dialog>
     {activeVideo && <details className="keyboard-help"><summary title="Ver atalhos de teclado"><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>}
   </div>;
 }
