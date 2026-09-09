@@ -165,7 +165,8 @@ export function ReplayPlayerSurface({
     return `${hours > 0 ? `${hours}:` : ""}${displayMinutes}:${String(secondsPart).padStart(2, "0")}`;
   };
 
-  const playbackProgress = totalRepetitions > 0 ? (completedRepetitions / totalRepetitions) * 100 : 0;
+  const currentRepetitionProgress = activeVideo && hasPlaybackStarted ? Math.max(0, Math.min(1, played)) : 0;
+  const playbackProgress = totalRepetitions > 0 ? ((completedRepetitions + currentRepetitionProgress) / totalRepetitions) * 100 : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
   const playlistSegments = queue.flatMap((item, videoIndex) => Array.from({ length: item.repetitions }, (_, repetitionIndex) => ({
     id: `${item.id}-${repetitionIndex}`,
@@ -198,7 +199,7 @@ export function ReplayPlayerSurface({
       </div>
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`}>
-          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} title={segment.label} aria-hidden="true" />)}
+          {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} style={index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } as CSSProperties : undefined} title={segment.label} aria-hidden="true" />)}
         </div>
       </>}
     </div>
