@@ -38,8 +38,8 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
       <ReplayStudio ref={studioRef} initialMode={studioMode ?? "single"} onPlaybackChange={setSnapshot} />
     </div>
     {!isStudioRoute && children}
-    {!isStudioRoute && snapshot.source && <aside className="persistent-mini-player" aria-label="Reprodução em andamento">
-      <div className="persistent-mini-copy"><Radio aria-hidden="true" size={16} /><span>{sourceLabel}</span></div>
+    {!isStudioRoute && snapshot.source && <aside className="persistent-mini-player" data-playing={snapshot.isPlaying} aria-label="Reprodução em andamento">
+      <div className="persistent-mini-copy"><Radio aria-hidden="true" size={16} /><div><span className="persistent-mini-status">{snapshot.isPlaying ? "Reproduzindo" : "Pausado"}</span><span title={sourceLabel ?? undefined}>{sourceLabel}</span></div></div>
       <button type="button" className="icon-save-button" onClick={() => studioRef.current?.togglePlayback()} aria-label={snapshot.isPlaying ? "Pausar reprodução" : "Continuar reprodução"} title={snapshot.isPlaying ? "Pausar" : "Continuar"}>{snapshot.isPlaying ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}</button>
       <Link className="persistent-mini-open" href="/" title="Abrir player">Abrir player</Link>
     </aside>}
