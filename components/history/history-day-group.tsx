@@ -14,11 +14,13 @@ function SourceIcon({ url }: { url: string }) {
 
 export function HistoryDayGroup({ entries }: { entries: HistoryViewSummary[] }) {
   const [firstEntry] = entries;
+  const totalRepetitions = entries.reduce((total, entry) => total + entry.completedRepetitions, 0);
+  const totalSessions = entries.reduce((total, entry) => total + entry.sessions, 0);
   return (
     <section className="history-day">
       <header>
         <h2>{historyDayLabel(firstEntry.completedAt)}</h2>
-        <span>{entries.length} {entries.length === 1 ? "vídeo" : "vídeos"}</span>
+        <span>{entries.length} {entries.length === 1 ? "vídeo" : "vídeos"} · {totalRepetitions}× em {totalSessions} {totalSessions === 1 ? "sessão" : "sessões"}</span>
       </header>
       <ol className="history-feed">
         {entries.map((entry) => {

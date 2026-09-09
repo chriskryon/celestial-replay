@@ -5,7 +5,7 @@ import { OpenAuthButton } from "@/components/open-auth-button";
 
 export function HistoryAccessPanel() {
   return (
-    <section className="history-access-panel">
+    <section className="history-access-panel history-access-panel--history has-access-preview">
       <span className="history-access-icon"><History aria-hidden="true" size={26} /></span>
       <div className="history-access-copy">
         <span className="eyebrow">Seu espaço pessoal</span>
@@ -20,6 +20,12 @@ export function HistoryAccessPanel() {
       <div className="history-access-actions">
         <OpenAuthButton className="primary-button"><History aria-hidden="true" size={17} />Entrar para guardar</OpenAuthButton>
         <Link className="secondary-button" href="/">Continuar sem conta</Link>
+      </div>
+      <div className="access-preview history-access-preview" aria-hidden="true">
+        <span>Seu histórico</span>
+        <div><i /><p><b>Hoje</b><small>3 vídeos · 11 execuções</small></p></div>
+        <div><i /><p><b>Ontem</b><small>2 vídeos · 5 execuções</small></p></div>
+        <div><i /><p><b>Segunda-feira</b><small>1 vídeo · 3 execuções</small></p></div>
       </div>
     </section>
   );

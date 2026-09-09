@@ -79,6 +79,7 @@ export function ReplayComposer({
   invalidSimpleLine,
 }: ReplayComposerProps) {
   const formHint = mode === "single" ? singleHint : playlistHint;
+  const advancedPlaylistRepetitions = drafts.reduce((total, draft) => total + Math.max(0, Number(draft.repetitions) || 0), 0);
 
   return <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={onStart}>
     {mode === "single" ? <>
@@ -125,7 +126,7 @@ export function ReplayComposer({
           </div>;
         })}
       </div>}
-      {playlistInputMode === "advanced" && <button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>}
+      {playlistInputMode === "advanced" && <div className="playlist-editor-toolbar"><span className="playlist-form-summary" aria-live="polite">{drafts.length} {drafts.length === 1 ? "vídeo" : "vídeos"} · {advancedPlaylistRepetitions} {advancedPlaylistRepetitions === 1 ? "execução" : "execuções"}</span><button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button></div>}
       {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
     </>}
     {error && <p className="field-error" role="alert">{error}</p>}

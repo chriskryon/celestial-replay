@@ -3,6 +3,7 @@
 import { Copy, ListFilter, ListMusic, Pencil, Plus, Search } from "lucide-react";
 
 import type { Playlist } from "@/components/playlists/types";
+import { sourceDomain } from "@/lib/playlist-draft";
 
 type PlaylistLibraryProps = {
   availableDomains: string[];
@@ -41,7 +42,7 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
                 <li key={playlist.id}>
                   <div className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"}>
                     <button onClick={() => onEdit(playlist)} type="button">
-                      <span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span>
+                      <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
                     <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
@@ -54,6 +55,20 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
       )}
     </aside>
   );
+}
+
+function playlistSummary(playlist: Playlist) {
+  const repetitions = playlist.items.reduce((total, item) => total + item.repetitions, 0);
+  return `${playlist.items.length} ${playlist.items.length === 1 ? "vídeo" : "vídeos"} · ${repetitions} ${repetitions === 1 ? "execução" : "execuções"}`;
+}
+
+function playlistDomains(playlist: Playlist) {
+  const domains = Array.from(new Set(playlist.items.map((item) => sourceDomain(item.url))));
+  return domains.slice(0, 2).join(" · ") + (domains.length > 2 ? ` +${domains.length - 2}` : "");
+}
+
+function playlistUpdatedAt(updatedAt: Playlist["updatedAt"]) {
+  return `Atualizada em ${new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(new Date(updatedAt))}`;
 }
 
 function EmptyLibrary({ onCreate }: { onCreate: () => void }) {

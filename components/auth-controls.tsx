@@ -37,7 +37,7 @@ export function AuthControls() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isProfileOpen]);
 
-  if (session.isPending) return <span className="account-status">Carregando conta</span>;
+  if (session.isPending) return <span className="account-status-skeleton" aria-label="Carregando conta" role="status" />;
   if (!session.data?.user) return <button className="account-link" type="button" onClick={openSignIn}><LogIn aria-hidden="true" size={16} />Entrar</button>;
 
   const { user } = session.data;
