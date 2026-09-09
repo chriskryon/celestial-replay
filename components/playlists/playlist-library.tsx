@@ -44,7 +44,7 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
                       <span><strong>{playlist.name}</strong><small>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</small></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
-                    <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} type="button"><Copy aria-hidden="true" size={15} /></button>
+                    <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
                   </div>
                 </li>
               ))}
