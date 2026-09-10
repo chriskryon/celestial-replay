@@ -73,7 +73,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .studio-tab:hover { color: var(--ink); background: rgba(192, 207, 245, 0.08); }
 .studio-tab.is-selected { color: var(--ink); background: rgba(192, 207, 245, 0.17); box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(202, 217, 255, 0.12); }
 .studio-tab:focus-visible { outline: 3px solid rgba(193, 213, 255, 0.75); outline-offset: 2px; }
-.resume-session { display: flex; width: 26rem; max-width: 100%; min-height: 58px; align-items: center; justify-self: start; justify-content: space-between; gap: 0.8rem; padding: 0.5rem 0.6rem; border: 1px solid rgba(185, 206, 255, 0.15); border-radius: 0.7rem; background: rgba(89, 121, 201, 0.1); }
+.resume-session { display: flex; width: 100%; height: 58px; min-width: 0; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.45rem 0.6rem; border: 1px solid rgba(185, 206, 255, 0.15); border-radius: 0.7rem; background: rgba(89, 121, 201, 0.1); }
 .resume-session div { display: grid; gap: 0.12rem; min-width: 0; }
 .resume-session strong { font-size: 0.82rem; }
 .resume-session span { overflow: hidden; color: var(--muted); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -663,7 +663,7 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .player-preferences-divider { display: none; }
   .persistent-mini-player { right: 0; bottom: 0; width: 100%; max-width: none; padding: .58rem max(.7rem, env(safe-area-inset-right)) calc(.58rem + env(safe-area-inset-bottom)) max(.7rem, env(safe-area-inset-left)); border-right: 0; border-bottom: 0; border-left: 0; border-radius: .82rem .82rem 0 0; }
   .persistent-mini-open { margin-left: auto; }
-  .resume-session { width: 100%; align-items: flex-start; flex-direction: column; }
+  .resume-session { height: auto; min-height: 58px; align-items: flex-start; flex-direction: column; }
   .resume-session .secondary-button { align-self: stretch; }
   .playlist-library { min-height: calc(100dvh - 5.55rem); }
   .library-grid { grid-template-columns: 1fr; }
