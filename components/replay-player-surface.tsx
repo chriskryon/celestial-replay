@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
 import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
@@ -134,6 +134,9 @@ export function ReplayPlayerSurface({
 }: ReplayPlayerSurfaceProps) {
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const mobileOptionsDialogRef = useRef<HTMLDialogElement>(null);
+  const playerStageRef = useRef<HTMLDivElement>(null);
+  const previousStageLayout = useRef<{ rect: DOMRect; state: string } | null>(null);
+  const stageAnimation = useRef<Animation | null>(null);
 
   useEffect(() => {
     const dialog = mobileOptionsDialogRef.current;
@@ -215,6 +218,30 @@ export function ReplayPlayerSurface({
 
   const playerSurfaceState = activeVideo ? "is-active" : previewVideo ? "is-preview" : "is-empty";
 
+  useLayoutEffect(() => {
+    const stage = playerStageRef.current;
+    if (!stage) return;
+
+    const nextRect = stage.getBoundingClientRect();
+    const previous = previousStageLayout.current;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    stageAnimation.current?.cancel();
+    if (previous?.state === "is-preview" && playerSurfaceState === "is-active" && !reducedMotion && nextRect.width > 0 && nextRect.height > 0) {
+      const scaleX = previous.rect.width / nextRect.width;
+      const scaleY = previous.rect.height / nextRect.height;
+      const translateX = previous.rect.left - nextRect.left;
+      const translateY = previous.rect.top - nextRect.top;
+
+      stageAnimation.current = stage.animate([
+        { transform: `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`, transformOrigin: "center center" },
+        { transform: "translate(0, 0) scale(1, 1)", transformOrigin: "center center" },
+      ], { duration: 360, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "both" });
+    }
+
+    previousStageLayout.current = { rect: nextRect, state: playerSurfaceState };
+  }, [playerSurfaceState]);
+
   return <div className={`player-surface ${playerSurfaceState}`}>
     <div className="player-status-band">
       <div className="session-bar">
@@ -236,7 +263,8 @@ export function ReplayPlayerSurface({
       </>}
     </div>
 
-    <div className="player-stage">
+    <div className="player-stage-motion" ref={playerStageRef}>
+      <div className="player-stage">
       {isSessionComplete && <div className="player-complete-state">
         <strong>Playlist concluída</strong>
         <span>{queueLength} {queueLength === 1 ? "vídeo" : "vídeos"} · {totalRepetitions} {totalRepetitions === 1 ? "repetição" : "repetições"}</span>
@@ -290,6 +318,7 @@ export function ReplayPlayerSurface({
           {hasNextVideo && <button className="secondary-button" type="button" onClick={onNextVideo}>Pular vídeo</button>}
         </div>}
       </div>}
+      </div>
     </div>
 
     {activeVideo && !error && <div className="control-bar">
