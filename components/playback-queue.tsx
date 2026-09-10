@@ -1,4 +1,4 @@
-import { ExternalLink, Save, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, Save, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
@@ -40,6 +40,7 @@ export function PlaybackQueue({
 }: PlaybackQueueProps) {
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -109,25 +110,29 @@ export function PlaybackQueue({
     );
   };
 
-  return <section className="queue-surface" aria-labelledby="queue-title">
+  return <section className={`queue-surface${isExpanded ? " is-expanded" : " is-collapsed"}`} aria-labelledby="queue-title">
     <div className="queue-title">
-      <div>
-        <h2 id="queue-title">Playlist em execução</h2>
-        <p>Edite somente os vídeos que ainda não começaram.</p>
-      </div>
+      <button className="queue-toggle" type="button" onClick={() => setIsExpanded((value) => !value)} aria-controls="queue-content" aria-expanded={isExpanded}>
+        <span className="queue-toggle-copy">
+          <strong id="queue-title">Playlist em execução</strong>
+          <small>Edite somente os vídeos que ainda não começaram.</small>
+        </span>
+        <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
+      </button>
       <div className="queue-title-actions">
-        <span>{queue.length} vídeos</span>
         {isLoggedIn && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
           <Save aria-hidden="true" size={18} />
         </button>}
       </div>
     </div>
-    {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
-    {activeIndex !== null && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
-    <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
-    {completedQueue.length > 0 && <details className="queue-completed">
-      <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
-      <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>
-    </details>}
+    {isExpanded && <div className="queue-content" id="queue-content">
+      {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
+      {activeIndex !== null && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
+      <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
+      {completedQueue.length > 0 && <details className="queue-completed">
+        <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
+        <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>
+      </details>}
+    </div>}
   </section>;
 }
