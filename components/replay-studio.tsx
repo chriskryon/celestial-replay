@@ -1,9 +1,8 @@
 "use client";
 
 import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { ListMusic, RotateCcw, Save, Video, X } from "lucide-react";
+import { RotateCcw, Save, Trash2, X } from "lucide-react";
 
-import { AccountStudioTabs } from "@/components/account-studio-tabs";
 import { PlaybackQueue } from "@/components/playback-queue";
 import { ReplayComposer } from "@/components/replay-composer";
 import { ReplayPlayerSurface } from "@/components/replay-player-surface";
@@ -72,6 +71,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [videoMetadata, setVideoMetadata] = useState<{ authorName: string | null; title: string | null }>({ authorName: null, title: null });
   const [queueMetadata, setQueueMetadata] = useState<Record<string, { authorName: string | null; title: string | null; loading: boolean }>>({});
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
+  const [isDiscardResumeOpen, setIsDiscardResumeOpen] = useState(false);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
   const ignoreStaleEndedRef = useRef(false);
@@ -374,6 +374,12 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setIsSessionComplete(false);
     setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
     setResumeSession(null);
+  };
+
+  const discardResume = () => {
+    setResumeSession(null);
+    setIsDiscardResumeOpen(false);
+    void fetch("/api/playback-session", { method: "DELETE" });
   };
 
   const openSaveDialog = (target: "draft" | "queue") => {
@@ -730,13 +736,9 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   return (
     <>
       <section className="studio-shell" aria-labelledby="studio-title">
-        <nav className="studio-tabs" aria-label="Áreas do Celestial Replay">
-          <button className={mode === "single" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("single")} aria-pressed={mode === "single"}><Video aria-hidden="true" size={16} />Vídeo único</button>
-          <button className={mode === "playlist" ? "studio-tab is-selected" : "studio-tab"} type="button" onClick={() => setMode("playlist")} aria-pressed={mode === "playlist"}><ListMusic aria-hidden="true" size={16} />Playlist</button>
-          <AccountStudioTabs />
-        </nav>
-
-        {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length}</span></div><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></aside>}
+        <div className="studio-session-area">
+          {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length} · repetição {Math.max(1, (resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1) - resumeSession.remaining + 1)} de {resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1}</span></div><div className="resume-session-actions"><button className="icon-save-button" type="button" onClick={() => setIsDiscardResumeOpen(true)} aria-label="Descartar sessão salva" title="Descartar sessão"><Trash2 aria-hidden="true" size={16} /></button><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></div></aside>}
+        </div>
 
         <div className={`studio-grid ${displayedVideo ? "has-media" : "is-empty"}`}>
           <ReplayComposer
@@ -843,8 +845,9 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
+      {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>
         <section className="save-playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="save-playlist-title" onMouseDown={(event) => event.stopPropagation()}>
           <button className="auth-dialog-close" type="button" onClick={() => setIsSaveDialogOpen(false)} aria-label="Fechar"><X aria-hidden="true" size={18} /></button>

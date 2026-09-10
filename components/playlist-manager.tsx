@@ -3,7 +3,6 @@
 import { ListMusic } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { AccountAreaTabs } from "@/components/account-navigation";
 import { PlaylistEditor } from "@/components/playlists/playlist-editor";
 import { PlaylistLibrary } from "@/components/playlists/playlist-library";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
@@ -128,7 +127,6 @@ export function PlaylistManager({ initialPlaylists }: { initialPlaylists: Playli
   }
 
   return <section className="studio-shell account-shell" aria-labelledby="playlist-library-title">
-      <AccountAreaTabs activeArea="playlists" />
       <div className="playlist-library">
         <header className="library-heading"><span className="history-heading-icon"><ListMusic aria-hidden="true" size={22} /></span><div><h1 id="playlist-library-title">Suas playlists</h1><p>Crie, organize e ajuste as filas que você quer repetir.</p></div></header>
         <div className="library-grid">

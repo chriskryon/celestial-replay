@@ -16,12 +16,13 @@ export function HistoryDayGroup({ entries }: { entries: HistoryViewSummary[] }) 
   const [firstEntry] = entries;
   const totalRepetitions = entries.reduce((total, entry) => total + entry.completedRepetitions, 0);
   const totalSessions = entries.reduce((total, entry) => total + entry.sessions, 0);
+  const isToday = new Date(firstEntry.completedAt).toDateString() === new Date().toDateString();
   return (
-    <section className="history-day">
-      <header>
+    <details className="history-day" open={isToday}>
+      <summary>
         <h2>{historyDayLabel(firstEntry.completedAt)}</h2>
         <span>{entries.length} {entries.length === 1 ? "vídeo" : "vídeos"} · {totalRepetitions}× em {totalSessions} {totalSessions === 1 ? "sessão" : "sessões"}</span>
-      </header>
+      </summary>
       <ol className="history-feed">
         {entries.map((entry) => {
           const source = displaySource(entry.url);
@@ -48,6 +49,6 @@ export function HistoryDayGroup({ entries }: { entries: HistoryViewSummary[] }) 
           );
         })}
       </ol>
-    </section>
+    </details>
   );
 }

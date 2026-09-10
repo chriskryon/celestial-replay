@@ -18,6 +18,7 @@ type PlaybackQueueProps = {
   onSave: () => void;
   onUpdateUpcomingItem: (id: string, field: "src" | "repetitions", value: string) => void;
   queue: VideoItem[];
+  remaining: number;
   saveMessage: string | null;
   visibleQueue: VideoItem[];
 };
@@ -35,12 +36,18 @@ export function PlaybackQueue({
   onSave,
   onUpdateUpcomingItem,
   queue,
+  remaining,
   saveMessage,
   visibleQueue,
 }: PlaybackQueueProps) {
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const currentItem = activeIndex === null ? null : queue[activeIndex] ?? null;
+  const currentMetadata = currentItem ? metadata[currentItem.src] : null;
+  const currentTitle = currentItem ? currentMetadata?.title ?? (() => {
+    try { return new URL(currentItem.src).hostname.replace(/^www\./, ""); } catch { return "Vídeo atual"; }
+  })() : null;
 
   useEffect(() => {
     currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -115,7 +122,7 @@ export function PlaybackQueue({
       <button className="queue-toggle" type="button" onClick={() => setIsExpanded((value) => !value)} aria-controls="queue-content" aria-expanded={isExpanded}>
         <span className="queue-toggle-copy">
           <strong id="queue-title">Playlist em execução</strong>
-          <small>Edite somente os vídeos que ainda não começaram.</small>
+          <small key={activeIndex ?? "idle"}>{currentTitle ? `${currentTitle} · vídeo ${(activeIndex ?? 0) + 1} de ${queue.length}${remaining ? ` · ${remaining}× restante${remaining === 1 ? "" : "s"}` : ""}` : "Edite somente os vídeos que ainda não começaram."}</small>
         </span>
         <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
       </button>

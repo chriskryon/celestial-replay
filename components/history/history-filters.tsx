@@ -6,7 +6,7 @@ export type HistoryFiltersValue = {
   q?: string;
 };
 
-export function HistoryFilters({ filters, origins }: { filters: HistoryFiltersValue; origins: string[] }) {
+export function HistoryFilters({ filters, origins, resultCount }: { filters: HistoryFiltersValue; origins: string[]; resultCount: number }) {
   return (
     <form className="history-filters">
       <label className="history-search">
@@ -31,6 +31,7 @@ export function HistoryFilters({ filters, origins }: { filters: HistoryFiltersVa
         </select>
       </label>
       <button className="secondary-button" type="submit">Filtrar</button>
+      <output className="history-result-count" aria-live="polite">{resultCount} {resultCount === 1 ? "sessão" : "sessões"}</output>
     </form>
   );
 }

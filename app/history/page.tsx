@@ -2,7 +2,6 @@ import Link from "next/link";
 import { History, Play } from "lucide-react";
 import { desc, eq } from "drizzle-orm";
 
-import { AccountAreaTabs } from "@/components/account-navigation";
 import { HistoryAccessPanel } from "@/components/history/history-access-panel";
 import { HistoryDayGroup } from "@/components/history/history-day-group";
 import { HistoryFilters, type HistoryFiltersValue } from "@/components/history/history-filters";
@@ -32,12 +31,11 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
   return (
     <>
       <section className="studio-shell account-shell" aria-labelledby="history-title">
-        <AccountAreaTabs activeArea="history" />
         <section className="history-surface">
           <HistoryHeading totalSessions={history.length} />
           {history.length === 0 ? <HistoryEmptyState filters={filters} /> : (
             <>
-              <HistoryFilters filters={filters} origins={origins} />
+              <HistoryFilters filters={filters} origins={origins} resultCount={history.length} />
               <div className="history-days">
                 {days.map(([day, entriesForDay]) => <HistoryDayGroup entries={entriesForDay} key={day} />)}
               </div>
@@ -53,7 +51,6 @@ function HistoryVisitorPage() {
   return (
     <>
       <section className="studio-shell account-shell" aria-labelledby="history-title">
-        <AccountAreaTabs activeArea="history" />
         <HistoryAccessPanel />
       </section>
     </>
