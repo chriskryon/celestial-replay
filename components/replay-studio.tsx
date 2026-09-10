@@ -12,6 +12,7 @@ import { isPlayableMediaUrl } from "@/lib/media-url";
 import { playbackErrorMessage } from "@/lib/playback-error";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
+import { clearPlaybackSession, loadPlaybackSession, loadPlaylists, saveHistory, savePlaybackSession, savePlaylist as persistPlaylist } from "@/lib/replay-api";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 
 export type ReplayStudioHandle = {
@@ -176,11 +177,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   useEffect(() => {
     if (mode !== "playlist") return;
-    void fetch("/api/playlists").then(async (response) => {
-      if (!response.ok) return;
-      const result = await response.json() as { playlists: SavedPlaylist[] };
-      setSavedPlaylists(result.playlists);
-    }).catch(() => undefined);
+    void loadPlaylists().then(setSavedPlaylists).catch(() => undefined);
   }, [mode]);
 
   useEffect(() => {
@@ -197,11 +194,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   useEffect(() => {
     if (!session.data?.user) return;
-    void fetch("/api/playback-session").then(async (response) => {
-      if (!response.ok) return;
-      const result = await response.json() as { session: ResumableSession | null };
-      setResumeSession(result.session);
-    }).catch(() => undefined);
+    void loadPlaybackSession().then(setResumeSession).catch(() => undefined);
   }, [session.data?.user]);
 
   useEffect(() => {
@@ -216,11 +209,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   useEffect(() => {
     if (!session.data?.user || !isPlaying || !hasPlaybackStarted || activeIndex === null || queue.length === 0 || !activeVideo || error) return;
     const timeout = window.setTimeout(() => {
-      void fetch("/api/playback-session", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100), playbackRate }),
-      });
+      void savePlaybackSession({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100), playbackRate }).catch(() => undefined);
     }, 750);
     return () => window.clearTimeout(timeout);
   }, [activeIndex, activeVideo, error, hasPlaybackStarted, isPlaying, playbackRate, queue, queuePlaylistName, remaining, session.data?.user, volume]);
@@ -374,7 +363,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setQueueSaveMessage(null);
     setStatus("Playlist encerrada. Escolha ou monte outra para iniciar.");
     setResumeSession(null);
-    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
   };
 
   const restartSession = () => {
@@ -414,7 +403,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const discardResume = () => {
     setResumeSession(null);
     setIsDiscardResumeOpen(false);
-    void fetch("/api/playback-session", { method: "DELETE" });
+    void clearPlaybackSession().catch(() => undefined);
   };
 
   const openSaveDialog = (target: "draft" | "queue") => {
@@ -448,24 +437,15 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (isQueue) setIsSavingQueue(true); else setIsSavingPlaylist(true);
     if (isQueue) setQueueSaveMessage(null); else setPlaylistSaveMessage(null);
     try {
-      const response = await fetch("/api/playlists", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: saveName.trim(), items: entries }),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok) {
-        setSaveDialogError(result?.error ?? "Não foi possível salvar a playlist agora.");
-        return;
-      }
-      setSavedPlaylists((items) => [result.playlist as SavedPlaylist, ...items.filter((item) => item.id !== result.playlist.id)]);
+      const playlist = await persistPlaylist({ name: saveName.trim(), items: entries });
+      setSavedPlaylists((items) => [playlist, ...items.filter((item) => item.id !== playlist.id)]);
       if (isQueue) {
         setQueuePlaylistName(saveName.trim());
-        setActiveSavedPlaylistId(result.playlist.id);
+        setActiveSavedPlaylistId(playlist.id);
         setQueueSaveMessage("Playlist salva na sua conta.");
       } else {
         setPlaylistName(saveName.trim());
-        setDraftPlaylistId(result.playlist.id);
+        setDraftPlaylistId(playlist.id);
         setPlaylistSaveMessage("Playlist salva na sua conta.");
       }
       setIsSaveDialogOpen(false);
@@ -480,13 +460,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     // Fire-and-forget com retry: sem isso, uma falha de rede pontual
     // apaga a repetição do histórico para sempre.
     const send = () => recordCompletedVideo(item, attempt + 1);
-    void fetch("/api/history", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: item.src, completedRepetitions: item.repetitions }),
-    }).then((response) => {
-      if (!response.ok && attempt < 2) window.setTimeout(send, 1500 * (attempt + 1));
-    }).catch(() => {
+    void saveHistory({ url: item.src, completedRepetitions: item.repetitions }).catch(() => {
       if (attempt < 2) window.setTimeout(send, 1500 * (attempt + 1));
     });
   };
@@ -657,7 +631,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setIsSessionComplete(true);
     setStatus("Sessão concluída. Entre para manter este histórico.");
     setResumeSession(null);
-    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
   };
 
   const handleEnded = (videoId: string) => {
@@ -678,7 +652,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setError(playbackErrorMessage(activeVideo?.src ?? ""));
     setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
     setResumeSession(null);
-    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
   };
 
   const handlePlayerReady = (videoId: string) => {
