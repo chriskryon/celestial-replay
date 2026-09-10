@@ -343,7 +343,7 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .icon-save-button:hover:not(:disabled) { border-color: rgba(205, 222, 255, 0.46); background: rgba(152, 181, 251, 0.22); transform: translateY(-1px); }
 .icon-save-button:focus-visible { outline: 3px solid rgba(193, 213, 255, 0.75); outline-offset: 3px; }
 
-.queue-surface { grid-row: 3; max-height: 300px; overflow: auto; padding: 0.6rem; border: 1px solid rgba(218, 228, 255, 0.09); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.2); }
+.queue-surface { grid-row: 4; max-height: 300px; overflow: auto; padding: 0.6rem; border: 1px solid rgba(218, 228, 255, 0.09); border-radius: 0.75rem; background: rgba(2, 7, 25, 0.2); }
 .queue-surface.is-collapsed { max-height: none; }
 .queue-title { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding-bottom: 0.42rem; border-bottom: 1px solid rgba(218, 228, 255, 0.08); }
 .queue-surface.is-collapsed .queue-title { padding-bottom: 0; border-bottom-color: transparent; }
