@@ -145,7 +145,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
   const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
 
-  const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
+  const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, isSessionComplete, error, fallbackStatus: status, remaining });
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -605,6 +605,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       return;
     }
     setIsPlaying(false);
+    setRemaining(0);
     setIsSessionComplete(true);
     setStatus("Sessão concluída. Entre para manter este histórico.");
     setResumeSession(null);

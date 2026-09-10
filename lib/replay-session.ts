@@ -33,12 +33,14 @@ type PlayerStatusInput = {
   isPlaying: boolean;
   hasPlaybackStarted: boolean;
   playBlocked: boolean;
+  isSessionComplete: boolean;
   error: string | null;
   fallbackStatus: string;
   remaining: number;
 };
 
-export function getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus, remaining }: PlayerStatusInput) {
+export function getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, isSessionComplete, error, fallbackStatus, remaining }: PlayerStatusInput) {
+  if (isSessionComplete) return "Sessão concluída.";
   if (previewVideo && !error) return "Vídeo carregado. Clique em Iniciar para começar.";
   if (activeVideo && isPlaying && !hasPlaybackStarted && !error) {
     return playBlocked ? "O navegador bloqueou o início automático. Clique em Continuar." : "Iniciando reprodução…";

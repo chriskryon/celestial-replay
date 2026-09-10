@@ -185,6 +185,7 @@ export function ReplayPlayerSurface({
   const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
   const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
+  const completeTitle = queueLength > 1 ? "Playlist concluída" : "Vídeo concluído";
 
   const playerSurfaceState = activeVideo ? "is-active" : previewVideo ? "is-preview" : "is-empty";
 
@@ -236,7 +237,7 @@ export function ReplayPlayerSurface({
     <div className="player-stage-motion" ref={playerStageRef}>
       <div className="player-stage">
       {isSessionComplete && <div className="player-complete-state">
-        <strong>Playlist concluída</strong>
+        <strong>{completeTitle}</strong>
         <span>{queueLength} {queueLength === 1 ? "vídeo" : "vídeos"} · {totalRepetitions} {totalRepetitions === 1 ? "repetição" : "repetições"}</span>
         <button className="primary-button" type="button" onClick={onRestartSession}>Reproduzir novamente</button>
       </div>}

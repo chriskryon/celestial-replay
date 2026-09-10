@@ -6,6 +6,9 @@ import { db } from "@/lib/db";
 import { playbackHistory } from "@/lib/db/schema";
 import { displayHost, displaySource, groupHistoryByDay, isVisibleHistoryEntry, summarizeHistory } from "@/lib/history-presentation";
 
+const HISTORY_METADATA_LIMIT = 40;
+const HISTORY_METADATA_BATCH_SIZE = 4;
+
 export type HistoryEntry = (typeof playbackHistory.$inferSelect) & {
   authorName: string | null;
   title: string;
@@ -30,15 +33,22 @@ export async function getHistoryPageData(filters: HistoryFiltersValue) {
 
 async function enrichHistory(entries: (typeof playbackHistory.$inferSelect)[]) {
   const metadata = new Map<string, { authorName: string | null; title: string }>();
-  const urls = Array.from(new Set(entries.filter(isVisibleHistoryEntry).map((entry) => entry.url)));
-  await Promise.all(urls.map(async (url) => {
-    try {
-      const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, { next: { revalidate: 3600 } });
-      if (!response.ok) return;
-      const result = await response.json() as { author_name?: string; title?: string };
-      if (result.title) metadata.set(url, { authorName: result.author_name ?? null, title: result.title });
-    } catch { /* a URL continua visível mesmo sem metadados */ }
-  }));
+  const urls = Array.from(new Set(entries.filter(isVisibleHistoryEntry).map((entry) => entry.url)))
+    .filter(isYoutubeUrl)
+    .slice(0, HISTORY_METADATA_LIMIT);
+
+  for (let index = 0; index < urls.length; index += HISTORY_METADATA_BATCH_SIZE) {
+    const batch = urls.slice(index, index + HISTORY_METADATA_BATCH_SIZE);
+    await Promise.all(batch.map(async (url) => {
+      try {
+        const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, { next: { revalidate: 3600 } });
+        if (!response.ok) return;
+        const result = await response.json() as { author_name?: string; title?: string };
+        if (result.title) metadata.set(url, { authorName: result.author_name ?? null, title: result.title });
+      } catch { /* a URL continua visível mesmo sem metadados */ }
+    }));
+  }
+
   return entries.filter(isVisibleHistoryEntry).map((entry): HistoryEntry => ({
     ...entry,
     authorName: metadata.get(entry.url)?.authorName ?? null,
@@ -59,4 +69,9 @@ function filterHistory(entries: HistoryEntry[], filters: HistoryFiltersValue) {
 
 function availableOrigins(entries: (typeof playbackHistory.$inferSelect)[]) {
   return Array.from(new Set(entries.filter(isVisibleHistoryEntry).map((entry) => displayHost(entry.url)))).sort();
+}
+
+function isYoutubeUrl(url: string) {
+  const host = displayHost(url);
+  return host.includes("youtube.com") || host === "youtu.be";
 }
