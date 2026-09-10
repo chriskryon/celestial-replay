@@ -242,7 +242,7 @@ export function ReplayPlayerSurface({
       </div>}
       {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
       {playerSource && !error && !isSessionComplete ? <ReactPlayer
-        key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : undefined}
+        key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : displayedVideo?.src}
         className="replay-player"
         ref={playerRef}
         innerRef={playerRef}
