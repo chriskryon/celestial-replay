@@ -57,6 +57,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
   const [isSavingQueue, setIsSavingQueue] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
   const [saveTarget, setSaveTarget] = useState<"draft" | "queue">("draft");
   const [saveName, setSaveName] = useState("Minha playlist");
   const [saveDialogError, setSaveDialogError] = useState<string | null>(null);
@@ -860,9 +861,10 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={stopPlaylist} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
+      {isStopConfirmOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="stop-playlist-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="stop-playlist-title">Encerrar playlist?</h2><p>A reprodução será interrompida e o ponto de retomada será removido. Seus vídeos e o rascunho continuam disponíveis.</p><div><button className="secondary-button" onClick={() => setIsStopConfirmOpen(false)} type="button">Continuar</button><button className="danger-button" onClick={() => { setIsStopConfirmOpen(false); stopPlaylist(); }} type="button">Encerrar</button></div></section></div>}
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>
         <section className="save-playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="save-playlist-title" onMouseDown={(event) => event.stopPropagation()}>
           <button className="auth-dialog-close" type="button" onClick={() => setIsSaveDialogOpen(false)} aria-label="Fechar"><X aria-hidden="true" size={18} /></button>
