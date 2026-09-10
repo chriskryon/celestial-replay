@@ -26,14 +26,17 @@ export function useVideoMetadata(activeSource: string | undefined, previewSource
 
 export function useQueueMetadata(sources: string[]) {
   const [metadata, setMetadata] = useState<Record<string, QueueMetadata>>({});
+  // O estúdio cria o array da fila a cada render. Uma chave estável evita
+  // cancelar e reiniciar os oEmbeds enquanto o player atualiza seu estado.
+  const sourceKey = sources.join("\n");
   useEffect(() => {
-    const youtubeSources = Array.from(new Set(sources.filter(isYoutube)));
+    const youtubeSources = Array.from(new Set(sourceKey.split("\n").filter(isYoutube)));
     if (youtubeSources.length === 0) { setMetadata({}); return; }
     const controller = new AbortController();
     setMetadata((current) => Object.fromEntries(youtubeSources.map((src) => [src, { ...current[src], loading: true, authorName: current[src]?.authorName ?? null, title: current[src]?.title ?? null }])));
     void Promise.all(youtubeSources.map(async (src) => [src, { ...(await loadMetadata(src, controller.signal)), loading: false }] as const))
       .then((entries) => setMetadata(Object.fromEntries(entries))).catch(() => undefined);
     return () => controller.abort();
-  }, [sources]);
+  }, [sourceKey]);
   return metadata;
 }
