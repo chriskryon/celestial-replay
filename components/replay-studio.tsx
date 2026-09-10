@@ -44,6 +44,10 @@ type ReplayStudioProps = {
   onPlaybackChange?: (snapshot: PlaybackSnapshot) => void;
 };
 
+function isMediaActuallyPlaying(node: HTMLVideoElement | null) {
+  return Boolean(node && !node.paused && !node.ended);
+}
+
 export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(function ReplayStudio({ initialMode = "single", onPlaybackChange }, ref) {
   const session = authClient.useSession();
   const [mode, setMode] = useState(initialMode);
@@ -81,6 +85,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const endedVideoIdRef = useRef<string | null>(null);
   const ignoreStaleEndedRef = useRef(false);
   const scheduledEndRef = useRef<number | null>(null);
+  const routedPlaylistIdRef = useRef<string | null>(null);
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
@@ -151,6 +156,20 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (mode !== "playlist") return;
     void loadPlaylists().then(setSavedPlaylists).catch(() => undefined);
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "playlist" || savedPlaylists.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const playlistId = params.get("playlistId");
+    if (!playlistId || routedPlaylistIdRef.current === playlistId) return;
+    const playlist = savedPlaylists.find((item) => item.id === playlistId);
+    if (!playlist) return;
+    routedPlaylistIdRef.current = playlistId;
+    const shouldAutoplay = params.get("autoplay") === "1";
+    loadSavedPlaylist(playlist);
+    if (shouldAutoplay) startSavedPlaylist(playlist);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [mode, savedPlaylists]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -225,8 +244,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       if (!node) return;
       try {
         if ((node as HTMLVideoElement).ended) {
-          if (remaining > 1) playNextRepetition(false);
-          else playNextVideo(false);
+          handleEnded(activeVideo.id, remaining);
         } else if (isPlaying && (node as HTMLVideoElement).paused) {
           attemptPlay();
         }
@@ -242,19 +260,30 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   // Watchdog: o Player.js interno tenta play() uma única vez por render.
   useEffect(() => {
     if (!activeVideo || !isPlaying || hasPlaybackStarted || error) { setPlayBlocked(false); return; }
+    const currentVideoId = activeVideo.id;
     setPlayBlocked(false);
     attemptPlay();
     const interval = window.setInterval(() => {
       try {
         const node = playerRef.current;
         if (!node) return;
+        if (isMediaActuallyPlaying(node)) {
+          handlePlaybackStarted(currentVideoId);
+          return;
+        }
         if ((node as HTMLVideoElement).paused) {
           const r = (node as HTMLVideoElement).play() as unknown as Promise<void> | undefined;
           if (r && typeof r.catch === "function") r.catch(() => undefined);
         }
       } catch { /* tenta no próximo tick */ }
     }, 600);
-    const timeout = window.setTimeout(() => setPlayBlocked(true), 8000);
+    const timeout = window.setTimeout(() => {
+      if (isMediaActuallyPlaying(playerRef.current)) {
+        handlePlaybackStarted(currentVideoId);
+        return;
+      }
+      setPlayBlocked(true);
+    }, 8000);
     return () => { window.clearInterval(interval); window.clearTimeout(timeout); };
   }, [activeVideo?.id, isPlaying, hasPlaybackStarted, error]);
 
@@ -262,16 +291,17 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
     scheduledEndRef.current = null;
     if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0 || (remaining <= 1 && !hasNextVideo)) return;
-    const remainingTime = Math.max(0, duration * (1 - played) - 0.25);
+    const effectiveRate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
+    const remainingTime = Math.max(0, (duration * (1 - played) - 0.25) / effectiveRate);
     scheduledEndRef.current = window.setTimeout(() => {
       scheduledEndRef.current = null;
-      handleEnded(activeVideo.id);
+      handleEnded(activeVideo.id, remaining);
     }, remainingTime * 1000);
     return () => {
       if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
       scheduledEndRef.current = null;
     };
-  }, [activeVideo?.id, duration, error, hasNextVideo, hasPlaybackStarted, isPlaying, played, remaining]);
+  }, [activeVideo?.id, duration, error, hasNextVideo, hasPlaybackStarted, isPlaying, playbackRate, played, remaining]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDraftPlaylistId(null);
@@ -395,6 +425,25 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setPlaylistSaveMessage(`Playlist “${playlist.name}” carregada. Revise ou inicie quando quiser.`);
   };
 
+  const startSavedPlaylist = (playlist: SavedPlaylist) => {
+    const nextQueue = playlist.items.map((item) => makeItem(item.url.trim(), item.repetitions));
+    if (nextQueue.length === 0) return;
+    setQueuePlaylistName(playlist.name);
+    setQueue(nextQueue);
+    setActiveSavedPlaylistId(playlist.id);
+    setActiveIndex(0);
+    setRemaining(nextQueue[0].repetitions);
+    setPlayed(0);
+    setLoaded(0);
+    setDuration(null);
+    seekingRef.current = false;
+    setIsPlaying(true);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setError(null);
+    setStatus(`Reproduzindo vídeo 1 de ${nextQueue.length}.`);
+  };
+
   const savePlaylist = async () => {
     const isQueue = saveTarget === "queue";
     const draftEntries = playlistInputMode === "simple" ? simplePlaylistItems : playlistItems;
@@ -458,8 +507,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       setActiveSavedPlaylistId(null);
       setActiveIndex(0);
       setRemaining(item.repetitions);
-(0);
-(0);
+      setPlayed(0);
+      setLoaded(0);
       seekingRef.current = false;
       setIsPlaying(true);
       setHasPlaybackStarted(false);
@@ -482,8 +531,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setActiveSavedPlaylistId(draftPlaylistId);
     setActiveIndex(0);
     setRemaining(nextQueue[0].repetitions);
-(0);
-(0);
+    setPlayed(0);
+    setLoaded(0);
     seekingRef.current = false;
     setIsPlaying(true);
     setHasPlaybackStarted(false);
@@ -612,10 +661,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
   };
 
-  const handleEnded = (videoId: string) => {
+  const handleEnded = (videoId: string, expectedRemaining = remaining) => {
     if (ignoreStaleEndedRef.current) return;
-    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === videoId) return;
-    endedVideoIdRef.current = videoId;
+    const endedKey = `${videoId}:${expectedRemaining}`;
+    if (!activeVideo || activeIndex === null || !hasPlaybackStarted || expectedRemaining !== remaining || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === endedKey) return;
+    endedVideoIdRef.current = endedKey;
     if (remaining > 1) playNextRepetition(false);
     else playNextVideo(false);
   };
@@ -625,8 +675,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setHasPlaybackStarted(false);
     setRemaining(0);
     setDuration(null);
-(0);
-(0);
+    setPlayed(0);
+    setLoaded(0);
     setError(playbackErrorMessage(activeVideo?.src ?? ""));
     setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
     setResumeSession(null);
@@ -644,9 +694,25 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (typeof mediaDuration === "number" && Number.isFinite(mediaDuration) && mediaDuration > 0) setDuration(mediaDuration);
     ignoreStaleEndedRef.current = false;
     endedVideoIdRef.current = null;
+    setPlayBlocked(false);
     setIsPlaying(true);
     setHasPlaybackStarted(true);
     setStatus(`Reproduzindo ${activeVideo.repetitions - remaining + 1} de ${activeVideo.repetitions}.`);
+  };
+
+  const handleActiveTimeUpdate = (videoId: string) => {
+    handleTimeUpdate();
+    const node = playerRef.current;
+    if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current || !node || error) return;
+    const mediaDuration = node.duration;
+    if (Number.isFinite(mediaDuration) && mediaDuration > 0) {
+      setDuration(mediaDuration);
+      setVideoDurations((current) => current[activeVideo.id] === mediaDuration ? current : { ...current, [activeVideo.id]: mediaDuration });
+    }
+    if (isMediaActuallyPlaying(node)) {
+      if (!hasPlaybackStarted) handlePlaybackStarted(videoId);
+      if (playBlocked) setPlayBlocked(false);
+    }
   };
 
   // onPlay/onStart do v3 disparam no evento `play` (antes de ter dados).
@@ -667,6 +733,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       return;
     }
     endedVideoIdRef.current = null;
+    setPlayBlocked(false);
     setIsPlaying(true);
     // Marca started já no `play` para sair do "Iniciando…" mesmo em buffering.
     setHasPlaybackStarted((started) => {
@@ -697,7 +764,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const handlePlaybackPause = (videoId: string) => {
-    if (!activeVideo || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === videoId) return;
+    if (!activeVideo || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === `${videoId}:${remaining}`) return;
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setStatus("Reprodução pausada.");
@@ -818,7 +885,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onSeekSliderUp={handleSeekSliderUp}
             onSetPlaybackRate={setPlaybackRate}
             onSetVolume={setVolume}
-            onTimeUpdate={handleTimeUpdate}
+            onTimeUpdate={handleActiveTimeUpdate}
             onToggleMute={toggleMute}
             onTogglePlay={togglePlay}
             onTogglePip={() => setPip((value) => !value)}
@@ -843,7 +910,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={isSessionComplete ? queue : completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} isSessionComplete={isSessionComplete} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={isSessionComplete ? queue : completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} isSessionComplete={isSessionComplete} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onRestartSession={restartSession} onSave={() => openSaveDialog("queue")} onStartNewPlaylist={startNewPlaylist} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isStopConfirmOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="stop-playlist-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="stop-playlist-title">Encerrar playlist?</h2><p>A reprodução será interrompida e o ponto de retomada será removido. Seus vídeos e o rascunho continuam disponíveis.</p><div><button className="secondary-button" onClick={() => setIsStopConfirmOpen(false)} type="button">Continuar</button><button className="danger-button" onClick={() => { setIsStopConfirmOpen(false); stopPlaylist(); }} type="button">Encerrar</button></div></section></div>}

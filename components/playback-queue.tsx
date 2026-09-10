@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, Save, Square, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, Play, Plus, Save, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
@@ -17,7 +17,9 @@ type PlaybackQueueProps = {
   isSessionComplete: boolean;
   metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
   onRemoveFutureItem: (id: string) => void;
+  onRestartSession: () => void;
   onSave: () => void;
+  onStartNewPlaylist: () => void;
   onStop: () => void;
   onUpdateUpcomingItem: (id: string, field: "src" | "repetitions", value: string) => void;
   queue: VideoItem[];
@@ -38,7 +40,9 @@ export function PlaybackQueue({
   isSessionComplete,
   metadata,
   onRemoveFutureItem,
+  onRestartSession,
   onSave,
+  onStartNewPlaylist,
   onStop,
   onUpdateUpcomingItem,
   queue,
@@ -64,7 +68,7 @@ export function PlaybackQueue({
   }, [activeIndex]);
 
   const renderQueueItem = (item: VideoItem, index: number) => {
-    const isCurrent = index === activeIndex;
+    const isCurrent = !isSessionComplete && index === activeIndex;
     const isFuture = !isSessionComplete && activeIndex !== null && index > activeIndex;
     const state = isSessionComplete
       ? "Concluído"
@@ -144,6 +148,15 @@ export function PlaybackQueue({
     <div aria-hidden={!isExpanded} className={`queue-content-wrapper${isExpanded ? " is-expanded" : ""}`} id="queue-content" inert={!isExpanded}>
       <div className="queue-content">
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
+      {isSessionComplete && <div className="queue-complete-summary" role="status">
+        <span>{queue.length} {queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}</span>
+        <span>{queue.reduce((total, item) => total + item.repetitions, 0)} repetições no total</span>
+        <div>
+          <button className="primary-button" type="button" onClick={onRestartSession}><Play aria-hidden="true" size={16} />Reproduzir novamente</button>
+          {isLoggedIn && !isSavedPlaylist && <button className="secondary-button" type="button" onClick={onSave} disabled={isSaving}><Save aria-hidden="true" size={16} />Salvar playlist</button>}
+          <button className="secondary-button" type="button" onClick={onStartNewPlaylist}><Plus aria-hidden="true" size={16} />Nova playlist</button>
+        </div>
+      </div>}
       {activeIndex !== null && !isSessionComplete && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
       {!isSessionComplete && <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>}
       {completedQueue.length > 0 && <details className="queue-completed">

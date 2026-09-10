@@ -43,7 +43,7 @@ export function HistoryDayGroup({ entries, index }: { entries: HistoryViewSummar
                 <div className="history-card-actions">
                   <span className="timeline-count"><Repeat2 aria-hidden="true" size={14} />{entry.completedRepetitions}× em {entry.sessions} {entry.sessions === 1 ? "sessão" : "sessões"}</span>
                   <Link className="history-replay" href={`/?source=${encodeURIComponent(entry.url)}&repetitions=${entry.completedRepetitions}`}>
-                    <RotateCcw aria-hidden="true" size={15} />Repetir
+                    <RotateCcw aria-hidden="true" size={15} />Repetir com mesma contagem
                   </Link>
                 </div>
               </article>

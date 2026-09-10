@@ -65,7 +65,7 @@ function HistoryEmptyState({ filters }: { filters: HistoryFiltersValue }) {
       <span className="history-empty-icon"><History aria-hidden="true" size={22} /></span>
       <div>
         <h2>{hasFilters ? "Nenhuma sessão encontrada" : "Seu histórico começa na próxima repetição"}</h2>
-        <p>{hasFilters ? "Ajuste ou limpe os filtros para ver outras sessões." : "Quando um vídeo terminar, ele ficará guardado aqui com data, horário e quantidade de repetições."}</p>
+        <p>{hasFilters ? "Ajuste ou limpe os filtros para ver outras sessões." : "Quando um vídeo terminar, ele fica pronto para repetir daqui."}</p>
       </div>
       {hasFilters
         ? <Link className="secondary-button" href="/history">Limpar filtros</Link>

@@ -49,12 +49,12 @@ type ReplayPlayerSurfaceProps = {
   onSeekSliderUp: (value: number) => void;
   onSetPlaybackRate: (value: number) => void;
   onSetVolume: (value: number) => void;
-  onTimeUpdate: () => void;
+  onTimeUpdate: (videoId: string) => void;
   onToggleMute: () => void;
   onTogglePlay: () => void;
   onTogglePip: () => void;
   onFullscreen: () => void;
-  onVideoEnded: (videoId: string) => void;
+  onVideoEnded: (videoId: string, expectedRemaining: number) => void;
   pip: boolean;
   playbackRate: number;
   played: number;
@@ -169,14 +169,15 @@ export function ReplayPlayerSurface({
   const totalPlaylistDuration = playlistSegments.reduce((total, segment) => total + segment.weight, 0);
   const completedPlaylistDuration = playlistSegments.slice(0, completedRepetitions).reduce((total, segment) => total + segment.weight, 0);
   const activeSegmentDuration = playlistSegments[completedRepetitions]?.weight ?? 0;
+  const effectivePlaybackRate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
   const playbackProgress = totalPlaylistDuration > 0
     ? ((completedPlaylistDuration + activeSegmentDuration * currentRepetitionProgress) / totalPlaylistDuration) * 100
     : 0;
   const remainingPlaylistDuration = Math.max(0, totalPlaylistDuration - completedPlaylistDuration - activeSegmentDuration * currentRepetitionProgress);
   const durationStatus = queueLength > 1 && activeVideo && !error && hasPlaybackStarted && totalPlaylistDuration > 0
-    ? `≈ ${formatRemainingTime(remainingPlaylistDuration)} restantes`
+    ? `≈ ${formatRemainingTime(remainingPlaylistDuration / effectivePlaybackRate)} restantes`
     : duration && activeVideo && !error && hasPlaybackStarted
-      ? `≈ ${Math.ceil((duration * remaining) / 60)} min neste vídeo`
+      ? `≈ ${Math.ceil((duration * remaining) / effectivePlaybackRate / 60)} min neste vídeo`
       : null;
   const youtubePlaylistIds = youtubePlaylistSources
     .map((source) => source.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/)?.[1])
@@ -266,12 +267,12 @@ export function ReplayPlayerSurface({
         onPlaying={activeVideo ? () => onPlaybackStarted(activeVideo.id) : undefined}
         onPause={activeVideo ? () => onPause(activeVideo.id) : undefined}
         onRateChange={activeVideo ? onRateChange : undefined}
-        onTimeUpdate={activeVideo ? onTimeUpdate : undefined}
+        onTimeUpdate={activeVideo ? () => onTimeUpdate(activeVideo.id) : undefined}
         onProgress={activeVideo ? onProgress : undefined}
         onSeeked={activeVideo ? onSeeked : undefined}
         onEnterPictureInPicture={activeVideo ? onEnterPictureInPicture : undefined}
         onLeavePictureInPicture={activeVideo ? onLeavePictureInPicture : undefined}
-        onEnded={activeVideo ? () => onVideoEnded(activeVideo.id) : undefined}
+        onEnded={activeVideo ? () => onVideoEnded(activeVideo.id, remaining) : undefined}
         onLoadedMetadata={syncDuration}
         onLoadedData={syncDuration}
         onCanPlay={syncDuration}

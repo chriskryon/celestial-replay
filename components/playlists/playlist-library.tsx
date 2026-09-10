@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy, ListFilter, ListMusic, Pencil, Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { Copy, ListFilter, ListMusic, Pencil, Play, Plus, Search } from "lucide-react";
 
 import type { Playlist } from "@/components/playlists/types";
 import { sourceDomain } from "@/lib/playlist-draft";
@@ -45,6 +46,7 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
                       <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
+                    <Link className="library-playlist-play" href={`/advanced?playlistId=${encodeURIComponent(playlist.id)}&autoplay=1`} title={`Reproduzir ${playlist.name}`}><Play aria-hidden="true" size={15} />Reproduzir</Link>
                     <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
                   </div>
                 </li>
@@ -75,8 +77,8 @@ function EmptyLibrary({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="library-empty library-empty-playlists">
       <span className="library-empty-icon"><ListMusic aria-hidden="true" size={20} /></span>
-      <div><h3>Sua biblioteca está pronta</h3><p>Monte sua primeira fila no editor e ela ficará disponível aqui.</p></div>
-      <button className="secondary-button" onClick={onCreate} type="button">Montar playlist</button>
+      <div><h3>Sua biblioteca está pronta</h3><p>Monte uma fila para repetir depois.</p></div>
+      <button className="primary-button" onClick={onCreate} type="button">Montar playlist</button>
     </div>
   );
 }
