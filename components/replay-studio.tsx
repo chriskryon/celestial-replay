@@ -15,6 +15,8 @@ import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 import { clearPlaybackSession, loadPlaybackSession, loadPlaylists, saveHistory, savePlaybackSession, savePlaylist as persistPlaylist } from "@/lib/replay-api";
 import { canSavePlaylist } from "@/lib/replay-validation";
 import { usePlayerMedia } from "@/hooks/use-player-media";
+import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
+import { useQueueMetadata, useVideoMetadata } from "@/hooks/use-video-metadata";
 
 export type ReplayStudioHandle = {
   nextVideo: () => void;
@@ -48,8 +50,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [source, setSource] = useState("");
   const [repetitions, setRepetitions] = useState("3");
   const [playlistInputMode, setPlaylistInputMode] = useState<"simple" | "advanced">("advanced");
-  const [simplePlaylist, setSimplePlaylist] = useState("");
-  const [drafts, setDrafts] = useState<PlaylistDraft[]>([{ id: "playlist-draft-0", src: "", repetitions: "1" }]);
+  const { drafts, setDrafts, simplePlaylist, setSimplePlaylist } = usePlaylistDraft();
   const [playlistName, setPlaylistName] = useState("Minha playlist");
   const [playlistSaveMessage, setPlaylistSaveMessage] = useState<string | null>(null);
   const [isSavingPlaylist, setIsSavingPlaylist] = useState(false);
@@ -74,8 +75,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Pronto para uma nova sessão.");
-  const [videoMetadata, setVideoMetadata] = useState<{ authorName: string | null; title: string | null }>({ authorName: null, title: null });
-  const [queueMetadata, setQueueMetadata] = useState<Record<string, { authorName: string | null; title: string | null; loading: boolean }>>({});
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const [isDiscardResumeOpen, setIsDiscardResumeOpen] = useState(false);
   const activeVideoIdRef = useRef<string | null>(null);
@@ -143,39 +142,9 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       : null;
   }, [activeVideo, firstSimplePlaylistItem, mode, playlistInputMode, playlistItems, singleReplay]);
   const displayedVideo = activeVideo ?? previewVideo;
+  const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
+  const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
   const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
-
-  useEffect(() => {
-    const src = activeVideo?.src ?? previewVideo?.src;
-    if (!src || !/youtube(?:-nocookie)?\.com|youtu\.be/.test(src)) {
-      setVideoMetadata({ authorName: null, title: null });
-      return;
-    }
-    const controller = new AbortController();
-    void fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(src)}&format=json`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() as Promise<{ author_name?: string; title?: string }> : null)
-      .then((result) => {
-        if (result) setVideoMetadata({ authorName: result.author_name ?? null, title: result.title ?? null });
-      })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [activeVideo?.src, previewVideo?.src]);
-
-  useEffect(() => {
-    const sources = Array.from(new Set(queue.map((item) => item.src).filter((src) => /youtube(?:-nocookie)?\.com|youtu\.be/.test(src))));
-    if (sources.length === 0) { setQueueMetadata({}); return; }
-    const controller = new AbortController();
-    setQueueMetadata((current) => Object.fromEntries(sources.map((src) => [src, { authorName: current[src]?.authorName ?? null, title: current[src]?.title ?? null, loading: true }])));
-    void Promise.all(sources.map(async (src) => {
-      try {
-        const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(src)}&format=json`, { signal: controller.signal });
-        if (!response.ok) return [src, { authorName: null, title: null, loading: false }] as const;
-        const result = await response.json() as { author_name?: string; title?: string };
-        return [src, { authorName: result.author_name ?? null, title: result.title ?? null, loading: false }] as const;
-      } catch { return [src, { authorName: null, title: null, loading: false }] as const; }
-    })).then((entries) => setQueueMetadata(Object.fromEntries(entries))).catch(() => undefined);
-    return () => controller.abort();
-  }, [queue]);
 
   useEffect(() => {
     if (mode !== "playlist") return;
