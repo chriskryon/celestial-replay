@@ -63,8 +63,8 @@ export function PlaylistEditor(props: PlaylistEditorProps) {
 function PlaylistInputModePicker({ inputMode, onChange }: { inputMode: PlaylistInputMode; onChange: (mode: PlaylistInputMode) => void }) {
   return (
     <div aria-label="Forma de montar a playlist" className="playlist-input-mode" role="tablist">
-      <button aria-selected={inputMode === "simple"} className={inputMode === "simple" ? "mode-button is-selected" : "mode-button"} onClick={() => onChange("simple")} role="tab" type="button">Simples: linhas</button>
-      <button aria-selected={inputMode === "advanced"} className={inputMode === "advanced" ? "mode-button is-selected" : "mode-button"} onClick={() => onChange("advanced")} role="tab" type="button">Avançado: campos</button>
+      <button aria-selected={inputMode === "simple"} className={inputMode === "simple" ? "mode-button is-selected" : "mode-button"} onClick={() => onChange("simple")} role="tab" type="button">Colar lista</button>
+      <button aria-selected={inputMode === "advanced"} className={inputMode === "advanced" ? "mode-button is-selected" : "mode-button"} onClick={() => onChange("advanced")} role="tab" type="button">Editar por campos</button>
     </div>
   );
 }
@@ -74,7 +74,7 @@ function SimplePlaylistInput({ onChange, value }: { onChange: (value: string) =>
     <div className="simple-playlist-input">
       <label htmlFor="library-simple-playlist">Vídeos e repetições</label>
       <textarea id="library-simple-playlist" onChange={(event) => onChange(event.target.value)} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" value={value} />
-      <p>Uma linha por vídeo: <code>link;quantidade</code>.</p>
+      <p className="playlist-line-format">Use uma linha por vídeo, neste formato: <code>https://youtube.com/watch?v=exemplo;3</code>.</p>
     </div>
   );
 }

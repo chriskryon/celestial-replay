@@ -5,9 +5,8 @@ import { History, ListMusic, Video } from "lucide-react";
 type AccountArea = "playlists" | "history";
 
 const tabs: Array<{ href: string; label: string; icon: typeof Video; area?: AccountArea }> = [
-  { href: "/", label: "Vídeo único", icon: Video },
-  { href: "/advanced", label: "Playlist", icon: ListMusic },
-  { href: "/playlists", label: "Minhas playlists", icon: ListMusic, area: "playlists" },
+  { href: "/", label: "Player", icon: Video },
+  { href: "/playlists", label: "Biblioteca", icon: ListMusic, area: "playlists" },
   { href: "/history", label: "Histórico", icon: History, area: "history" },
 ];
 

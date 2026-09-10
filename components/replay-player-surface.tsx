@@ -240,7 +240,7 @@ export function ReplayPlayerSurface({
         <span>{queueLength} {queueLength === 1 ? "vídeo" : "vídeos"} · {totalRepetitions} {totalRepetitions === 1 ? "repetição" : "repetições"}</span>
         <button className="primary-button" type="button" onClick={onRestartSession}>Reproduzir novamente</button>
       </div>}
-      {previewVideo && !error && <span className="preview-badge">Prévia — clique em Iniciar</span>}
+      {previewVideo && !error && <span className="preview-badge">Prévia carregada — nada toca ainda</span>}
       {playerSource && !error && !isSessionComplete ? <ReactPlayer
         key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : displayedVideo?.src}
         className="replay-player"
@@ -279,9 +279,9 @@ export function ReplayPlayerSurface({
       /> : <div className="player-empty">
         <span className="player-empty-icon"><Play aria-hidden="true" size={25} /></span>
         <div>
-          <strong>{error ? "Não foi possível carregar esta fonte" : "Pronto para uma nova sessão"}</strong>
-          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : "Cole uma URL abaixo para carregar a prévia."}</p>
-          {!error && <small>A prévia só começa quando você clicar em Iniciar.</small>}
+          <strong>{error ? "Não foi possível carregar esta fonte" : "Cole um vídeo para preparar a repetição"}</strong>
+          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : "A prévia aparece aqui antes de qualquer reprodução."}</p>
+          {!error && <small>Nada toca sem você clicar em Iniciar.</small>}
         </div>
         {error && activeVideo && <div className="player-recovery">
           <button className="secondary-button" type="button" onClick={onRetry}>Tentar novamente</button>

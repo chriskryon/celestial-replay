@@ -16,9 +16,8 @@ const studioModeByPath = {
 } as const;
 
 const navigationItems = [
-  { href: "/", label: "Vídeo único", icon: Video },
-  { href: "/advanced", label: "Playlist", icon: ListMusic },
-  { href: "/playlists", label: "Minhas playlists", icon: ListMusic },
+  { href: "/", label: "Player", icon: Video },
+  { href: "/playlists", label: "Biblioteca", icon: ListMusic },
   { href: "/history", label: "Histórico", icon: History },
 ];
 

@@ -89,7 +89,7 @@ export function ReplayComposer({
       {canSubmitSingle && <span className="source-validity" role="status"><CheckCircle2 aria-hidden="true" size={14} />Fonte suportada</span>}
       <label htmlFor="repetitions">Repetições</label>
       <input id="repetitions" type="number" min="1" step="1" value={repetitions} onChange={(event) => onRepetitionsChange(event.target.value)} />
-      <p className="field-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
+      <p className="field-help repetition-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
     </> : isEditingQueue ? <div className="playlist-running-note">
       <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Playlist em andamento</h2></div>
       <p>Os próximos vídeos podem ser editados logo abaixo.</p>
@@ -100,8 +100,8 @@ export function ReplayComposer({
         <p>Escolha a forma que for mais confortável. A playlist só começa quando tudo estiver válido.</p>
       </div>
       <div className="playlist-input-mode" role="tablist" aria-label="Forma de montar a playlist">
-        <button className={playlistInputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "simple"} onClick={() => onPlaylistInputModeChange("simple")}>Simples: linhas</button>
-        <button className={playlistInputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "advanced"} onClick={() => onPlaylistInputModeChange("advanced")}>Avançado: campos</button>
+        <button className={playlistInputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "simple"} onClick={() => onPlaylistInputModeChange("simple")}>Colar lista</button>
+        <button className={playlistInputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "advanced"} onClick={() => onPlaylistInputModeChange("advanced")}>Editar por campos</button>
       </div>
       {savedPlaylists.length > 0 && <section className="saved-playlists" aria-labelledby="saved-playlists-title">
         <h3 id="saved-playlists-title">Minhas playlists</h3>
@@ -110,8 +110,8 @@ export function ReplayComposer({
       {playlistInputMode === "simple" ? <div className="simple-playlist-input">
         <label htmlFor="simple-playlist">Vídeos e repetições</label>
         <textarea id="simple-playlist" value={simplePlaylist} onChange={(event) => onSimplePlaylistChange(event.target.value)} placeholder={"https://youtube.com/watch?v=exemplo;3\nhttps://vimeo.com/exemplo;1"} spellCheck="false" />
-        <p>Uma linha por vídeo: <code>link;quantidade</code>.{simplePlaylistLineCount > 0 && <span className="playlist-summary">{simplePlaylistLineCount} {simplePlaylistLineCount === 1 ? "vídeo" : "vídeos"} · {simplePlaylistItemsCount} repetições</span>}</p>
-        {invalidSimpleLine >= 0 && <p className="field-error" role="alert">Revise a linha {invalidSimpleLine + 1}: use <code>link;quantidade</code>.</p>}
+        <p className="playlist-line-format">Use uma linha por vídeo, neste formato: <code>https://youtube.com/watch?v=exemplo;3</code>{simplePlaylistLineCount > 0 && <span className="playlist-summary">{simplePlaylistLineCount} {simplePlaylistLineCount === 1 ? "vídeo" : "vídeos"} · {simplePlaylistItemsCount} repetições</span>}</p>
+        {invalidSimpleLine >= 0 && <p className="field-error" role="alert">Revise a linha {invalidSimpleLine + 1}: coloque o link, ponto e vírgula, e a quantidade.</p>}
       </div> : <div className="playlist-editor" aria-label="Vídeos da playlist">
         {drafts.map((draft, index) => {
           const touched = draft.src.trim() !== "" || draft.repetitions !== "1";
@@ -132,11 +132,11 @@ export function ReplayComposer({
     {error && <p className="field-error" role="alert">{error}</p>}
     {!isEditingQueue && mode === "playlist" && <div className="playlist-actions">
       {isLoggedIn && <button className="icon-save-button" type="button" onClick={onOpenSaveDialog} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button>}
-      {previewAvailable && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
-      <button className="primary-button celestial-start-button" type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
+      {previewAvailable && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Começar em</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
+      <button className={`primary-button celestial-start-button ${canSubmitPlaylist ? "is-ready" : ""}`} type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
     </div>}
     {!isEditingQueue && mode === "single" && <button className={`primary-button celestial-start-button ${canSubmitSingle ? "is-ready" : ""}`} type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
-    {!isEditingQueue && formHint && <p className="field-help" role="status">{formHint}</p>}
-    {!isEditingQueue && previewAvailable && mode === "single" && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Velocidade</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
+    {!isEditingQueue && formHint && <p className="field-help submit-hint" role="status">{formHint}</p>}
+    {!isEditingQueue && previewAvailable && mode === "single" && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Começar em</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
   </form>;
 }

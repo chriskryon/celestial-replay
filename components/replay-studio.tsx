@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { RotateCcw, Save, Trash2, X } from "lucide-react";
+import { ListMusic, RotateCcw, Save, Trash2, Video, X } from "lucide-react";
 
 import { PlaybackQueue } from "@/components/playback-queue";
 import { ReplayComposer } from "@/components/replay-composer";
@@ -74,7 +74,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [playBlocked, setPlayBlocked] = useState(false);
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState("Pronto para uma nova sessão.");
+  const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
   const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
   const [isDiscardResumeOpen, setIsDiscardResumeOpen] = useState(false);
   const activeVideoIdRef = useRef<string | null>(null);
@@ -113,7 +113,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     : -1;
   const playlistHint = !canSubmitPlaylist
     ? playlistInputMode === "simple"
-      ? "Revise as linhas: cada uma precisa de link;quantidade válidos."
+      ? "Revise a lista: cada linha precisa de um link e uma quantidade válidos."
       : firstBadDraft >= 0
         ? `Revise o vídeo ${firstBadDraft + 1}: URL ou repetições inválidas.`
         : "Revise os vídeos da playlist."
@@ -307,7 +307,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setHasPlaybackStarted(false);
     setIsSessionComplete(false);
     setError(null);
-    setStatus("Pronto para montar uma nova playlist.");
+    setStatus("Monte uma playlist e inicie quando estiver tudo pronto.");
   };
 
   const stopPlaylist = () => {
@@ -333,7 +333,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setPlayBlocked(false);
     setError(null);
     setQueueSaveMessage(null);
-    setStatus("Playlist encerrada. Escolha ou monte outra para iniciar.");
+    setStatus("Playlist encerrada. Escolha ou monte outra para iniciar sem pressa.");
     setResumeSession(null);
     if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
   };
@@ -730,6 +730,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       <section className={`studio-shell${mode === "playlist" && queue.length > 0 ? " has-playback-queue" : ""}`} aria-labelledby="studio-title">
         <div className="studio-session-area">
           {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length} · repetição {Math.max(1, (resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1) - resumeSession.remaining + 1)} de {resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1}</span></div><div className="resume-session-actions"><button className="icon-save-button" type="button" onClick={() => setIsDiscardResumeOpen(true)} aria-label="Descartar sessão salva" title="Descartar sessão"><Trash2 aria-hidden="true" size={16} /></button><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></div></aside>}
+        </div>
+
+        <div className="mode-switch studio-mode-switch" role="tablist" aria-label="Modo de reprodução">
+          <button className={mode === "single" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={mode === "single"} onClick={() => setMode("single")}><Video aria-hidden="true" size={16} />Vídeo único</button>
+          <button className={mode === "playlist" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={mode === "playlist"} onClick={() => setMode("playlist")}><ListMusic aria-hidden="true" size={16} />Playlist</button>
         </div>
 
         <div className={`studio-grid ${displayedVideo ? "has-media" : "is-empty"}`}>
