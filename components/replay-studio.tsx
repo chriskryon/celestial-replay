@@ -59,6 +59,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [saveName, setSaveName] = useState("Minha playlist");
   const [saveDialogError, setSaveDialogError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
+  const [draftPlaylistId, setDraftPlaylistId] = useState<string | null>(null);
+  const [activeSavedPlaylistId, setActiveSavedPlaylistId] = useState<string | null>(null);
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
@@ -310,6 +312,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   }, [activeVideo?.id, duration, error, hasNextVideo, hasPlaybackStarted, isPlaying, played, remaining]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
+    setDraftPlaylistId(null);
     setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
     setError(null);
   };
@@ -333,6 +336,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const startNewPlaylist = () => {
+    setDraftPlaylistId(null);
+    setActiveSavedPlaylistId(null);
     setQueue([]);
     setActiveIndex(null);
     setRemaining(0);
@@ -354,6 +359,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     ignoreStaleEndedRef.current = false;
     seekingRef.current = false;
     setQueue([]);
+    setActiveSavedPlaylistId(null);
     setActiveIndex(null);
     setRemaining(0);
     setPlayed(0);
@@ -391,6 +397,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (!resumeSession) return;
     setMode("playlist");
     setQueue(resumeSession.queue);
+    setActiveSavedPlaylistId(null);
     setActiveIndex(resumeSession.activeIndex);
     setRemaining(resumeSession.remaining);
     setQueuePlaylistName(resumeSession.playlistName);
@@ -417,6 +424,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const loadSavedPlaylist = (playlist: SavedPlaylist) => {
+    setDraftPlaylistId(playlist.id);
     setPlaylistName(playlist.name);
     setQueuePlaylistName(playlist.name);
     setPlaylistInputMode("advanced");
@@ -452,9 +460,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       setSavedPlaylists((items) => [result.playlist as SavedPlaylist, ...items.filter((item) => item.id !== result.playlist.id)]);
       if (isQueue) {
         setQueuePlaylistName(saveName.trim());
+        setActiveSavedPlaylistId(result.playlist.id);
         setQueueSaveMessage("Playlist salva na sua conta.");
       } else {
         setPlaylistName(saveName.trim());
+        setDraftPlaylistId(result.playlist.id);
         setPlaylistSaveMessage("Playlist salva na sua conta.");
       }
       setIsSaveDialogOpen(false);
@@ -497,6 +507,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       playLoadedVideo();
       const item = makeItem(singleReplay!.src, singleReplay!.count);
       setQueue([item]);
+      setActiveSavedPlaylistId(null);
       setActiveIndex(0);
       setRemaining(item.repetitions);
 (0);
@@ -520,6 +531,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     const nextQueue = entries.map((item) => makeItem(item.src.trim(), item.count));
     setQueuePlaylistName(playlistName.trim() || "Minha playlist");
     setQueue(nextQueue);
+    setActiveSavedPlaylistId(draftPlaylistId);
     setActiveIndex(0);
     setRemaining(nextQueue[0].repetitions);
 (0);
@@ -778,14 +790,14 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             isLoggedIn={isLoggedIn}
             isSavingPlaylist={isSavingPlaylist}
             mode={mode}
-            onAddDraft={() => setDrafts((items) => [...items, makeDraft()])}
+            onAddDraft={() => { setDraftPlaylistId(null); setDrafts((items) => [...items, makeDraft()]); }}
             onLoadSavedPlaylist={loadSavedPlaylist}
             onOpenSaveDialog={() => openSaveDialog("draft")}
             onPlaylistInputModeChange={setPlaylistInputMode}
             onPlaybackRateChange={setPlaybackRate}
-            onRemoveDraft={(id) => setDrafts((items) => items.filter((item) => item.id !== id))}
+            onRemoveDraft={(id) => { setDraftPlaylistId(null); setDrafts((items) => items.filter((item) => item.id !== id)); }}
             onRepetitionsChange={setRepetitions}
-            onSimplePlaylistChange={(value) => { setSimplePlaylist(value); setError(null); }}
+            onSimplePlaylistChange={(value) => { setDraftPlaylistId(null); setSimplePlaylist(value); setError(null); }}
             onSourceChange={(value) => { setSource(value); setError(null); }}
             onStart={start}
             onStartNewPlaylist={startNewPlaylist}
@@ -872,7 +884,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={stopPlaylist} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={stopPlaylist} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>

@@ -11,6 +11,7 @@ type PlaybackQueueProps = {
   error: string | null;
   hasPlaybackStarted: boolean;
   isLoggedIn: boolean;
+  isSavedPlaylist: boolean;
   isPlaying: boolean;
   isSaving: boolean;
   metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
@@ -30,6 +31,7 @@ export function PlaybackQueue({
   error,
   hasPlaybackStarted,
   isLoggedIn,
+  isSavedPlaylist,
   isPlaying,
   isSaving,
   metadata,
@@ -130,7 +132,7 @@ export function PlaybackQueue({
       </button>
       <div className="queue-title-actions">
         <button className="queue-stop-button" type="button" onClick={onStop} title="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar</button>
-        {isLoggedIn && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
+        {isLoggedIn && !isSavedPlaylist && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
           <Save aria-hidden="true" size={18} />
         </button>}
       </div>
