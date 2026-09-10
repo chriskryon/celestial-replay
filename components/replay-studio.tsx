@@ -203,8 +203,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
         setIsPlaying((value) => !value);
       }
       if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
-      if (event.key.toLowerCase() === "n" && activeIndex !== null) playNextVideo(true);
-      if (event.key.toLowerCase() === "b" && activeIndex !== null) playPreviousVideo();
+      if (event.key.toLowerCase() === "n" && activeIndex !== null) nextVideo();
+      if (event.key.toLowerCase() === "b" && activeIndex !== null) previousVideo();
       if (event.key.toLowerCase() === "j") seekBy(-10);
       if (event.key.toLowerCase() === "l") seekBy(10);
       if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
@@ -576,6 +576,10 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (usesNativeYoutubePlaylist) sendNativeYoutubeCommand("nextVideo");
     playNextVideo(true);
   };
+  const previousVideo = () => {
+    if (usesNativeYoutubePlaylist) sendNativeYoutubeCommand("previousVideo");
+    playPreviousVideo();
+  };
   // Avança para o próximo vídeo (manual = botão, sem gravar histórico).
   const playNextVideo = (manual: boolean) => {
     if (!activeVideo || activeIndex === null) return;
@@ -789,7 +793,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onEnterPictureInPicture={() => setPip(true)}
             onLeavePictureInPicture={() => setPip(false)}
             onNextRepetition={() => playNextRepetition(true)}
-            onNextVideo={() => playNextVideo(true)}
+            onNextVideo={nextVideo}
             onPause={handlePlaybackPause}
             onPlaybackError={handlePlaybackError}
             onPlaybackPlay={handlePlaybackPlay}
@@ -797,7 +801,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onPlayerReady={handlePlayerReady}
             onPreviewError={() => setError(playbackErrorMessage(previewVideo?.src ?? source))}
             onPreviousRepetition={playPreviousRepetition}
-            onPreviousVideo={playPreviousVideo}
+            onPreviousVideo={previousVideo}
             onProgress={handleProgress}
             onRateChange={handleRateChange}
             onRetry={retryCurrentVideo}
