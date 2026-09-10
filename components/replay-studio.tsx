@@ -24,6 +24,7 @@ export type ReplayStudioHandle = {
 
 export type PlaybackSnapshot = {
   duration: number | null;
+  hasSession: boolean;
   hasNextVideo: boolean;
   hasPrevVideo: boolean;
   isPlaying: boolean;
@@ -753,6 +754,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   useEffect(() => {
     onPlaybackChange?.({
       duration,
+      hasSession: Boolean(activeVideo && activeIndex !== null && !isSessionComplete),
       hasNextVideo,
       hasPrevVideo,
       isPlaying,
@@ -762,7 +764,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       totalRepetitions,
       volume,
     });
-  }, [activeVideo?.src, duration, hasNextVideo, hasPrevVideo, isPlaying, onPlaybackChange, played, remaining, totalRepetitions, volume]);
+  }, [activeIndex, activeVideo, duration, hasNextVideo, hasPrevVideo, isPlaying, isSessionComplete, onPlaybackChange, played, remaining, totalRepetitions, volume]);
 
   useImperativeHandle(ref, () => ({
     nextVideo,

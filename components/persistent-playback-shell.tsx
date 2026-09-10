@@ -24,7 +24,8 @@ const navigationItems = [
 export function PersistentPlaybackShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const studioRef = useRef<ReplayStudioHandle>(null);
-  const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ duration: null, hasNextVideo: false, hasPrevVideo: false, isPlaying: false, played: 0, remaining: 0, source: null, totalRepetitions: 0, volume: 0.7 });
+  const [snapshot, setSnapshot] = useState<PlaybackSnapshot>({ duration: null, hasNextVideo: false, hasPrevVideo: false, hasSession: false, isPlaying: false, played: 0, remaining: 0, source: null, totalRepetitions: 0, volume: 0.7 });
+  const lastSourceRef = useRef<string | null>(null);
   const [isMiniPlayerDismissed, setIsMiniPlayerDismissed] = useState(false);
   const [isNavbarScrolled, setIsNavbarScrolled] = useState(false);
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
@@ -42,6 +43,10 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
   }, [snapshot.source]);
 
   useEffect(() => {
+    if (snapshot.source) lastSourceRef.current = snapshot.source;
+  }, [snapshot.source]);
+
+  useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 28) setIsNavbarScrolled(true);
     };
@@ -50,12 +55,13 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const sourceLabel = snapshot.source ? (() => {
+  const miniSource = snapshot.source ?? lastSourceRef.current;
+  const sourceLabel = miniSource ? (() => {
     try {
-      const source = new URL(snapshot.source);
+      const source = new URL(miniSource);
       return `${source.hostname.replace(/^www\./, "")}${source.pathname}${source.search}`;
     } catch {
-      return snapshot.source;
+      return miniSource;
     }
   })() : null;
   const formatTime = (seconds: number | null) => {
@@ -83,7 +89,7 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
       <ReplayStudio ref={studioRef} initialMode={studioMode ?? "single"} onPlaybackChange={setSnapshot} />
     </div>
     {!isStudioRoute && children}
-    {!isStudioRoute && snapshot.source && !isMiniPlayerDismissed && <aside className="persistent-mini-player" data-playing={snapshot.isPlaying} aria-label="Reprodução em andamento">
+    {!isStudioRoute && snapshot.hasSession && !isMiniPlayerDismissed && <aside className="persistent-mini-player" data-playing={snapshot.isPlaying} aria-label="Reprodução em andamento">
       <div className="persistent-mini-header">
         <div className="persistent-mini-copy"><Radio aria-hidden="true" size={16} /><div><span className="persistent-mini-status" role="status" aria-live="polite">{snapshot.isPlaying ? "Reproduzindo" : "Pausado"}</span><strong title={sourceLabel ?? undefined}>{sourceLabel}</strong><span className="persistent-mini-progress-label">{progressLabel}</span></div></div>
         <button type="button" className="persistent-mini-dismiss" onClick={() => setIsMiniPlayerDismissed(true)} aria-label="Dispensar mini-player" title="Dispensar"><X aria-hidden="true" size={16} /></button>
