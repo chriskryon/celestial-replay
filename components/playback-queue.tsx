@@ -14,6 +14,7 @@ type PlaybackQueueProps = {
   isSavedPlaylist: boolean;
   isPlaying: boolean;
   isSaving: boolean;
+  isSessionComplete: boolean;
   metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
   onRemoveFutureItem: (id: string) => void;
   onSave: () => void;
@@ -34,6 +35,7 @@ export function PlaybackQueue({
   isSavedPlaylist,
   isPlaying,
   isSaving,
+  isSessionComplete,
   metadata,
   onRemoveFutureItem,
   onSave,
@@ -47,7 +49,7 @@ export function PlaybackQueue({
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
-  const currentItem = activeIndex === null ? null : queue[activeIndex] ?? null;
+  const currentItem = isSessionComplete || activeIndex === null ? null : queue[activeIndex] ?? null;
   const currentMetadata = currentItem ? metadata[currentItem.src] : null;
   const currentTitle = currentItem ? currentMetadata?.title ?? (() => {
     try { return new URL(currentItem.src).hostname.replace(/^www\./, ""); } catch { return "Vídeo atual"; }
@@ -63,8 +65,10 @@ export function PlaybackQueue({
 
   const renderQueueItem = (item: VideoItem, index: number) => {
     const isCurrent = index === activeIndex;
-    const isFuture = activeIndex !== null && index > activeIndex;
-    const state = isCurrent
+    const isFuture = !isSessionComplete && activeIndex !== null && index > activeIndex;
+    const state = isSessionComplete
+      ? "Concluído"
+      : isCurrent
       ? error
         ? "Não reproduzível"
         : hasPlaybackStarted
@@ -125,13 +129,13 @@ export function PlaybackQueue({
     <div className="queue-title">
       <button className="queue-toggle" type="button" onClick={() => setIsExpanded((value) => !value)} aria-controls="queue-content" aria-expanded={isExpanded}>
         <span className="queue-toggle-copy">
-          <strong id="queue-title">Playlist em execução</strong>
-          <small key={activeIndex ?? "idle"}>{currentTitle ? `${currentTitle} · vídeo ${(activeIndex ?? 0) + 1} de ${queue.length}${remaining ? ` · ${remaining}× restante${remaining === 1 ? "" : "s"}` : ""}` : "Edite somente os vídeos que ainda não começaram."}</small>
+          <strong id="queue-title">{isSessionComplete ? "Playlist concluída" : "Playlist em execução"}</strong>
+          <small key={isSessionComplete ? "complete" : activeIndex ?? "idle"}>{isSessionComplete ? `${queue.length} ${queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}` : currentTitle ? `${currentTitle} · vídeo ${(activeIndex ?? 0) + 1} de ${queue.length}${remaining ? ` · ${remaining}× restante${remaining === 1 ? "" : "s"}` : ""}` : "Edite somente os vídeos que ainda não começaram."}</small>
         </span>
         <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
       </button>
       <div className="queue-title-actions">
-        <button className="queue-stop-button" type="button" onClick={onStop} title="Pedir confirmação para encerrar a playlist" aria-label="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar</button>
+        {!isSessionComplete && <button className="queue-stop-button" type="button" onClick={onStop} title="Pedir confirmação para encerrar a playlist" aria-label="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar</button>}
         {isLoggedIn && !isSavedPlaylist && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
           <Save aria-hidden="true" size={18} />
         </button>}
@@ -140,8 +144,8 @@ export function PlaybackQueue({
     <div aria-hidden={!isExpanded} className={`queue-content-wrapper${isExpanded ? " is-expanded" : ""}`} id="queue-content" inert={!isExpanded}>
       <div className="queue-content">
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
-      {activeIndex !== null && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
-      <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
+      {activeIndex !== null && !isSessionComplete && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
+      {!isSessionComplete && <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>}
       {completedQueue.length > 0 && <details className="queue-completed">
         <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
         <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>

@@ -126,7 +126,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       return !parsePlaylistLine(value, canPlaySrc);
     })
     : -1;
-  const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0;
+  const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0 && !isSessionComplete;
   const progressLabel = activeIndex === null || error || !hasPlaybackStarted ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const isLoggedIn = Boolean(session.data?.user);
   const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
@@ -843,7 +843,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={isSessionComplete ? queue : completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} isSessionComplete={isSessionComplete} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isStopConfirmOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="stop-playlist-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="stop-playlist-title">Encerrar playlist?</h2><p>A reprodução será interrompida e o ponto de retomada será removido. Seus vídeos e o rascunho continuam disponíveis.</p><div><button className="secondary-button" onClick={() => setIsStopConfirmOpen(false)} type="button">Continuar</button><button className="danger-button" onClick={() => { setIsStopConfirmOpen(false); stopPlaylist(); }} type="button">Encerrar</button></div></section></div>}
