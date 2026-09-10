@@ -37,7 +37,7 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
             <>
               <HistoryFilters filters={filters} origins={origins} resultCount={history.length} />
               <div className="history-days">
-                {days.map(([day, entriesForDay]) => <HistoryDayGroup entries={entriesForDay} key={day} />)}
+                {days.map(([day, entriesForDay], index) => <HistoryDayGroup entries={entriesForDay} index={index} key={day} />)}
               </div>
             </>
           )}

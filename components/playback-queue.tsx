@@ -132,7 +132,8 @@ export function PlaybackQueue({
         </button>}
       </div>
     </div>
-    {isExpanded && <div className="queue-content" id="queue-content">
+    <div aria-hidden={!isExpanded} className={`queue-content-wrapper${isExpanded ? " is-expanded" : ""}`} id="queue-content" inert={!isExpanded}>
+      <div className="queue-content">
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
       {activeIndex !== null && <p className="sr-only" role="status" aria-live="polite">Vídeo {activeIndex + 1} agora está tocando.</p>}
       <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>
@@ -140,6 +141,7 @@ export function PlaybackQueue({
         <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
         <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>
       </details>}
-    </div>}
+      </div>
+    </div>
   </section>;
 }

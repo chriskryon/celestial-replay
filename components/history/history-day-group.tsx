@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AudioLines, CalendarClock, ExternalLink, Repeat2, RotateCcw, Video, Youtube } from "lucide-react";
+import type { CSSProperties } from "react";
+import { AudioLines, CalendarClock, ChevronDown, ExternalLink, Repeat2, RotateCcw, Video, Youtube } from "lucide-react";
 
 import { displayHost, displaySource, historyDateTimeFormatter, historyDayLabel, type HistorySummary } from "@/lib/history-presentation";
 
@@ -12,23 +13,24 @@ function SourceIcon({ url }: { url: string }) {
   return <Video aria-hidden="true" size={17} />;
 }
 
-export function HistoryDayGroup({ entries }: { entries: HistoryViewSummary[] }) {
+export function HistoryDayGroup({ entries, index }: { entries: HistoryViewSummary[]; index: number }) {
   const [firstEntry] = entries;
   const totalRepetitions = entries.reduce((total, entry) => total + entry.completedRepetitions, 0);
   const totalSessions = entries.reduce((total, entry) => total + entry.sessions, 0);
   const isToday = new Date(firstEntry.completedAt).toDateString() === new Date().toDateString();
   return (
-    <details className="history-day" open={isToday}>
+    <details className="history-day" open={isToday} style={{ "--history-day-index": index } as CSSProperties}>
       <summary>
         <h2>{historyDayLabel(firstEntry.completedAt)}</h2>
         <span>{entries.length} {entries.length === 1 ? "vídeo" : "vídeos"} · {totalRepetitions}× em {totalSessions} {totalSessions === 1 ? "sessão" : "sessões"}</span>
+        <ChevronDown aria-hidden="true" size={16} />
       </summary>
       <ol className="history-feed">
-        {entries.map((entry) => {
+        {entries.map((entry, entryIndex) => {
           const source = displaySource(entry.url);
           const date = historyDateTimeFormatter.format(entry.completedAt);
           return (
-            <li key={entry.url}>
+            <li key={entry.url} style={{ "--history-entry-index": entryIndex } as CSSProperties}>
               <article className="history-card">
                 <span className="history-domain-icon"><SourceIcon url={entry.url} /></span>
                 <div className="history-card-copy">
