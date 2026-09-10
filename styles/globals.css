@@ -570,8 +570,9 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .library-playlist small { color: var(--muted); font-size: 0.72rem; }
 .library-playlist-domain { color: #b8c9ef !important; font-size: .66rem !important; }
 .library-playlist svg { flex: 0 0 auto; color: var(--muted); }
-.library-playlist-play { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: .32rem; padding: .34rem .52rem; border: 1px solid rgba(207, 223, 255, .26); border-radius: .5rem; color: #f1f5ff; background: rgba(145, 174, 244, .15); font-size: .72rem; font-weight: 750; text-decoration: none; white-space: nowrap; }
-.library-playlist-play:hover { border-color: rgba(222, 232, 255, .42); background: rgba(159, 188, 251, .24); }
+.library-playlist-play { display: inline-grid; flex: 0 0 36px; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(207, 223, 255, .34); border-radius: 50%; color: #f4f7ff; background: radial-gradient(circle at 35% 30%, rgba(220, 231, 255, .28), rgba(128, 158, 234, .15) 58%, rgba(57, 85, 151, .16)); box-shadow: 0 0 0 1px rgba(166, 193, 255, .07), 0 0 12px rgba(151, 179, 240, .16), inset 0 1px rgba(255, 255, 255, .13); text-decoration: none; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+.library-playlist-play:hover, .library-playlist-play:focus-visible { border-color: rgba(225, 235, 255, .66); background: radial-gradient(circle at 35% 30%, rgba(232, 240, 255, .38), rgba(151, 179, 240, .24) 58%, rgba(78, 111, 185, .2)); box-shadow: 0 0 0 3px rgba(151, 179, 240, .1), 0 0 17px rgba(151, 179, 240, .34), inset 0 1px rgba(255, 255, 255, .2); transform: translateY(-1px); }
+.library-playlist-play:active { transform: scale(.96); }
 .library-editor { gap: 0.7rem; }
 .library-editor-heading { display: flex; align-items: start; justify-content: space-between; gap: 0.7rem; padding-bottom: 0.15rem; }
 .library-editor h2 { font-size: 1.05rem; }
@@ -713,7 +714,7 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .library-list { max-height: 250px; }
   .library-playlist { flex-wrap: wrap; }
   .library-playlist > button:first-child { flex-basis: calc(100% - 44px); }
-  .library-playlist-play { flex: 1 1 11rem; }
+  .library-playlist-play { flex: 0 0 44px; width: 44px; height: 44px; }
   .library-editor .primary-button { justify-self: stretch; }
   .library-items .playlist-row { grid-template-columns: 24px 24px minmax(0, 1fr) 56px; }
   .library-items .row-actions { grid-column: 3 / -1; justify-content: flex-end; }

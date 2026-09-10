@@ -48,6 +48,15 @@ function isMediaActuallyPlaying(node: HTMLVideoElement | null) {
   return Boolean(node && !node.paused && !node.ended);
 }
 
+function hasMediaReachedEnd(node: HTMLVideoElement | null) {
+  if (!node) return false;
+  if (node.ended) return true;
+  return Number.isFinite(node.duration)
+    && node.duration > 0
+    && Number.isFinite(node.currentTime)
+    && node.currentTime >= node.duration - 0.08;
+}
+
 export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(function ReplayStudio({ initialMode = "single", onPlaybackChange }, ref) {
   const session = authClient.useSession();
   const [mode, setMode] = useState(initialMode);
@@ -292,10 +301,10 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     scheduledEndRef.current = null;
     if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0 || (remaining <= 1 && !hasNextVideo)) return;
     const effectiveRate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
-    const remainingTime = Math.max(0, (duration * (1 - played) - 0.25) / effectiveRate);
+    const remainingTime = Math.max(0, (duration * (1 - played) - 0.08) / effectiveRate);
     scheduledEndRef.current = window.setTimeout(() => {
       scheduledEndRef.current = null;
-      handleEnded(activeVideo.id, remaining);
+      if (hasMediaReachedEnd(playerRef.current)) handleEnded(activeVideo.id, remaining);
     }, remainingTime * 1000);
     return () => {
       if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
@@ -727,6 +736,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       && isPlaying
       && media
       && Number.isFinite(media.currentTime)
+      && played > 0.9
       && media.currentTime < 0.5;
     if (nativePlaylistAdvanced) {
       playNextVideo(false);
