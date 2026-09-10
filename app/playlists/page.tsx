@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { PlaylistAccessPanel } from "@/components/playlist-access-panel";
@@ -7,6 +8,11 @@ import { db } from "@/lib/db";
 import { playlistItems, playlists } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Suas playlists",
+  description: "Salve, reproduza e organize playlists com repetições por vídeo.",
+  alternates: { canonical: "/playlists" },
+};
 
 export default async function PlaylistsPage() {
   const user = await getCurrentUser();

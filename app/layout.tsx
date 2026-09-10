@@ -6,9 +6,51 @@ import { PersistentPlaybackShell } from "@/components/persistent-playback-shell"
 import { StarfieldCanvas } from "@/components/starfield-canvas";
 import "@/styles/globals.css";
 
+const siteUrl = new URL(process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_ORIGIN ?? "https://celestial-replay.vercel.app");
+const siteDescription = "Repita vídeos, monte playlists com contagens por item e retome sessões no seu próprio ritmo.";
+const socialImage = {
+  url: "/og-image.png",
+  width: 1200,
+  height: 630,
+  alt: "Celestial Replay - player de repetição de vídeos",
+};
+
 export const metadata: Metadata = {
-  title: "Celestial Replay",
-  description: "Repita vídeos e crie sessões no seu próprio ritmo.",
+  metadataBase: siteUrl,
+  applicationName: "Celestial Replay",
+  title: {
+    default: "Celestial Replay",
+    template: "%s | Celestial Replay",
+  },
+  description: siteDescription,
+  keywords: ["repetir vídeo", "playlist com repetições", "video looper", "YouTube repeat", "Celestial Replay"],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Celestial Replay",
+    description: siteDescription,
+    url: "/",
+    siteName: "Celestial Replay",
+    images: [socialImage],
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Celestial Replay",
+    description: siteDescription,
+    images: [socialImage],
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/logo.png",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#080b1b", width: "device-width", initialScale: 1 };

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { History, Play } from "lucide-react";
 
@@ -7,6 +8,11 @@ import { HistoryFilters, type HistoryFiltersValue } from "@/components/history/h
 import { getHistoryPageData } from "@/lib/history-query";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Histórico",
+  description: "Revise sessões concluídas e repita vídeos com a mesma contagem.",
+  alternates: { canonical: "/history" },
+};
 
 type HistoryPageProps = { searchParams: Promise<HistoryFiltersValue> };
 
