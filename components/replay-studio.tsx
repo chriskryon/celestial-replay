@@ -343,6 +343,33 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setStatus("Pronto para montar uma nova playlist.");
   };
 
+  const stopPlaylist = () => {
+    // Encerrar deve interromper a sessão atual, sem apagar o rascunho que o
+    // usuário pode editar para montar a próxima fila.
+    try { playerRef.current?.pause(); } catch { /* o estado abaixo encerra o ciclo declarativo */ }
+    if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
+    scheduledEndRef.current = null;
+    activeVideoIdRef.current = null;
+    endedVideoIdRef.current = null;
+    ignoreStaleEndedRef.current = false;
+    seekingRef.current = false;
+    setQueue([]);
+    setActiveIndex(null);
+    setRemaining(0);
+    setPlayed(0);
+    setLoaded(0);
+    setDuration(null);
+    setIsPlaying(false);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setPlayBlocked(false);
+    setError(null);
+    setQueueSaveMessage(null);
+    setStatus("Playlist encerrada. Escolha ou monte outra para iniciar.");
+    setResumeSession(null);
+    if (session.data?.user) void fetch("/api/playback-session", { method: "DELETE" });
+  };
+
   const restartSession = () => {
     if (queue.length === 0) return;
     const firstVideo = queue[0];
@@ -845,7 +872,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSaving={isSavingQueue} metadata={queueMetadata} onRemoveFutureItem={removeFutureItem} onSave={() => openSaveDialog("queue")} onStop={stopPlaylist} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isSaveDialogOpen && isLoggedIn && <div className="profile-backdrop" role="presentation" onMouseDown={() => setIsSaveDialogOpen(false)}>

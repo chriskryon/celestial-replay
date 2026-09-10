@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, Save, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, Save, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
@@ -16,6 +16,7 @@ type PlaybackQueueProps = {
   metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
   onRemoveFutureItem: (id: string) => void;
   onSave: () => void;
+  onStop: () => void;
   onUpdateUpcomingItem: (id: string, field: "src" | "repetitions", value: string) => void;
   queue: VideoItem[];
   remaining: number;
@@ -34,6 +35,7 @@ export function PlaybackQueue({
   metadata,
   onRemoveFutureItem,
   onSave,
+  onStop,
   onUpdateUpcomingItem,
   queue,
   remaining,
@@ -127,6 +129,7 @@ export function PlaybackQueue({
         <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
       </button>
       <div className="queue-title-actions">
+        <button className="queue-stop-button" type="button" onClick={onStop} title="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar</button>
         {isLoggedIn && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
           <Save aria-hidden="true" size={18} />
         </button>}
