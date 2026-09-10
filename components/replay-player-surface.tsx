@@ -6,6 +6,7 @@ import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPictu
 
 import { canEnablePIP } from "@/components/react-player-client";
 import { buildPlaylistSegments } from "@/lib/playback-progress";
+import { formatRemainingTime, formatTime, getHostname } from "@/lib/formatters";
 import type { VideoItem } from "@/lib/replay-playlist";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
@@ -161,22 +162,6 @@ export function ReplayPlayerSurface({
     if (Number.isFinite(nextDuration) && nextDuration > 0) onDurationChange(nextDuration);
   };
 
-  const formatTime = (seconds: number | null) => {
-    if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--:--";
-    const totalSeconds = Math.floor(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const secondsPart = totalSeconds % 60;
-    const displayMinutes = hours > 0 ? String(minutes).padStart(2, "0") : String(minutes);
-    return `${hours > 0 ? `${hours}:` : ""}${displayMinutes}:${String(secondsPart).padStart(2, "0")}`;
-  };
-
-  const formatRemainingTime = (seconds: number) => {
-    const roundedMinutes = Math.max(1, Math.ceil(seconds / 60));
-    const hours = Math.floor(roundedMinutes / 60);
-    const minutes = roundedMinutes % 60;
-    return hours > 0 ? `${hours} h ${minutes ? `${minutes} min` : ""}`.trim() : `${minutes} min`;
-  };
 
   const currentRepetitionProgress = activeVideo && hasPlaybackStarted ? Math.max(0, Math.min(1, played)) : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
@@ -198,9 +183,7 @@ export function ReplayPlayerSurface({
     .filter((id): id is string => Boolean(id));
   const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1;
   const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
-  const sourceHost = displayedVideo?.src ? (() => {
-    try { return new URL(displayedVideo.src).hostname.replace(/^www\./, ""); } catch { return ""; }
-  })() : "";
+  const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
 
   const playerSurfaceState = activeVideo ? "is-active" : previewVideo ? "is-preview" : "is-empty";

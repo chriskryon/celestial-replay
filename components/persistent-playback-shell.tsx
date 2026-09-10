@@ -6,6 +6,7 @@ import { ExternalLink, FastForward, History, ListMusic, Menu, Orbit, Pause, Play
 import { useEffect, useRef, useState } from "react";
 
 import { ReplayStudio, type PlaybackSnapshot, type ReplayStudioHandle } from "@/components/replay-studio";
+import { formatTime } from "@/lib/formatters";
 import { AuthControls } from "@/components/auth-controls";
 
 const studioModeByPath = {
@@ -64,11 +65,6 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
       return miniSource;
     }
   })() : null;
-  const formatTime = (seconds: number | null) => {
-    if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--:--";
-    const totalSeconds = Math.floor(seconds);
-    return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
-  };
   const progress = Math.min(1, Math.max(0, snapshot.played));
   const progressLabel = snapshot.duration ? `${formatTime(progress * snapshot.duration)} / ${formatTime(snapshot.duration)}` : "Reprodução em andamento";
 

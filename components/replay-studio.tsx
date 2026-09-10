@@ -13,6 +13,7 @@ import { playbackErrorMessage } from "@/lib/playback-error";
 import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
 import { clearPlaybackSession, loadPlaybackSession, loadPlaylists, saveHistory, savePlaybackSession, savePlaylist as persistPlaylist } from "@/lib/replay-api";
+import { canSavePlaylist } from "@/lib/replay-validation";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 
 export type ReplayStudioHandle = {
@@ -430,10 +431,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     const entries = isQueue
       ? queue.map((item) => ({ url: item.src.trim(), repetitions: item.repetitions }))
       : draftEntries?.map((item) => ({ url: item.src.trim(), repetitions: item.count }));
-    if (!isLoggedIn || !saveName.trim() || !entries?.length || !entries.every((item) => isPlayableMediaUrl(item.url) && canPlaySrc(item.url) && Number.isInteger(item.repetitions) && item.repetitions > 0)) {
+    if (!canSavePlaylist(entries, saveName, isLoggedIn, canPlaySrc)) {
       setSaveDialogError("Informe um nome e revise os links e repetições antes de salvar.");
       return;
     }
+    if (!entries) return;
 
     if (isQueue) setIsSavingQueue(true); else setIsSavingPlaylist(true);
     if (isQueue) setQueueSaveMessage(null); else setPlaylistSaveMessage(null);
