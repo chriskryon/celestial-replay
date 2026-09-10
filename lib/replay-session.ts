@@ -1,4 +1,5 @@
 import type { VideoItem } from "@/lib/replay-playlist";
+import { getCompletedRepetitions, getTotalRepetitions } from "@/lib/playback-progress";
 
 type PlaybackSnapshot = {
   activeVideo: VideoItem | null;
@@ -12,10 +13,8 @@ type PlaybackSnapshot = {
 
 export function getPlaybackSnapshot(queue: VideoItem[], activeIndex: number | null, remaining: number): PlaybackSnapshot {
   const activeVideo = activeIndex === null ? null : queue[activeIndex] ?? null;
-  const totalRepetitions = queue.reduce((total, item) => total + item.repetitions, 0);
-  const completedRepetitions = activeIndex === null
-    ? 0
-    : queue.slice(0, activeIndex).reduce((total, item) => total + item.repetitions, 0) + Math.max(0, (activeVideo?.repetitions ?? 0) - remaining);
+  const totalRepetitions = getTotalRepetitions(queue);
+  const completedRepetitions = getCompletedRepetitions(queue, activeIndex, remaining);
 
   return {
     activeVideo,

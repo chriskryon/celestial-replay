@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
+import { buildPlaylistSegments } from "@/lib/playback-progress";
 import type { VideoItem } from "@/lib/replay-playlist";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
@@ -179,21 +180,7 @@ export function ReplayPlayerSurface({
 
   const currentRepetitionProgress = activeVideo && hasPlaybackStarted ? Math.max(0, Math.min(1, played)) : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
-  const knownDurations = queue.map((item) => videoDurations[item.id]).filter((item): item is number => Number.isFinite(item) && item > 0);
-  const fallbackDuration = duration && duration > 0
-    ? duration
-    : knownDurations.length > 0
-      ? knownDurations.reduce((total, item) => total + item, 0) / knownDurations.length
-      : 1;
-  const playlistSegments = queue.flatMap((item, videoIndex) => {
-    const segmentDuration = videoDurations[item.id] ?? (item.id === activeVideo?.id && duration && duration > 0 ? duration : fallbackDuration);
-    return Array.from({ length: item.repetitions }, (_, repetitionIndex) => ({
-    id: `${item.id}-${repetitionIndex}`,
-    label: `Vídeo ${videoIndex + 1}, repetição ${repetitionIndex + 1}`,
-    tone: videoIndex % 4,
-    weight: segmentDuration,
-    }));
-  });
+  const playlistSegments = buildPlaylistSegments(queue, videoDurations, activeVideo?.id, duration);
   const totalPlaylistDuration = playlistSegments.reduce((total, segment) => total + segment.weight, 0);
   const completedPlaylistDuration = playlistSegments.slice(0, completedRepetitions).reduce((total, segment) => total + segment.weight, 0);
   const activeSegmentDuration = playlistSegments[completedRepetitions]?.weight ?? 0;
