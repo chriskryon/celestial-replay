@@ -144,6 +144,16 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const displayedVideo = activeVideo ?? previewVideo;
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
   const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
+
+  // A prévia e a sessão ativa usam a mesma fonte. Ao clicar em iniciar, a
+  // prop `playing` pode mudar sem disparar novamente o evento de ready do
+  // provider; uma tentativa curta após a troca garante o play sem remontar o
+  // player nem perder a ativação do gesto do usuário.
+  useEffect(() => {
+    if (!activeVideo || !isPlaying) return;
+    const timeout = window.setTimeout(() => { attemptPlay(); }, 80);
+    return () => window.clearTimeout(timeout);
+  }, [activeVideo?.id, isPlaying]);
   const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, error, fallbackStatus: status, remaining });
 
   useEffect(() => {
