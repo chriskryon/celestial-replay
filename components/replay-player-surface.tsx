@@ -61,10 +61,12 @@ type ReplayPlayerSurfaceProps = {
   playerRef: RefObject<HTMLVideoElement | null>;
   playerStatus: string;
   previewVideo: VideoItem | null;
+  isAudioResolving: boolean;
   progressLabel: string | null;
   queue: VideoItem[];
   queueLength: number;
   remaining: number;
+  resolvedAudioSrc: string | null;
   totalRepetitions: number;
   usesNativeYoutubePlaylist: boolean;
   videoAuthor: string | null;
@@ -86,6 +88,7 @@ export function ReplayPlayerSurface({
   hasNextVideo,
   hasPlaybackStarted,
   hasPrevVideo,
+  isAudioResolving,
   isPlaying,
   isSessionComplete,
   loaded,
@@ -128,6 +131,7 @@ export function ReplayPlayerSurface({
   queue,
   queueLength,
   remaining,
+  resolvedAudioSrc,
   totalRepetitions,
   usesNativeYoutubePlaylist,
   videoAuthor,
@@ -190,7 +194,9 @@ export function ReplayPlayerSurface({
   // podia decidir renderizar o embed nativo mesmo quando o engine já tinha
   // desistido de comandá-lo, travando o vídeo no primeiro item da fila.
   const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1 && usesNativeYoutubePlaylist;
-  const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
+  const playerSource = useNativeYoutubePlaylist
+    ? youtubePlaylistSources[0]
+    : isAudioResolving ? undefined : (resolvedAudioSrc ?? displayedVideo?.src);
   const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
   const completeTitle = queueLength > 1 ? "Playlist concluída" : "Vídeo concluído";
@@ -288,9 +294,9 @@ export function ReplayPlayerSurface({
       /> : <div className="player-empty">
         <span className="player-empty-icon"><Play aria-hidden="true" size={25} /></span>
         <div>
-          <strong>{error ? "Não foi possível carregar esta fonte" : "Cole um vídeo para preparar a repetição"}</strong>
-          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : "A prévia aparece aqui antes de qualquer reprodução."}</p>
-          {!error && <small>Nada toca sem você clicar em Iniciar.</small>}
+          <strong>{error ? "Não foi possível carregar esta fonte" : isAudioResolving ? "Preparando áudio…" : "Cole um vídeo para preparar a repetição"}</strong>
+          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : isAudioResolving ? "Baixando a cópia local pra tocar sem gastar dados depois." : "A prévia aparece aqui antes de qualquer reprodução."}</p>
+          {!error && !isAudioResolving && <small>Nada toca sem você clicar em Iniciar.</small>}
         </div>
         {error && activeVideo && <div className="player-recovery">
           <button className="secondary-button" type="button" onClick={onRetry}>Tentar novamente</button>
