@@ -146,7 +146,12 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   useEffect(() => {
     if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
     scheduledEndRef.current = null;
-    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0) return;
+    // Enquanto o usuário arrasta a barra de busca, `played` já reflete a posição
+    // do arrasto (pro slider acompanhar visualmente) mas o vídeo real só pula
+    // pra lá ao soltar — se essa posição for perto do fim, um watchdog armado
+    // durante o arrasto dispararia logo após soltar e contaria a repetição como
+    // concluída mesmo que o usuário só tenha espiado o final, sem assistir.
+    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0 || seekingRef.current) return;
     const effectiveRate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
     const remainingTime = Math.max(0, (duration * (1 - played) - 0.08) / effectiveRate);
     scheduledEndRef.current = window.setTimeout(() => {
