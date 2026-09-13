@@ -10,12 +10,13 @@ import { canPlaySrc } from "@/components/react-player-client";
 import { authClient } from "@/lib/auth-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { playbackErrorMessage } from "@/lib/playback-error";
-import { type PlaylistDraft, type ResumableSession, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
+import { type PlaylistDraft, type SavedPlaylist, type VideoItem, isPlayableItem, makeDraft, makeItem, parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot, getPlayerStatus } from "@/lib/replay-session";
-import { clearPlaybackSession, loadPlaybackSession, loadPlaylists, saveHistory, savePlaybackSession, savePlaylist as persistPlaylist } from "@/lib/replay-api";
+import { loadPlaylists, savePlaylist as persistPlaylist } from "@/lib/replay-api";
 import { canSavePlaylist } from "@/lib/replay-validation";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
+import { useSessionPersistence } from "@/hooks/use-session-persistence";
 import { useTransportShortcuts } from "@/hooks/use-transport-shortcuts";
 import { useQueueMetadata, useVideoMetadata } from "@/hooks/use-video-metadata";
 
@@ -89,8 +90,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
-  const [resumeSession, setResumeSession] = useState<ResumableSession | null>(null);
-  const [isDiscardResumeOpen, setIsDiscardResumeOpen] = useState(false);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
   const ignoreStaleEndedRef = useRef(false);
@@ -147,6 +146,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0 && !isSessionComplete;
   const progressLabel = activeIndex === null || error ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const isLoggedIn = Boolean(session.data?.user);
+  const { clearResumeSession, discardResume, isDiscardResumeOpen, recordCompletedVideo, resumeSession, setIsDiscardResumeOpen, setResumeSession } = useSessionPersistence({ activeIndex, activeVideo, error, hasPlaybackStarted, hasUser: isLoggedIn, isPlaying, playbackRate, queue, queuePlaylistName, remaining, volume });
   const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
   const previewVideo = useMemo<VideoItem | null>(() => {
@@ -197,11 +197,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   }, []);
 
   useEffect(() => {
-    if (!session.data?.user) return;
-    void loadPlaybackSession().then(setResumeSession).catch(() => undefined);
-  }, [session.data?.user]);
-
-  useEffect(() => {
     if (!isSaveDialogOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setIsSaveDialogOpen(false);
@@ -209,14 +204,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isSaveDialogOpen]);
-
-  useEffect(() => {
-    if (!session.data?.user || !isPlaying || !hasPlaybackStarted || activeIndex === null || queue.length === 0 || !activeVideo || error) return;
-    const timeout = window.setTimeout(() => {
-      void savePlaybackSession({ queue, activeIndex, remaining, playlistName: queuePlaylistName.trim() || "Minha playlist", volume: Math.round(volume * 100), playbackRate }).catch(() => undefined);
-    }, 750);
-    return () => window.clearTimeout(timeout);
-  }, [activeIndex, activeVideo, error, hasPlaybackStarted, isPlaying, playbackRate, queue, queuePlaylistName, remaining, session.data?.user, volume]);
 
   // Guia inativa: timers e eventos de mídia são estrangulados em background,
   // então o `ended` pode nunca chegar. Ao voltar o foco, reconcilia pelo
@@ -352,8 +339,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setError(null);
     setQueueSaveMessage(null);
     setStatus("Playlist encerrada. Escolha ou monte outra para iniciar sem pressa.");
-    setResumeSession(null);
-    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
+    clearResumeSession();
   };
 
   const restartSession = () => {
@@ -388,12 +374,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setIsSessionComplete(false);
     setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
     setResumeSession(null);
-  };
-
-  const discardResume = () => {
-    setResumeSession(null);
-    setIsDiscardResumeOpen(false);
-    void clearPlaybackSession().catch(() => undefined);
   };
 
   const openSaveDialog = (target: "draft" | "queue") => {
@@ -464,15 +444,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     } finally {
       if (isQueue) setIsSavingQueue(false); else setIsSavingPlaylist(false);
     }
-  };
-
-  const recordCompletedVideo = (item: VideoItem, attempt = 0) => {
-    // Fire-and-forget com retry: sem isso, uma falha de rede pontual
-    // apaga a repetição do histórico para sempre.
-    const send = () => recordCompletedVideo(item, attempt + 1);
-    void saveHistory({ url: item.src, completedRepetitions: item.repetitions }).catch(() => {
-      if (attempt < 2) window.setTimeout(send, 1500 * (attempt + 1));
-    });
   };
 
   const start = (event: FormEvent) => {
@@ -651,8 +622,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setRemaining(0);
     setIsSessionComplete(true);
     setStatus("Sessão concluída. Entre para manter este histórico.");
-    setResumeSession(null);
-    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
+    clearResumeSession();
   };
 
   const handleEnded = (videoId: string, expectedRemaining = remaining) => {
@@ -674,8 +644,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setLoaded(0);
     setError(playbackErrorMessage(activeVideo?.src ?? ""));
     setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
-    setResumeSession(null);
-    if (session.data?.user) void clearPlaybackSession().catch(() => undefined);
+    clearResumeSession();
   };
 
   const handlePlayerReady = (videoId: string) => {
