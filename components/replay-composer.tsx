@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { CheckCircle2, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
 
+import { AudioUploadButton } from "@/components/audio-upload-button";
 import { canPlaySrc } from "@/components/react-player-client";
 import { type PlaylistDraft, type SavedPlaylist, parseSingleReplay } from "@/lib/replay-playlist";
 
@@ -27,6 +28,7 @@ type ReplayComposerProps = {
   onStart: (event: FormEvent<HTMLFormElement>) => void;
   onStartNewPlaylist: () => void;
   onUpdateDraft: (id: string, field: "src" | "repetitions", value: string) => void;
+  onUploadAudio: (url: string) => void;
   onPlaybackRateChange: (rate: number) => void;
   playbackRate: number;
   playlistHint: string | null;
@@ -63,6 +65,7 @@ export function ReplayComposer({
   onStart,
   onStartNewPlaylist,
   onUpdateDraft,
+  onUploadAudio,
   onPlaybackRateChange,
   playbackRate,
   playlistHint,
@@ -126,7 +129,7 @@ export function ReplayComposer({
           </div>;
         })}
       </div>}
-      {playlistInputMode === "advanced" && <div className="playlist-editor-toolbar"><span className="playlist-form-summary" aria-live="polite">{drafts.length} {drafts.length === 1 ? "vídeo" : "vídeos"} · {advancedPlaylistRepetitions} {advancedPlaylistRepetitions === 1 ? "execução" : "execuções"}</span><button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button></div>}
+      {playlistInputMode === "advanced" && <div className="playlist-editor-toolbar"><span className="playlist-form-summary" aria-live="polite">{drafts.length} {drafts.length === 1 ? "vídeo" : "vídeos"} · {advancedPlaylistRepetitions} {advancedPlaylistRepetitions === 1 ? "execução" : "execuções"}</span><div className="playlist-editor-actions"><button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>{isLoggedIn && <AudioUploadButton onUploaded={onUploadAudio} />}</div></div>}
       {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
     </>}
     {error && <p className="field-error" role="alert">{error}</p>}

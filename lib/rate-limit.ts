@@ -15,6 +15,7 @@ const limits: Record<string, Limit> = {
   "playlist-write": { requests: 20, window: "1 m" },
   "history-read": { requests: 120, window: "1 m" },
   "history-write": { requests: 60, window: "1 m" },
+  "upload-audio": { requests: 20, window: "10 m" },
 };
 
 const redisUrl = process.env.KV_REST_API_URL;

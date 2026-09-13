@@ -294,6 +294,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onStart={start}
             onStartNewPlaylist={startNewPlaylist}
             onUpdateDraft={updateDraft}
+            onUploadAudio={(url) => { setDraftPlaylistId(null); setDrafts((items) => [...items, { ...makeDraft(), src: url }]); }}
             playbackRate={playbackRate}
             playlistHint={playlistHint}
             playlistInputMode={playlistInputMode}

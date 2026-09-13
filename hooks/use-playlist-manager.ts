@@ -138,6 +138,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     sort,
     domainFilter,
     addItem: () => setItems((current) => [...current, createDraftItem()]),
+    addUploadedItem: (url: string) => setItems((current) => [...current, { ...createDraftItem(), url }]),
     changeInputMode,
     duplicateItem: (item: DraftItem) => setItems((current) => [...current, { ...item, id: crypto.randomUUID() }]),
     moveItem,

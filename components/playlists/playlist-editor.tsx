@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Copy, GripVertical, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { AudioUploadButton } from "@/components/audio-upload-button";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
 
 type PlaylistEditorProps = {
@@ -12,6 +13,7 @@ type PlaylistEditorProps = {
   items: DraftItem[];
   name: string;
   onAddItem: () => void;
+  onAddUploadedItem: (url: string) => void;
   onChangeMode: (mode: PlaylistInputMode) => void;
   onDelete: () => void;
   onDuplicateItem: (item: DraftItem) => void;
@@ -27,7 +29,7 @@ type PlaylistEditorProps = {
 };
 
 export function PlaylistEditor(props: PlaylistEditorProps) {
-  const { inputMode, isSaving, isValid, items, name, onAddItem, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onSimpleInputChange, onUpdateItem, selected, simpleInput } = props;
+  const { inputMode, isSaving, isValid, items, name, onAddItem, onAddUploadedItem, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onSimpleInputChange, onUpdateItem, selected, simpleInput } = props;
   return (
     <section aria-labelledby="editor-title" className="library-editor">
       <header className="library-editor-heading">
@@ -45,6 +47,7 @@ export function PlaylistEditor(props: PlaylistEditorProps) {
         <AdvancedPlaylistInput
           items={items}
           onAddItem={onAddItem}
+          onAddUploadedItem={onAddUploadedItem}
           onDuplicateItem={onDuplicateItem}
           onMoveItem={onMoveItem}
           onRemoveItem={onRemoveItem}
@@ -79,15 +82,18 @@ function SimplePlaylistInput({ onChange, value }: { onChange: (value: string) =>
   );
 }
 
-type AdvancedPlaylistInputProps = Pick<PlaylistEditorProps, "items" | "onAddItem" | "onDuplicateItem" | "onMoveItem" | "onRemoveItem" | "onReorderItems" | "onUpdateItem">;
+type AdvancedPlaylistInputProps = Pick<PlaylistEditorProps, "items" | "onAddItem" | "onAddUploadedItem" | "onDuplicateItem" | "onMoveItem" | "onRemoveItem" | "onReorderItems" | "onUpdateItem">;
 
-function AdvancedPlaylistInput({ items, onAddItem, onDuplicateItem, onMoveItem, onRemoveItem, onReorderItems, onUpdateItem }: AdvancedPlaylistInputProps) {
+function AdvancedPlaylistInput({ items, onAddItem, onAddUploadedItem, onDuplicateItem, onMoveItem, onRemoveItem, onReorderItems, onUpdateItem }: AdvancedPlaylistInputProps) {
   return (
     <>
       <div aria-label="Vídeos da playlist" className="library-items">
         {items.map((item, index) => <PlaylistItemEditor item={item} index={index} key={item.id} onDuplicate={onDuplicateItem} onMove={onMoveItem} onRemove={onRemoveItem} onReorder={onReorderItems} onUpdate={onUpdateItem} total={items.length} />)}
       </div>
-      <button className="add-row" onClick={onAddItem} type="button"><Plus aria-hidden="true" size={17} />Adicionar vídeo</button>
+      <div className="playlist-editor-actions">
+        <button className="add-row" onClick={onAddItem} type="button"><Plus aria-hidden="true" size={17} />Adicionar vídeo</button>
+        <AudioUploadButton onUploaded={onAddUploadedItem} />
+      </div>
     </>
   );
 }

@@ -317,6 +317,8 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .remove-row:hover, li button:hover { color: var(--danger); background: rgba(255, 173, 190, 0.1); }
 .add-row { width: fit-content; padding: 0.48rem 0.65rem; }
 .add-row:hover { background: rgba(230, 238, 255, 0.12); }
+.playlist-editor-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .5rem; }
+.audio-upload { display: inline-flex; flex-direction: column; gap: .3rem; }
 .playlist-form .primary-button { align-self: flex-end; margin-top: 0; grid-column: auto; grid-row: auto; }
 .playlist-actions { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; margin-top: .12rem; }
 .playlist-actions .primary-button { min-width: 10.5rem; }
@@ -661,6 +663,7 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .playlist-heading p { text-align: left; }
   .playlist-editor-toolbar { align-items: stretch; flex-direction: column; }
   .playlist-editor-toolbar .add-row { width: 100%; }
+  .playlist-editor-actions { flex-direction: column; }
   .playlist-row { grid-template-columns: 24px minmax(0, 1fr) 60px 38px; }
   .queue-item { grid-template-columns: 76px minmax(0, 1fr) 54px 30px; gap: 0.35rem; }
   .playlist-save { grid-template-columns: 1fr; align-items: stretch; } .playlist-save .secondary-button { justify-self: stretch; }
