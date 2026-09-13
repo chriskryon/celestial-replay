@@ -104,13 +104,16 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const playlistItems = useMemo(() => parsePlaylistDrafts(drafts, canPlaySrc), [drafts]);
   const simplePlaylistItems = useMemo(() => parsePlaylistLines(simplePlaylist, canPlaySrc), [simplePlaylist]);
   const firstSimplePlaylistItem = useMemo(() => parseFirstPlaylistLine(simplePlaylist, canPlaySrc), [simplePlaylist]);
-  const youtubePlaylistSources = useMemo(() => {
-    if (activeVideo) return queue.map((item) => item.src);
+  const youtubePlaylistItems = useMemo(() => {
+    if (activeVideo) return queue.map((item) => ({ repetitions: item.repetitions, src: item.src }));
     if (mode !== "playlist") return [];
     const entries = playlistInputMode === "simple" ? simplePlaylistItems : playlistItems;
-    return entries?.map((item) => item.src) ?? [];
+    return entries?.map((item) => ({ repetitions: item.count, src: item.src })) ?? [];
   }, [activeVideo, mode, playlistInputMode, playlistItems, queue, simplePlaylistItems]);
-  const usesNativeYoutubePlaylist = youtubePlaylistSources.length > 1;
+  const youtubePlaylistSources = useMemo(() => youtubePlaylistItems.map((item) => item.src), [youtubePlaylistItems]);
+  // Playlist nativa do YouTube não sabe "repetir este item N vezes" — se algum
+  // item exige mais de 1 repetição, usamos nosso próprio motor de troca de vídeo.
+  const usesNativeYoutubePlaylist = youtubePlaylistSources.length > 1 && youtubePlaylistItems.every((item) => item.repetitions === 1);
   const canSubmitPlaylist = playlistInputMode === "simple"
     ? simplePlaylistItems !== null
     : playlistItems !== null;
@@ -141,7 +144,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     })
     : -1;
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0 && !isSessionComplete;
-  const progressLabel = activeIndex === null || error || !hasPlaybackStarted ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
+  const progressLabel = activeIndex === null || error ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const isLoggedIn = Boolean(session.data?.user);
   const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
@@ -286,20 +289,23 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
         }
       } catch { /* tenta no próximo tick */ }
     }, 600);
+    // Em mobile o bloqueio de autoplay é bem mais comum; esperar 8s parado em
+    // "Iniciando…" passa a impressão de travamento, então damos essa notícia antes.
+    const isMobileViewport = typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
     const timeout = window.setTimeout(() => {
       if (isMediaActuallyPlaying(playerRef.current)) {
         handlePlaybackStarted(currentVideoId);
         return;
       }
       setPlayBlocked(true);
-    }, 8000);
+    }, isMobileViewport ? 3000 : 8000);
     return () => { window.clearInterval(interval); window.clearTimeout(timeout); };
   }, [activeVideo?.id, isPlaying, hasPlaybackStarted, error]);
 
   useEffect(() => {
     if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
     scheduledEndRef.current = null;
-    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0 || (remaining <= 1 && !hasNextVideo)) return;
+    if (!activeVideo || !isPlaying || !hasPlaybackStarted || error || duration === null || duration <= 0) return;
     const effectiveRate = Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
     const remainingTime = Math.max(0, (duration * (1 - played) - 0.08) / effectiveRate);
     scheduledEndRef.current = window.setTimeout(() => {
@@ -310,7 +316,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
       scheduledEndRef.current = null;
     };
-  }, [activeVideo?.id, duration, error, hasNextVideo, hasPlaybackStarted, isPlaying, playbackRate, played, remaining]);
+  }, [activeVideo?.id, duration, error, hasPlaybackStarted, isPlaying, playbackRate, played, remaining]);
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDraftPlaylistId(null);
@@ -653,7 +659,13 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       }
       setActiveIndex(nextIndex);
       setRemaining(nextVideo.repetitions);
-      if (!manual && usesNativeYoutubePlaylist) ignoreStaleEndedRef.current = true;
+      if (!manual && usesNativeYoutubePlaylist) {
+        ignoreStaleEndedRef.current = true;
+        // Se o próximo vídeo nunca começar a tocar (autoplay bloqueado, comum em
+        // mobile), handlePlaybackStarted nunca libera essa flag — sem este limite
+        // de tempo, todo handleEnded seguinte ficaria travado para sempre.
+        window.setTimeout(() => { ignoreStaleEndedRef.current = false; }, 4000);
+      }
       setPlayed(0);
       setLoaded(0);
       setDuration(null);
@@ -680,6 +692,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const handlePlaybackError = () => {
+    ignoreStaleEndedRef.current = false;
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setRemaining(0);
@@ -710,9 +723,9 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   };
 
   const handleActiveTimeUpdate = (videoId: string) => {
-    handleTimeUpdate();
     const node = playerRef.current;
     if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current || !node || error) return;
+    handleTimeUpdate();
     const mediaDuration = node.duration;
     if (Number.isFinite(mediaDuration) && mediaDuration > 0) {
       setDuration(mediaDuration);

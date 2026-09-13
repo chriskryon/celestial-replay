@@ -163,7 +163,7 @@ export function ReplayPlayerSurface({
   };
 
 
-  const currentRepetitionProgress = activeVideo && hasPlaybackStarted ? Math.max(0, Math.min(1, played)) : 0;
+  const currentRepetitionProgress = activeVideo ? Math.max(0, Math.min(1, played)) : 0;
   const bufferedProgress = Math.max(played, Math.min(loaded, 1)) * 100;
   const playlistSegments = buildPlaylistSegments(queue, videoDurations, activeVideo?.id, duration);
   const totalPlaylistDuration = playlistSegments.reduce((total, segment) => total + segment.weight, 0);
@@ -226,7 +226,7 @@ export function ReplayPlayerSurface({
             {durationStatus ? <small className="player-context-duration">{durationStatus}</small> : null}
           </div>
         </div>
-        {activeVideo && remaining > 0 && !error && hasPlaybackStarted && <span className="player-repeat-badge"><Repeat2 aria-hidden="true" size={14} />{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</span>}
+        {activeVideo && remaining > 0 && !error && <span className="player-repeat-badge"><Repeat2 aria-hidden="true" size={14} />{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</span>}
       </div>
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`} style={{ "--playlist-progress": playbackProgress / 100 } as CSSProperties}>

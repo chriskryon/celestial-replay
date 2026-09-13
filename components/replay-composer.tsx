@@ -105,7 +105,7 @@ export function ReplayComposer({
       </div>
       {savedPlaylists.length > 0 && <section className="saved-playlists" aria-labelledby="saved-playlists-title">
         <h3 id="saved-playlists-title">Minhas playlists</h3>
-        <div>{savedPlaylists.map((playlist) => <button className="saved-playlist" type="button" key={playlist.id} onClick={() => onLoadSavedPlaylist(playlist)}>{playlist.name}<span>{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</span></button>)}</div>
+        <div>{savedPlaylists.map((playlist) => <button className="saved-playlist" type="button" key={playlist.id} onClick={() => onLoadSavedPlaylist(playlist)}><span className="saved-playlist-name">{playlist.name}</span><span className="saved-playlist-count">{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</span></button>)}</div>
       </section>}
       {playlistInputMode === "simple" ? <div className="simple-playlist-input">
         <label htmlFor="simple-playlist">Vídeos e repetições</label>
