@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Copy, ListFilter, ListMusic, Pencil, Play, Plus, Search } from "lucide-react";
+import { Copy, ListFilter, ListMusic, Pencil, Plus, Search } from "lucide-react";
 
 import type { Playlist } from "@/components/playlists/types";
 import { sourceDomain } from "@/lib/playlist-draft";
@@ -46,7 +45,6 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
                       <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
-                    <Link aria-label={`Reproduzir ${playlist.name}`} className="library-playlist-play" href={`/advanced?playlistId=${encodeURIComponent(playlist.id)}&autoplay=1`} title={`Reproduzir ${playlist.name}`}><Play aria-hidden="true" size={16} /></Link>
                     <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
                   </div>
                 </li>
