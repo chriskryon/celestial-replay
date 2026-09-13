@@ -16,6 +16,7 @@ import { clearPlaybackSession, loadPlaybackSession, loadPlaylists, saveHistory, 
 import { canSavePlaylist } from "@/lib/replay-validation";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
+import { useTransportShortcuts } from "@/hooks/use-transport-shortcuts";
 import { useQueueMetadata, useVideoMetadata } from "@/hooks/use-video-metadata";
 
 export type ReplayStudioHandle = {
@@ -216,34 +217,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     }, 750);
     return () => window.clearTimeout(timeout);
   }, [activeIndex, activeVideo, error, hasPlaybackStarted, isPlaying, playbackRate, queue, queuePlaylistName, remaining, session.data?.user, volume]);
-
-  useEffect(() => {
-    const handleKeydown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, button, [contenteditable='true']") || !activeVideo) return;
-      if (event.key === " ") {
-        event.preventDefault();
-        // Espaço é gesto do usuário: tenta play imperativo antes do estado.
-        try {
-          const node = playerRef.current;
-          if (node && (node as HTMLVideoElement).paused) {
-            const r = (node as HTMLVideoElement).play() as unknown as Promise<void> | undefined;
-            if (r && typeof r.catch === "function") r.catch(() => undefined);
-          } else node?.pause();
-        } catch { /* segue para estado */ }
-        setIsPlaying((value) => !value);
-      }
-      if (event.key.toLowerCase() === "m") setVolume((value) => value === 0 ? 0.7 : 0);
-      if (event.key.toLowerCase() === "n" && activeIndex !== null) nextVideo();
-      if (event.key.toLowerCase() === "b" && activeIndex !== null) previousVideo();
-      if (event.key.toLowerCase() === "j") seekBy(-10);
-      if (event.key.toLowerCase() === "l") seekBy(10);
-      if (event.key === "ArrowUp") { event.preventDefault(); setVolume((value) => Math.min(1, Number((value + 0.05).toFixed(2)))); }
-      if (event.key === "ArrowDown") { event.preventDefault(); setVolume((value) => Math.max(0, Number((value - 0.05).toFixed(2)))); }
-    };
-    window.addEventListener("keydown", handleKeydown);
-    return () => window.removeEventListener("keydown", handleKeydown);
-  }, [activeVideo, activeIndex, remaining]);
 
   // Guia inativa: timers e eventos de mídia são estrangulados em background,
   // então o `ended` pode nunca chegar. Ao voltar o foco, reconcilia pelo
@@ -807,6 +780,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       volume,
     });
   }, [activeIndex, activeVideo, duration, hasNextVideo, hasPrevVideo, isPlaying, isSessionComplete, onPlaybackChange, played, remaining, totalRepetitions, volume]);
+
+  useTransportShortcuts({ activeIndex, activeVideo, nextVideo, playerRef, previousVideo, remaining, seekBy, setIsPlaying, setVolume });
 
   useImperativeHandle(ref, () => ({
     nextVideo,
