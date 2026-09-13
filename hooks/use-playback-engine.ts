@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, ty
 import { canPlaySrc } from "@/components/react-player-client";
 import type { PlaybackSnapshot } from "@/components/replay-studio";
 import { playbackErrorMessage } from "@/lib/playback-error";
-import { isPlayableItem, type ParsedPlaylistItem, type VideoItem } from "@/lib/replay-playlist";
+import { isPlayableItem, type ParsedPlaylistItem, type ResumableSession, type VideoItem } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot } from "@/lib/replay-session";
 
 type UsePlaybackEngineParams = {
@@ -27,6 +27,7 @@ type UsePlaybackEngineParams = {
   setDuration: Dispatch<SetStateAction<number | null>>;
   setError: Dispatch<SetStateAction<string | null>>;
   setLoaded: Dispatch<SetStateAction<number>>;
+  setPlaybackRate: Dispatch<SetStateAction<number>>;
   setPlayed: Dispatch<SetStateAction<number>>;
   setStatus: Dispatch<SetStateAction<string>>;
   setVolume: Dispatch<SetStateAction<number>>;
@@ -52,7 +53,7 @@ function hasMediaReachedEnd(node: HTMLVideoElement | null) {
 // do YouTube e os watchdogs de `ended`/autoplay bloqueado. Núcleo mais crítico
 // do player — os 5 pontos endurecidos no commit `6c989e5` (mobile) precisam
 // continuar exatamente como estão aqui.
-export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, error, handleTimeUpdate, mode, onPlaybackChange, playbackRate, played, playerRef, playlistInputMode, playlistItems, programmaticSeekRef, recordCompletedVideo, seekingRef, setDuration, setError, setLoaded, setPlayed, setStatus, setVolume, simplePlaylistItems, status, volume }: UsePlaybackEngineParams) {
+export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, error, handleTimeUpdate, mode, onPlaybackChange, playbackRate, played, playerRef, playlistInputMode, playlistItems, programmaticSeekRef, recordCompletedVideo, seekingRef, setDuration, setError, setLoaded, setPlaybackRate, setPlayed, setStatus, setVolume, simplePlaylistItems, status, volume }: UsePlaybackEngineParams) {
   const [activeSavedPlaylistId, setActiveSavedPlaylistId] = useState<string | null>(null);
   const [queue, setQueue] = useState<VideoItem[]>([]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -189,6 +190,83 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     setIsSessionComplete(false);
     setError(null);
     setStatus(`Reproduzindo vídeo 1 de ${queue.length}.`);
+  };
+
+  // Ponto único pra começar a tocar uma fila nova (form de vídeo único, form de
+  // playlist, ou uma playlist salva) — os 3 call sites faziam esse mesmo bloco
+  // de ~10 setX com pequenas variações; cada uma virou um parâmetro explícito
+  // em vez de tentar inferir a diferença (repetições ≠ posição na fila,
+  // vídeo único nunca reseta duration/nome da playlist).
+  const startQueue = (items: VideoItem[], { playImmediately = false, playlistId, playlistName, resetDuration = true, statusMessage }: { playImmediately?: boolean; playlistId: string | null; playlistName?: string; resetDuration?: boolean; statusMessage: string }) => {
+    if (items.length === 0) return;
+    // Gesto do usuário: dá play na instância atual antes de trocar o estado,
+    // assim o navegador mantém a ativação e não recarrega o preview.
+    if (playImmediately) attemptPlay();
+    if (playlistName !== undefined) setQueuePlaylistName(playlistName);
+    setQueue(items);
+    setActiveSavedPlaylistId(playlistId);
+    setActiveIndex(0);
+    setRemaining(items[0].repetitions);
+    setPlayed(0);
+    setLoaded(0);
+    if (resetDuration) setDuration(null);
+    seekingRef.current = false;
+    setIsPlaying(true);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setError(null);
+    setStatus(statusMessage);
+  };
+
+  const resetQueue = () => {
+    setActiveSavedPlaylistId(null);
+    setQueue([]);
+    setActiveIndex(null);
+    setRemaining(0);
+    setIsPlaying(false);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setError(null);
+    setStatus("Monte uma playlist e inicie quando estiver tudo pronto.");
+  };
+
+  const stopQueue = () => {
+    // Encerrar deve interromper a sessão atual, sem apagar o rascunho que o
+    // usuário pode editar para montar a próxima fila.
+    try { playerRef.current?.pause(); } catch { /* o estado abaixo encerra o ciclo declarativo */ }
+    if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
+    scheduledEndRef.current = null;
+    activeVideoIdRef.current = null;
+    endedVideoIdRef.current = null;
+    ignoreStaleEndedRef.current = false;
+    seekingRef.current = false;
+    setQueue([]);
+    setActiveSavedPlaylistId(null);
+    setActiveIndex(null);
+    setRemaining(0);
+    setPlayed(0);
+    setLoaded(0);
+    setDuration(null);
+    setIsPlaying(false);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setPlayBlocked(false);
+    setError(null);
+    setStatus("Playlist encerrada. Escolha ou monte outra para iniciar sem pressa.");
+  };
+
+  const resumeQueue = (session: ResumableSession) => {
+    setQueue(session.queue);
+    setActiveSavedPlaylistId(null);
+    setActiveIndex(session.activeIndex);
+    setRemaining(session.remaining);
+    setQueuePlaylistName(session.playlistName);
+    setVolume(session.volume / 100);
+    setPlaybackRate(Number.isFinite(session.playbackRate) && (session.playbackRate as number) >= 0.25 && (session.playbackRate as number) <= 4 ? session.playbackRate as number : 1);
+    setIsPlaying(true);
+    setHasPlaybackStarted(false);
+    setIsSessionComplete(false);
+    setStatus(`Reproduzindo vídeo ${session.activeIndex + 1} de ${session.queue.length}.`);
   };
 
   // Avança uma repetição do vídeo atual (manual = botão; automático = ended).
@@ -451,12 +529,10 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     activeIndex,
     activeSavedPlaylistId,
     activeVideo,
-    activeVideoIdRef,
     canGoBackRepetition,
     canSkipRepetition,
     completedQueue,
     completedRepetitions,
-    endedVideoIdRef,
     handleActiveTimeUpdate,
     handleDurationChange,
     handleEnded,
@@ -468,12 +544,10 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     hasNextVideo,
     hasPlaybackStarted,
     hasPrevVideo,
-    ignoreStaleEndedRef,
     isPlaying,
     isSessionComplete,
     nextVideo,
     playBlocked,
-    playLoadedVideo,
     playNextRepetition,
     playNextVideo,
     playPreviousRepetition,
@@ -483,23 +557,19 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     queuePlaylistName,
     remaining,
     removeFutureItem,
+    resetQueue,
     restartSession,
+    resumeQueue,
     retryCurrentVideo,
-    scheduledEndRef,
-    setActiveIndex,
+    startQueue,
+    stopQueue,
     setActiveSavedPlaylistId,
-    setHasPlaybackStarted,
     setIsPlaying,
-    setIsSessionComplete,
-    setPlayBlocked,
-    setQueue,
     setQueuePlaylistName,
-    setRemaining,
     toggleMute,
     togglePlay,
     totalRepetitions,
     updateUpcomingItem,
-    usesNativeYoutubePlaylist,
     videoDurations,
     visibleQueue,
     youtubePlaylistSources,

@@ -61,7 +61,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const routedPlaylistIdRef = useRef<string | null>(null);
   const { canSubmitPlaylist, canSubmitSingle, draftPlaylistId, drafts, firstSimplePlaylistItem, invalidSimpleLine, isSavingPlaylist, mode, playlistHint, playlistInputMode, playlistItems, playlistName, playlistSaveMessage, repetitions, setDraftPlaylistId, setDrafts, setIsSavingPlaylist, setMode, setPlaylistInputMode, setPlaylistName, setPlaylistSaveMessage, setRepetitions, setSimplePlaylist, setSource, simplePlaylist, simplePlaylistItems, simplePlaylistLineCount, singleHint, singleReplay, source, updateDraft } = usePlaylistComposer({ initialMode, setError, setStatus });
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
-  const playLoadedVideo = attemptPlay;
   const isLoggedIn = Boolean(session.data?.user);
 
   // usePlaybackEngine precisa de clearResumeSession/recordCompletedVideo (de
@@ -71,7 +70,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const clearResumeSessionRef = useRef<() => void>(() => undefined);
   const recordCompletedVideoRef = useRef<(item: VideoItem) => void>(() => undefined);
 
-  const { activeIndex, activeSavedPlaylistId, activeVideo, activeVideoIdRef, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, endedVideoIdRef, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, ignoreStaleEndedRef, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, restartSession, retryCurrentVideo, scheduledEndRef, setActiveIndex, setActiveSavedPlaylistId, setHasPlaybackStarted, setIsPlaying, setIsSessionComplete, setPlayBlocked, setQueue, setQueuePlaylistName, setRemaining, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
+  const { activeIndex, activeSavedPlaylistId, activeVideo, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, resetQueue, restartSession, resumeQueue, retryCurrentVideo, setActiveSavedPlaylistId, setIsPlaying, setQueuePlaylistName, startQueue, stopQueue, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
     attemptPlay,
     clearResumeSession: () => clearResumeSessionRef.current(),
     duration,
@@ -90,6 +89,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setDuration,
     setError,
     setLoaded,
+    setPlaybackRate,
     setPlayed,
     setStatus,
     setVolume,
@@ -150,58 +150,21 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   const startNewPlaylist = () => {
     setDraftPlaylistId(null);
-    setActiveSavedPlaylistId(null);
-    setQueue([]);
-    setActiveIndex(null);
-    setRemaining(0);
-    setIsPlaying(false);
-    setHasPlaybackStarted(false);
-    setIsSessionComplete(false);
-    setError(null);
-    setStatus("Monte uma playlist e inicie quando estiver tudo pronto.");
+    resetQueue();
   };
 
   const stopPlaylist = () => {
     // Encerrar deve interromper a sessão atual, sem apagar o rascunho que o
     // usuário pode editar para montar a próxima fila.
-    try { playerRef.current?.pause(); } catch { /* o estado abaixo encerra o ciclo declarativo */ }
-    if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
-    scheduledEndRef.current = null;
-    activeVideoIdRef.current = null;
-    endedVideoIdRef.current = null;
-    ignoreStaleEndedRef.current = false;
-    seekingRef.current = false;
-    setQueue([]);
-    setActiveSavedPlaylistId(null);
-    setActiveIndex(null);
-    setRemaining(0);
-    setPlayed(0);
-    setLoaded(0);
-    setDuration(null);
-    setIsPlaying(false);
-    setHasPlaybackStarted(false);
-    setIsSessionComplete(false);
-    setPlayBlocked(false);
-    setError(null);
+    stopQueue();
     setQueueSaveMessage(null);
-    setStatus("Playlist encerrada. Escolha ou monte outra para iniciar sem pressa.");
     clearResumeSession();
   };
 
   const resume = () => {
     if (!resumeSession) return;
     setMode("playlist");
-    setQueue(resumeSession.queue);
-    setActiveSavedPlaylistId(null);
-    setActiveIndex(resumeSession.activeIndex);
-    setRemaining(resumeSession.remaining);
-    setQueuePlaylistName(resumeSession.playlistName);
-    setVolume(resumeSession.volume / 100);
-    setPlaybackRate(Number.isFinite(resumeSession.playbackRate) && (resumeSession.playbackRate as number) >= 0.25 && (resumeSession.playbackRate as number) <= 4 ? resumeSession.playbackRate as number : 1);
-    setIsPlaying(true);
-    setHasPlaybackStarted(false);
-    setIsSessionComplete(false);
-    setStatus(`Reproduzindo vídeo ${resumeSession.activeIndex + 1} de ${resumeSession.queue.length}.`);
+    resumeQueue(resumeSession);
     setResumeSession(null);
   };
 
@@ -224,21 +187,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   const startSavedPlaylist = (playlist: SavedPlaylist) => {
     const nextQueue = playlist.items.map((item) => makeItem(item.url.trim(), item.repetitions));
-    if (nextQueue.length === 0) return;
-    setQueuePlaylistName(playlist.name);
-    setQueue(nextQueue);
-    setActiveSavedPlaylistId(playlist.id);
-    setActiveIndex(0);
-    setRemaining(nextQueue[0].repetitions);
-    setPlayed(0);
-    setLoaded(0);
-    setDuration(null);
-    seekingRef.current = false;
-    setIsPlaying(true);
-    setHasPlaybackStarted(false);
-    setIsSessionComplete(false);
-    setError(null);
-    setStatus(`Reproduzindo vídeo 1 de ${nextQueue.length}.`);
+    startQueue(nextQueue, { playlistId: playlist.id, playlistName: playlist.name, statusMessage: `Reproduzindo vídeo 1 de ${nextQueue.length}.` });
   };
 
   const savePlaylist = async () => {
@@ -286,23 +235,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
         setError("Informe uma URL válida e um número inteiro de repetições maior que zero.");
         return;
       }
-      // O preview já montou o iframe/<video> com este mesmo src.
-      // Dá play NA INSTÂNCIA ATUAL dentro do clique antes de trocar o estado,
-      // assim o navegador mantém o gesto de ativação e não recarrega.
-      playLoadedVideo();
       const item = makeItem(singleReplay!.src, singleReplay!.count);
-      setQueue([item]);
-      setActiveSavedPlaylistId(null);
-      setActiveIndex(0);
-      setRemaining(item.repetitions);
-      setPlayed(0);
-      setLoaded(0);
-      seekingRef.current = false;
-      setIsPlaying(true);
-      setHasPlaybackStarted(false);
-      setIsSessionComplete(false);
-      setError(null);
-      setStatus(`Reproduzindo 1 de ${item.repetitions}.`);
+      startQueue([item], { playImmediately: true, playlistId: null, resetDuration: false, statusMessage: `Reproduzindo 1 de ${item.repetitions}.` });
       return;
     }
 
@@ -311,23 +245,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
       return;
     }
     const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems!;
-    // Mesmo raciocínio da playlist: o preview do 1º vídeo já está montado.
-    playLoadedVideo();
     const nextQueue = entries.map((item) => makeItem(item.src.trim(), item.count));
-    setQueuePlaylistName(playlistName.trim() || "Minha playlist");
-    setQueue(nextQueue);
-    setActiveSavedPlaylistId(draftPlaylistId);
-    setActiveIndex(0);
-    setRemaining(nextQueue[0].repetitions);
-    setPlayed(0);
-    setLoaded(0);
-    seekingRef.current = false;
-    setIsPlaying(true);
-    setHasPlaybackStarted(false);
-    setIsSessionComplete(false);
-    setError(null);
-    setStatus(`Reproduzindo vídeo 1 de ${nextQueue.length}.`);
-    setDuration(null);
+    startQueue(nextQueue, { playImmediately: true, playlistId: draftPlaylistId, playlistName: playlistName.trim() || "Minha playlist", statusMessage: `Reproduzindo vídeo 1 de ${nextQueue.length}.` });
   };
 
   useTransportShortcuts({ activeIndex, activeVideo, nextVideo, playerRef, previousVideo, remaining, seekBy, setIsPlaying, setVolume });
