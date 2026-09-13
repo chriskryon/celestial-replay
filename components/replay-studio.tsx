@@ -70,7 +70,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const clearResumeSessionRef = useRef<() => void>(() => undefined);
   const recordCompletedVideoRef = useRef<(item: VideoItem) => void>(() => undefined);
 
-  const { activeIndex, activeSavedPlaylistId, activeVideo, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, resetQueue, restartSession, resumeQueue, retryCurrentVideo, setActiveSavedPlaylistId, setIsPlaying, setQueuePlaylistName, startQueue, stopQueue, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
+  const { activeIndex, activeSavedPlaylistId, activeVideo, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, resetQueue, restartSession, resumeQueue, retryCurrentVideo, setActiveSavedPlaylistId, setIsPlaying, setQueuePlaylistName, startQueue, stopQueue, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, usesNativeYoutubePlaylist, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
     attemptPlay,
     clearResumeSession: () => clearResumeSessionRef.current(),
     duration,
@@ -366,6 +366,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             videoAuthor={videoMetadata.authorName}
             videoDurations={videoDurations}
             videoTitle={videoMetadata.title}
+            usesNativeYoutubePlaylist={usesNativeYoutubePlaylist}
             youtubePlaylistSources={youtubePlaylistSources}
             volume={volume}
           />

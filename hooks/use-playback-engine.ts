@@ -575,6 +575,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     togglePlay,
     totalRepetitions,
     updateUpcomingItem,
+    usesNativeYoutubePlaylist,
     videoDurations,
     visibleQueue,
     youtubePlaylistSources,

@@ -66,6 +66,7 @@ type ReplayPlayerSurfaceProps = {
   queueLength: number;
   remaining: number;
   totalRepetitions: number;
+  usesNativeYoutubePlaylist: boolean;
   videoAuthor: string | null;
   videoDurations: Record<string, number>;
   videoTitle: string | null;
@@ -128,6 +129,7 @@ export function ReplayPlayerSurface({
   queueLength,
   remaining,
   totalRepetitions,
+  usesNativeYoutubePlaylist,
   videoAuthor,
   videoDurations,
   videoTitle,
@@ -182,7 +184,12 @@ export function ReplayPlayerSurface({
   const youtubePlaylistIds = youtubePlaylistSources
     .map((source) => source.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/)?.[1])
     .filter((id): id is string => Boolean(id));
-  const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1;
+  // usesNativeYoutubePlaylist vem do engine, que também leva em conta as
+  // repetições (playlist nativa do YouTube não sabe repetir um item — ver
+  // hooks/use-playback-engine.ts). Sem essa checagem aqui, esse componente
+  // podia decidir renderizar o embed nativo mesmo quando o engine já tinha
+  // desistido de comandá-lo, travando o vídeo no primeiro item da fila.
+  const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1 && usesNativeYoutubePlaylist;
   const playerSource = useNativeYoutubePlaylist ? youtubePlaylistSources[0] : displayedVideo?.src;
   const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
