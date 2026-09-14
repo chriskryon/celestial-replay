@@ -503,6 +503,13 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
 
   const handlePlaybackPause = (videoId: string) => {
     if (!activeVideo || !hasPlaybackStarted || videoId !== activeVideoIdRef.current || endedVideoIdRef.current === `${videoId}:${remaining}`) return;
+    // Mídia nativa (HTML5 audio/video) dispara `pause` um instante antes de `ended`
+    // ao terminar sozinha. Tratar isso como pausa real zera hasPlaybackStarted bem
+    // na hora em que handleEnded (e o watchdog de fim estimado) mais precisam dele
+    // ligado — o resultado observado foi o player entrar num loop de play/pause e
+    // reiniciar a mídia do zero (play() numa mídia `ended` volta pro início) sem
+    // nunca decrementar a repetição.
+    if (hasMediaReachedEnd(playerRef.current)) return;
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setStatus("Reprodução pausada.");
