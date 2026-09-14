@@ -1,5 +1,6 @@
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import type { DraftItem } from "@/components/playlists/types";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 export const initialDraftItem: DraftItem = {
   id: "new-playlist-item",
@@ -12,6 +13,7 @@ export function createDraftItem(): DraftItem {
 }
 
 export function sourceDomain(url: string) {
+  if (uploadDisplayNameFromUrl(url)) return "Áudios enviados";
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {

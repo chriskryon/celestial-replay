@@ -312,6 +312,8 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .playlist-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 78px 38px; gap: 0.4rem; align-items: center; }
 .row-number { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 99px; color: var(--blue); background: rgba(188, 204, 255, 0.1); font-size: 0.74rem; font-weight: 600; }
 .playlist-row input { min-width: 0; }
+.playlist-source-field { display: grid; min-width: 0; gap: .22rem; }
+.playlist-source-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #dce7ff; font-size: .72rem; font-weight: 700; }
 .remove-row, .add-row { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 0.4rem; border: 1px solid var(--line); border-radius: 0.55rem; color: var(--ink); background: rgba(230, 238, 255, 0.06); font-size: 0.8rem; font-weight: 600; }
 .remove-row { width: 38px; color: var(--muted); }
 .remove-row:hover, li button:hover { color: var(--danger); background: rgba(255, 173, 190, 0.1); }
@@ -589,6 +591,7 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .audio-library-list li { display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.4rem 0.5rem; border-radius: 0.5rem; background: rgba(230, 238, 255, 0.04); }
 .audio-library-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; }
 .audio-library-size { flex: 0 0 auto; color: var(--muted); font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.audio-use-button { flex: 0 0 auto; min-height: 32px; padding: .3rem .48rem; }
 .library-items { display: grid; gap: 0.45rem; }
 .library-items .playlist-row { grid-template-columns: 26px 28px minmax(0, 1fr) 78px auto; }
 .drag-handle, .row-actions button, .library-duplicate { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 0.42rem; color: var(--muted); background: transparent; }

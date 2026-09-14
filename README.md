@@ -89,10 +89,12 @@ NEON_AUTH_BASE_URL=
 NEON_AUTH_COOKIE_SECRET=
 KV_REST_API_URL=
 KV_REST_API_TOKEN=
+BLOB_READ_WRITE_TOKEN=
 APP_ORIGIN=http://localhost:3000
 ```
 
 Para autenticação, configure `http://localhost:3000` e o domínio de produção como trusted origins no Neon Auth. Mais detalhes estão em [NEON_AUTH_SETUP.md](./NEON_AUTH_SETUP.md).
+Para uploads de áudio, crie um store no Vercel Blob e copie o `BLOB_READ_WRITE_TOKEN` para `.env.local` e para as variáveis do projeto na Vercel.
 
 ## Qualidade e banco
 

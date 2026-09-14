@@ -8,6 +8,7 @@ import { canEnablePIP } from "@/components/react-player-client";
 import { buildPlaylistSegments } from "@/lib/playback-progress";
 import { formatRemainingTime, formatTime, getHostname } from "@/lib/formatters";
 import type { VideoItem } from "@/lib/replay-playlist";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
 
@@ -198,6 +199,7 @@ export function ReplayPlayerSurface({
     ? youtubePlaylistSources[0]
     : isAudioResolving ? undefined : (resolvedAudioSrc ?? displayedVideo?.src);
   const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
+  const uploadTitle = displayedVideo?.src ? uploadDisplayNameFromUrl(displayedVideo.src) : null;
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
   const completeTitle = queueLength > 1 ? "Playlist concluída" : "Vídeo concluído";
 
@@ -233,8 +235,8 @@ export function ReplayPlayerSurface({
         <div className="player-context">
           <span className="player-context-icon"><Clapperboard aria-hidden="true" size={17} /></span>
           <div className="player-context-copy">
-            {displayedVideo && <strong className="player-video-title" title={videoTitle ?? displayedVideo.src}>{videoTitle ?? fallbackTitle}</strong>}
-            <small className="player-video-author">{videoAuthor ?? sourceHost}</small>
+            {displayedVideo && <strong className="player-video-title" title={videoTitle ?? uploadTitle ?? displayedVideo.src}>{videoTitle ?? uploadTitle ?? fallbackTitle}</strong>}
+            <small className="player-video-author">{uploadTitle ? "Áudio enviado" : videoAuthor ?? sourceHost}</small>
             <span className="player-context-status" role="status" aria-live="polite">{progressLabel ?? playerStatus}</span>
             {durationStatus ? <small className="player-context-duration">{durationStatus}</small> : null}
           </div>

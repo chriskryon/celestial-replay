@@ -4,6 +4,7 @@ import { CheckCircle2, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import { canPlaySrc } from "@/components/react-player-client";
 import { type PlaylistDraft, type SavedPlaylist, parseSingleReplay } from "@/lib/replay-playlist";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type ReplayMode = "single" | "playlist";
 type PlaylistInputMode = "simple" | "advanced";
@@ -119,10 +120,14 @@ export function ReplayComposer({
         {drafts.map((draft, index) => {
           const touched = draft.src.trim() !== "" || draft.repetitions !== "1";
           const rowInvalid = touched && !parseSingleReplay(draft.src, draft.repetitions, canPlaySrc);
+          const uploadName = uploadDisplayNameFromUrl(draft.src);
           return <div className="playlist-row" key={draft.id}>
             <span className="row-number" aria-hidden="true">{index + 1}</span>
             <label className="sr-only" htmlFor={`playlist-url-${draft.id}`}>URL do vídeo {index + 1}</label>
-            <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => onUpdateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" aria-invalid={rowInvalid} />
+            <span className="playlist-source-field">
+              {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
+              <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => onUpdateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" aria-invalid={rowInvalid} />
+            </span>
             <label className="sr-only" htmlFor={`playlist-count-${draft.id}`}>Repetições do vídeo {index + 1}</label>
             <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => onUpdateDraft(draft.id, "repetitions", event.target.value)} aria-invalid={rowInvalid} />
             {drafts.length > 1 && <button className="remove-row" type="button" onClick={() => onRemoveDraft(draft.id)} aria-label={`Remover vídeo ${index + 1}`}><Trash2 aria-hidden="true" size={18} /></button>}

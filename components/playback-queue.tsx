@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { canPlaySrc } from "@/components/react-player-client";
 import { isPlayableMediaUrl } from "@/lib/media-url";
 import { isPlayableItem, type VideoItem } from "@/lib/replay-playlist";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaybackQueueProps = {
   activeIndex: number | null;
@@ -55,7 +56,7 @@ export function PlaybackQueue({
   const [isExpanded, setIsExpanded] = useState(true);
   const currentItem = isSessionComplete || activeIndex === null ? null : queue[activeIndex] ?? null;
   const currentMetadata = currentItem ? metadata[currentItem.src] : null;
-  const currentTitle = currentItem ? currentMetadata?.title ?? (() => {
+  const currentTitle = currentItem ? currentMetadata?.title ?? uploadDisplayNameFromUrl(currentItem.src) ?? (() => {
     try { return new URL(currentItem.src).hostname.replace(/^www\./, ""); } catch { return "Vídeo atual"; }
   })() : null;
 
@@ -80,9 +81,10 @@ export function PlaybackQueue({
           : "Iniciando"
       : index < (activeIndex ?? 0) ? "Concluído" : "A seguir";
     const itemMetadata = metadata[item.src];
-    const displayTitle = itemMetadata?.title ?? (() => {
+    const displayTitle = itemMetadata?.title ?? uploadDisplayNameFromUrl(item.src) ?? (() => {
       try { return new URL(item.src).hostname.replace(/^www\./, ""); } catch { return item.src; }
     })();
+    const uploadTitle = uploadDisplayNameFromUrl(item.src);
 
     return (
       <li ref={isCurrent ? currentItemRef : undefined} className={`queue-item${isCurrent ? " is-current" : ""}${recentIndex === index ? " is-recent" : ""}`} key={item.id}>
@@ -120,7 +122,7 @@ export function PlaybackQueue({
         </> : <>
           <span className="queue-media-copy">
             {itemMetadata?.loading ? <span className="cosmic-skeleton queue-title-skeleton" aria-label="Carregando título do vídeo" /> : <strong>{displayTitle}</strong>}
-            {itemMetadata?.authorName && <small>{itemMetadata.authorName}</small>}
+            {(itemMetadata?.authorName || uploadTitle) && <small>{uploadTitle ? "Áudio enviado" : itemMetadata?.authorName}</small>}
             <a className="queue-url" href={item.src} target="_blank" rel="noreferrer" title={item.src}><ExternalLink aria-hidden="true" size={12} />Abrir origem</a>
           </span>
           <span className="queue-count">{item.repetitions}×</span>

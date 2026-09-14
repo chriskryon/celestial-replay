@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { ReplayStudio, type PlaybackSnapshot, type ReplayStudioHandle } from "@/components/replay-studio";
 import { formatTime } from "@/lib/formatters";
 import { AuthControls } from "@/components/auth-controls";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 const studioModeByPath = {
   "/": "single",
@@ -57,6 +58,8 @@ export function PersistentPlaybackShell({ children }: { children: React.ReactNod
 
   const miniSource = snapshot.source ?? lastSourceRef.current;
   const sourceLabel = miniSource ? (() => {
+    const uploadName = uploadDisplayNameFromUrl(miniSource);
+    if (uploadName) return uploadName;
     try {
       const source = new URL(miniSource);
       return `${source.hostname.replace(/^www\./, "")}${source.pathname}${source.search}`;

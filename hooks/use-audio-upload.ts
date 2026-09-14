@@ -5,8 +5,14 @@ import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { AUDIO_MIME_EXTENSIONS } from "@/lib/media-url";
+import { sanitizeUploadBaseName } from "@/lib/upload-display";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+async function fileSha256(file: File) {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(hashBuffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 export function useAudioUpload() {
   const session = authClient.useSession();
@@ -24,14 +30,16 @@ export function useAudioUpload() {
     setIsUploading(true);
     setError(null);
     try {
-      const blob = await upload(`audio/${userId}/upload.${extension}`, file, {
+      const name = sanitizeUploadBaseName(file.name);
+      const hash = await fileSha256(file);
+      const blob = await upload(`audio/${userId}/${hash}-${name}.${extension}`, file, {
         access: "public",
         handleUploadUrl: "/api/uploads/audio",
         contentType: file.type,
       });
       return blob.url;
-    } catch {
-      setError("Falha ao enviar o áudio. Tente novamente.");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error && uploadError.message ? uploadError.message : "Falha ao enviar o áudio. Tente novamente.");
       return null;
     } finally {
       setIsUploading(false);

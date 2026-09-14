@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaylistEditorProps = {
   inputMode: PlaylistInputMode;
@@ -112,12 +113,16 @@ type PlaylistItemEditorProps = {
 
 function PlaylistItemEditor({ index, item, onDuplicate, onMove, onRemove, onReorder, onUpdate, total }: PlaylistItemEditorProps) {
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const uploadName = uploadDisplayNameFromUrl(item.url);
   return (
     <div className="playlist-row" draggable onDragOver={(event) => event.preventDefault()} onDragStart={() => setDraggedItemId(item.id)} onDrop={() => { if (draggedItemId && draggedItemId !== item.id) onReorder(draggedItemId, item.id); setDraggedItemId(null); }}>
       <span aria-hidden="true" className="row-number">{index + 1}</span>
       <button aria-label={`Arraste ou mova o vídeo ${index + 1}`} className="drag-handle" type="button"><GripVertical aria-hidden="true" size={16} /></button>
       <label className="sr-only" htmlFor={`library-url-${item.id}`}>URL do vídeo {index + 1}</label>
-      <input autoComplete="url" id={`library-url-${item.id}`} inputMode="url" onChange={(event) => onUpdate(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" value={item.url} />
+      <span className="playlist-source-field">
+        {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
+        <input autoComplete="url" id={`library-url-${item.id}`} inputMode="url" onChange={(event) => onUpdate(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" value={item.url} />
+      </span>
       <label className="sr-only" htmlFor={`library-repetitions-${item.id}`}>Repetições do vídeo {index + 1}</label>
       <input id={`library-repetitions-${item.id}`} min="1" onChange={(event) => onUpdate(item.id, "repetitions", event.target.value)} step="1" type="number" value={item.repetitions} />
       <div className="row-actions">

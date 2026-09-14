@@ -1,4 +1,5 @@
 import { isPlayableMediaUrl } from "@/lib/media-url";
+import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type HistoryRecord = {
   completedAt: Date;
@@ -31,6 +32,7 @@ const dayLabelFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 export function displayHost(url: string) {
+  if (uploadDisplayNameFromUrl(url)) return "Áudio enviado";
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {
@@ -39,6 +41,8 @@ export function displayHost(url: string) {
 }
 
 export function displaySource(url: string) {
+  const uploadName = uploadDisplayNameFromUrl(url);
+  if (uploadName) return uploadName;
   try {
     const parsed = new URL(url);
     return `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname}${parsed.search}`;
