@@ -1,15 +1,45 @@
-import { list } from "@vercel/blob";
+import { del, list } from "@vercel/blob";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/current-user";
-import { AUDIO_MIME_EXTENSIONS } from "@/lib/media-url";
+import { AUDIO_MIME_EXTENSIONS, isOwnUploadUrl } from "@/lib/media-url";
 import { requireWithinRateLimit } from "@/lib/rate-limit";
 import { requireSameOrigin } from "@/lib/request-security";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_FILES_PER_USER = 20;
 const MAX_BYTES_PER_USER = 200 * 1024 * 1024;
+
+export async function GET(request: Request) {
+  const rateLimitError = await requireWithinRateLimit(request, "upload-audio"); if (rateLimitError) return rateLimitError;
+  const user = await getCurrentUser();
+  if (!user?.id) return NextResponse.json({ error: "Faça login para consultar seus áudios." }, { status: 401 });
+
+  const { blobs } = await list({ prefix: `audio/${user.id}/` });
+  return NextResponse.json({
+    files: blobs.map((blob) => ({ url: blob.url, pathname: blob.pathname, size: blob.size, uploadedAt: blob.uploadedAt })),
+    maxFiles: MAX_FILES_PER_USER,
+    maxBytes: MAX_BYTES_PER_USER,
+  });
+}
+
+export async function DELETE(request: Request) {
+  const rateLimitError = await requireWithinRateLimit(request, "upload-audio"); if (rateLimitError) return rateLimitError;
+  const originError = requireSameOrigin(request); if (originError) return originError;
+  const user = await getCurrentUser();
+  if (!user?.id) return NextResponse.json({ error: "Faça login para apagar áudio." }, { status: 401 });
+
+  const body = (await request.json().catch(() => null)) as { url?: string } | null;
+  const url = body?.url;
+  if (!url || !isOwnUploadUrl(url)) return NextResponse.json({ error: "URL inválida." }, { status: 400 });
+
+  const pathname = new URL(url).pathname.replace(/^\//, "");
+  if (!pathname.startsWith(`audio/${user.id}/`)) return NextResponse.json({ error: "Você só pode apagar seus próprios áudios." }, { status: 403 });
+
+  await del(url);
+  return NextResponse.json({ ok: true });
+}
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as HandleUploadBody | null;

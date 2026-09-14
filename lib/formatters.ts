@@ -7,3 +7,4 @@ export function formatTime(seconds: number | null) {
 }
 export function formatRemainingTime(seconds: number) { const roundedMinutes = Math.max(1, Math.ceil(seconds / 60)); const hours = Math.floor(roundedMinutes / 60); const minutes = roundedMinutes % 60; return hours > 0 ? `${hours} h ${minutes ? `${minutes} min` : ""}`.trim() : `${minutes} min`; }
 export function getHostname(value: string, fallback = "") { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return fallback; } }
+export function formatBytes(bytes: number) { return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`; }
