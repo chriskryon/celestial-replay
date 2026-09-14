@@ -29,6 +29,7 @@ export default async function PlaylistsPage() {
   const initialPlaylists = savedPlaylists.map((playlist) => ({
     id: playlist.id,
     name: playlist.name,
+    isPublic: playlist.isPublic,
     updatedAt: playlist.updatedAt.toISOString(),
     items: items.filter((item) => item.playlistId === playlist.id).map((item) => ({
       id: item.id,

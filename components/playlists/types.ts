@@ -9,6 +9,7 @@ export type Playlist = {
   id: string;
   name: string;
   items: PlaylistItem[];
+  isPublic: boolean;
   updatedAt: string;
 };
 

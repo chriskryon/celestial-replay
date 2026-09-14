@@ -18,6 +18,8 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+  const [shareTarget, setShareTarget] = useState<Playlist | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const [search, setSearch] = useState("");
   const [domainFilter, setDomainFilter] = useState("todos");
   const [sort, setSort] = useState<PlaylistSort>("recent");
@@ -110,6 +112,16 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setDeleteTarget(null);
   }
 
+  async function setShared(playlist: Playlist, isPublic: boolean) {
+    setIsSharing(true);
+    const response = await fetch(`/api/playlists/${playlist.id}/share`, { method: isPublic ? "POST" : "DELETE" });
+    const result = await response.json().catch(() => null);
+    setIsSharing(false);
+    if (!response.ok) return setMessage(result?.error ?? "Não foi possível atualizar o compartilhamento agora.");
+    setPlaylists((current) => current.map((item) => item.id === playlist.id ? { ...item, isPublic } : item));
+    setShareTarget((current) => current && current.id === playlist.id ? { ...current, isPublic } : current);
+  }
+
   return {
     availableDomains,
     create,
@@ -119,6 +131,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     filteredPlaylists,
     inputMode,
     isSaving,
+    isSharing,
     isValid,
     items,
     message,
@@ -132,8 +145,10 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setDomainFilter,
     setName,
     setSearch,
+    setShareTarget,
     setSimpleInput,
     setSort,
+    shareTarget,
     simpleInput,
     sort,
     domainFilter,
@@ -145,6 +160,8 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     removeItem: (id: string) => setItems((current) => current.filter((item) => item.id !== id)),
     reorderItems,
     save,
+    share: (playlist: Playlist) => setShared(playlist, true),
+    unshare: (playlist: Playlist) => setShared(playlist, false),
     updateItem,
   };
 }
