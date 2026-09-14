@@ -9,7 +9,7 @@ import "@/styles/globals.css";
 const siteUrl = new URL(process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_ORIGIN ?? "https://celestial-replay.vercel.app");
 const siteDescription = "Repita vídeos, monte playlists com contagens por item e retome sessões no seu próprio ritmo.";
 const socialImage = {
-  url: "/og-image.png",
+  url: "/og-image.jpg",
   width: 1200,
   height: 630,
   alt: "Celestial Replay - player de repetição de vídeos",
