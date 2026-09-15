@@ -529,6 +529,12 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     // reiniciar a mídia do zero (play() numa mídia `ended` volta pro início) sem
     // nunca decrementar a repetição.
     if (hasMediaReachedEnd(playerRef.current)) return;
+    // Aba oculta: o YouTube pode disparar `pause` sem o usuário ter feito nada
+    // (autoplay/economia de energia). Tratar isso como pausa real zeraria
+    // `isPlaying` e desarmaria o timer de relógio de parede que faz a fila
+    // avançar em background. Ignora aqui; ao voltar o foco o watchdog de
+    // reconciliação retoma o play se o elemento realmente estiver pausado.
+    if (typeof document !== "undefined" && document.hidden) return;
     setIsPlaying(false);
     setHasPlaybackStarted(false);
     setStatus("Reprodução pausada.");
