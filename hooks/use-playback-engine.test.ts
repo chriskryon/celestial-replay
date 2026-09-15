@@ -190,4 +190,27 @@ describe("usePlaybackEngine", () => {
     expect(result.current.playerRef.current.currentTime).toBe(0);
     expect(result.current.engine.remaining).toBe(1);
   });
+
+  it("detects a native YouTube playlist advance even when the next play event is delayed", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item1: VideoItem = { id: "v1", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
+    const item2: VideoItem = { id: "v2", src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", repetitions: 1 };
+
+    act(() => {
+      result.current.engine.startQueue([item1, item2], { playlistId: null, statusMessage: "go" });
+    });
+    act(() => {
+      result.current.engine.handlePlaybackStarted(item1.id);
+      result.current.setPlayed(0.96);
+    });
+
+    result.current.playerRef.current.currentTime = 0.1;
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.engine.activeIndex).toBe(1);
+    expect(result.current.engine.isSessionComplete).toBe(false);
+  });
 });

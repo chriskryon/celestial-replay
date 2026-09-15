@@ -164,6 +164,22 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     };
   }, [activeVideo?.id, duration, error, hasPlaybackStarted, isPlaying, playbackRate, played, remaining]);
 
+  useEffect(() => {
+    if (!activeVideo || activeIndex === null || !isPlaying || !hasPlaybackStarted || error || seekingRef.current) return;
+    const interval = window.setInterval(() => {
+      const node = playerRef.current;
+      if (!node) return;
+      try {
+        if (usesNativeYoutubePlaylist && remaining === 1 && played > 0.9 && Number.isFinite(node.currentTime) && node.currentTime < 0.5) {
+          playNextVideo(false);
+          return;
+        }
+        if (hasMediaReachedEnd(node)) handleEnded(activeVideo.id, remaining);
+      } catch { /* o próximo tick tenta de novo */ }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [activeVideo?.id, activeIndex, error, hasPlaybackStarted, isPlaying, played, remaining, usesNativeYoutubePlaylist]);
+
   const removeFutureItem = (id: string) => {
     // Só itens após o atual podem sair; o resto desloca sem mexer no índice ativo.
     setQueue((items) => {
