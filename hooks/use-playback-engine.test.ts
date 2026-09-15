@@ -86,7 +86,7 @@ afterEach(() => {
 });
 
 describe("usePlaybackEngine", () => {
-  it("stops swallowing ended events ~4s after a native-playlist advance, even if the next video never reaches handlePlaybackStarted", () => {
+  it("does not swallow the next ended event after an automatic playlist advance", () => {
     const { result } = renderHook(() => useTestHarness());
     const item1: VideoItem = { id: "v1", src: "https://cdn.example.com/video1.mp4", repetitions: 1 };
     const item2: VideoItem = { id: "v2", src: "https://cdn.example.com/video2.mp4", repetitions: 1 };
@@ -105,25 +105,11 @@ describe("usePlaybackEngine", () => {
     expect(result.current.engine.activeIndex).toBe(1);
     expect(result.current.engine.isSessionComplete).toBe(false);
 
-    // O vídeo 2 dispara `play` (buffering) mas nunca `onPlaying` — handlePlaybackPlay
-    // marca hasPlaybackStarted=true sem limpar a flag de supressão do ended obsoleto.
     act(() => {
       result.current.engine.handlePlaybackPlay(item2.id);
     });
     expect(result.current.engine.hasPlaybackStarted).toBe(true);
 
-    // O vídeo 2 termina de verdade — deve ser engolido, a flag ainda está ligada.
-    act(() => {
-      result.current.engine.handleEnded(item2.id, 1);
-    });
-    expect(result.current.engine.isSessionComplete).toBe(false);
-    expect(result.current.engine.activeIndex).toBe(1);
-
-    act(() => {
-      vi.advanceTimersByTime(4000);
-    });
-
-    // Mesmo evento de novo: agora deve processar e concluir a sessão (só 2 itens).
     act(() => {
       result.current.engine.handleEnded(item2.id, 1);
     });
@@ -191,7 +177,7 @@ describe("usePlaybackEngine", () => {
     expect(result.current.engine.remaining).toBe(1);
   });
 
-  it("detects a native YouTube playlist advance even when the next play event is delayed", () => {
+  it("keeps YouTube playlist changes under the app engine instead of the native iframe playlist", () => {
     const { result } = renderHook(() => useTestHarness());
     const item1: VideoItem = { id: "v1", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
     const item2: VideoItem = { id: "v2", src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", repetitions: 1 };
@@ -199,15 +185,12 @@ describe("usePlaybackEngine", () => {
     act(() => {
       result.current.engine.startQueue([item1, item2], { playlistId: null, statusMessage: "go" });
     });
+    expect(result.current.engine.usesNativeYoutubePlaylist).toBe(false);
     act(() => {
       result.current.engine.handlePlaybackStarted(item1.id);
-      result.current.setPlayed(0.96);
     });
-
-    result.current.playerRef.current.currentTime = 0.1;
-
     act(() => {
-      vi.advanceTimersByTime(1000);
+      result.current.engine.handleEnded(item1.id, 1);
     });
 
     expect(result.current.engine.activeIndex).toBe(1);

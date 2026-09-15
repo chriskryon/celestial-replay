@@ -80,7 +80,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   const youtubePlaylistSources = useMemo(() => youtubePlaylistItems.map((item) => item.src), [youtubePlaylistItems]);
   // Playlist nativa do YouTube não sabe "repetir este item N vezes" — se algum
   // item exige mais de 1 repetição, usamos nosso próprio motor de troca de vídeo.
-  const usesNativeYoutubePlaylist = youtubePlaylistSources.length > 1 && youtubePlaylistItems.every((item) => item.repetitions === 1);
+  const usesNativeYoutubePlaylist = false;
   const canSkipRepetition = activeVideo !== null && (remaining > 1 || hasNextVideo);
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
 
