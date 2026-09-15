@@ -156,10 +156,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     const remainingTime = Math.max(0, (duration * (1 - played) - 0.08) / effectiveRate);
     scheduledEndRef.current = window.setTimeout(() => {
       scheduledEndRef.current = null;
-      // Em aba sem foco o YouTube congela seu próprio relógio interno (baseado em
-      // rAF), então `node.currentTime`/`node.ended` nunca acompanham — confiamos
-      // no relógio da parede em vez de esperar o player confirmar o fim.
-      handleEnded(activeVideo.id, remaining);
+      if (hasMediaReachedEnd(playerRef.current)) handleEnded(activeVideo.id, remaining);
     }, remainingTime * 1000);
     return () => {
       if (scheduledEndRef.current !== null) window.clearTimeout(scheduledEndRef.current);
