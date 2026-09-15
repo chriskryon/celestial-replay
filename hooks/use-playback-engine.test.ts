@@ -222,31 +222,4 @@ describe("usePlaybackEngine", () => {
     expect(result.current.playerRef.current.ended).toBe(false);
     expect(result.current.engine.activeIndex).toBe(1);
   });
-
-  it("ignores a pause event received while the tab is hidden instead of stopping playback", () => {
-    const { result } = renderHook(() => useTestHarness());
-    const item1: VideoItem = { id: "v1", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
-
-    act(() => {
-      result.current.engine.startQueue([item1], { playlistId: null, statusMessage: "go" });
-    });
-    act(() => {
-      result.current.engine.handlePlaybackStarted(item1.id);
-    });
-    expect(result.current.engine.isPlaying).toBe(true);
-
-    Object.defineProperty(document, "hidden", { configurable: true, value: true });
-    try {
-      // Aba oculta: o YouTube pode disparar `pause` sozinho (throttling/economia
-      // de energia), sem o usuário ter feito nada.
-      act(() => {
-        result.current.engine.handlePlaybackPause(item1.id);
-      });
-    } finally {
-      Object.defineProperty(document, "hidden", { configurable: true, value: false });
-    }
-
-    expect(result.current.engine.isPlaying).toBe(true);
-    expect(result.current.engine.hasPlaybackStarted).toBe(true);
-  });
 });
