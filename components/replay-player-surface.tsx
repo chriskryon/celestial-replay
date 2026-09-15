@@ -12,6 +12,11 @@ import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 const ReactPlayer = dynamic(() => import("@/components/react-player-client"), { ssr: false });
 
+const YOUTUBE_ID_PATTERN = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/;
+const youtubeIdFromSource = (source: string | null | undefined) => source?.match(YOUTUBE_ID_PATTERN)?.[1] ?? null;
+
+type YoutubeMediaElement = HTMLVideoElement & { api?: { loadVideoById?: (id: string) => void } };
+
 type ReplayPlayerSurfaceProps = {
   activeIndex: number | null;
   activeVideo: VideoItem | null;
@@ -187,7 +192,7 @@ export function ReplayPlayerSurface({
       ? `≈ ${Math.ceil((duration * remaining) / effectivePlaybackRate / 60)} min neste vídeo`
       : null;
   const youtubePlaylistIds = youtubePlaylistSources
-    .map((source) => source.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/)?.[1])
+    .map((source) => youtubeIdFromSource(source))
     .filter((id): id is string => Boolean(id));
   // usesNativeYoutubePlaylist vem do engine, que também leva em conta as
   // repetições (playlist nativa do YouTube não sabe repetir um item — ver
@@ -198,6 +203,24 @@ export function ReplayPlayerSurface({
   const playerSource = useNativeYoutubePlaylist
     ? youtubePlaylistSources[0]
     : isAudioResolving ? undefined : (resolvedAudioSrc ?? displayedVideo?.src);
+  // Trocar o `src` faz o <youtube-video> derrubar e recriar o iframe. Um iframe
+  // do YouTube criado com a aba oculta carrega os metadados mas fica preso em
+  // buffering pra sempre, então a playlist emudecia até o usuário voltar o foco.
+  // Com o player já vivo, trocar o vídeo pela API mantém a reprodução em
+  // background — por isso o src montado só muda quando a troca em si não pode
+  // ser feita no player atual (fim da fila, upload, outro provider).
+  const [mountedSource, setMountedSource] = useState(playerSource);
+  useEffect(() => {
+    if (playerSource === mountedSource) return;
+    const nextYoutubeId = youtubeIdFromSource(playerSource);
+    const node = playerRef.current as YoutubeMediaElement | null;
+    if (nextYoutubeId && youtubeIdFromSource(mountedSource) && typeof node?.api?.loadVideoById === "function") {
+      node.api.loadVideoById(nextYoutubeId);
+      return;
+    }
+    setMountedSource(playerSource);
+  }, [mountedSource, playerRef, playerSource]);
+
   const sourceHost = displayedVideo?.src ? getHostname(displayedVideo.src) : "";
   const uploadTitle = displayedVideo?.src ? uploadDisplayNameFromUrl(displayedVideo.src) : null;
   const fallbackTitle = sourceHost.includes("youtube") || sourceHost === "youtu.be" ? "Vídeo do YouTube" : "Vídeo em reprodução";
@@ -259,11 +282,11 @@ export function ReplayPlayerSurface({
       </div>}
       {previewVideo && !error && <span className="preview-badge">Prévia carregada — nada toca ainda</span>}
       {playerSource && !error && !isSessionComplete ? <ReactPlayer
-        key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : displayedVideo?.src}
+        key={useNativeYoutubePlaylist ? youtubePlaylistIds.join(",") : mountedSource}
         className="replay-player"
         ref={playerRef}
         innerRef={playerRef}
-        src={playerSource}
+        src={mountedSource}
         playing={activeVideo ? isPlaying : false}
         preload="auto"
         light={false}
