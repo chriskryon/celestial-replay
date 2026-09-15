@@ -196,4 +196,30 @@ describe("usePlaybackEngine", () => {
     expect(result.current.engine.activeIndex).toBe(1);
     expect(result.current.engine.isSessionComplete).toBe(false);
   });
+
+  it("advances the queue on the wall-clock deadline even when the player never reports ended (backgrounded YouTube tab)", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item1: VideoItem = { id: "v1", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
+    const item2: VideoItem = { id: "v2", src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", repetitions: 1 };
+
+    act(() => {
+      result.current.engine.startQueue([item1, item2], { playlistId: null, statusMessage: "go" });
+    });
+    result.current.playerRef.current.duration = 100;
+    act(() => {
+      result.current.engine.handlePlaybackStarted(item1.id);
+    });
+    act(() => {
+      result.current.setPlayed(0.5);
+    });
+
+    // Aba perde o foco: o YouTube congela seu relógio interno, então currentTime/
+    // ended nunca acompanham o tempo real que passa.
+    act(() => {
+      vi.advanceTimersByTime(50000);
+    });
+
+    expect(result.current.playerRef.current.ended).toBe(false);
+    expect(result.current.engine.activeIndex).toBe(1);
+  });
 });
