@@ -1,4 +1,13 @@
 const imageExtension = /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i;
+const youtubeIdPattern = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/i;
+
+export function normalizeVideoUrlInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  const youtubeId = trimmed.match(youtubeIdPattern)?.[1];
+  if (youtubeId) return `https://www.youtube.com/watch?v=${youtubeId}`;
+  return value;
+}
 
 export function isPlayableMediaUrl(value: string) {
   try {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
-import { isPlayableMediaUrl } from "@/lib/media-url";
+import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
 
@@ -70,7 +70,7 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
     const replayRepetitions = Number(params.get("repetitions"));
     if (!replaySource || !isPlayableMediaUrl(replaySource) || !Number.isInteger(replayRepetitions) || replayRepetitions < 1) return;
     setMode("single");
-    setSource(replaySource);
+    setSource(normalizeVideoUrlInput(replaySource));
     setRepetitions(String(replayRepetitions));
     setStatus("Vídeo carregado do histórico. Inicie quando quiser.");
     window.history.replaceState({}, "", window.location.pathname);
@@ -79,7 +79,7 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDraftPlaylistId(null);
-    setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: value } : item));
+    setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: field === "src" ? normalizeVideoUrlInput(value) : value } : item));
     setError(null);
   };
 
@@ -106,8 +106,8 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
     setPlaylistName,
     setPlaylistSaveMessage,
     setRepetitions,
-    setSimplePlaylist,
-    setSource,
+    setSimplePlaylist: (value: string) => setSimplePlaylist(normalizeSimplePlaylistInput(value)),
+    setSource: (value: string) => setSource(normalizeVideoUrlInput(value)),
     simplePlaylist,
     simplePlaylistItems,
     simplePlaylistLineCount,
@@ -116,4 +116,13 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
     source,
     updateDraft,
   };
+}
+
+function normalizeSimplePlaylistInput(value: string) {
+  return value.split("\n").map((line) => {
+    const [url = "", repetitions, ...extra] = line.split(";");
+    if (extra.length > 0) return line;
+    const normalizedUrl = normalizeVideoUrlInput(url);
+    return repetitions === undefined ? normalizedUrl : `${normalizedUrl};${repetitions}`;
+  }).join("\n");
 }

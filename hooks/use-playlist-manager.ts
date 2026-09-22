@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
-import { isPlayableMediaUrl } from "@/lib/media-url";
+import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { createDraftItem, draftsFromSimple, initialDraftItem, parseSimplePlaylist, sourceDomain } from "@/lib/playlist-draft";
 
 type PlaylistSort = "recent" | "name" | "size";
@@ -65,7 +65,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
   }
 
   function updateItem(id: string, field: "url" | "repetitions", value: string) {
-    setItems((current) => current.map((item) => item.id === id ? { ...item, [field]: value } : item));
+    setItems((current) => current.map((item) => item.id === id ? { ...item, [field]: field === "url" ? normalizeVideoUrlInput(value) : value } : item));
   }
 
   async function duplicatePlaylist(playlist: Playlist) {
@@ -146,7 +146,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setName,
     setSearch,
     setShareTarget,
-    setSimpleInput,
+    setSimpleInput: (value: string) => setSimpleInput(normalizeSimplePlaylistInput(value)),
     setSort,
     shareTarget,
     simpleInput,
@@ -179,11 +179,20 @@ function toSavedItems(items: Playlist["items"]) {
 }
 
 function toDraftPayload(items: DraftItem[]) {
-  return items.map((item) => ({ url: item.url.trim(), repetitions: Number(item.repetitions) }));
+  return items.map((item) => ({ url: normalizeVideoUrlInput(item.url.trim()), repetitions: Number(item.repetitions) }));
 }
 
 function getAvailableDomains(playlists: Playlist[]) {
   return Array.from(new Set(playlists.flatMap((playlist) => playlist.items.map((item) => sourceDomain(item.url))))).sort();
+}
+
+function normalizeSimplePlaylistInput(value: string) {
+  return value.split("\n").map((line) => {
+    const [url = "", repetitions, ...extra] = line.split(";");
+    if (extra.length > 0) return line;
+    const normalizedUrl = normalizeVideoUrlInput(url);
+    return repetitions === undefined ? normalizedUrl : `${normalizedUrl};${repetitions}`;
+  }).join("\n");
 }
 
 function isPlaylistDraftValid(name: string, mode: PlaylistInputMode, items: DraftItem[], parsedSimple: ReturnType<typeof parseSimplePlaylist>) {

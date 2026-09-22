@@ -1,4 +1,4 @@
-import { isPlayableMediaUrl } from "@/lib/media-url";
+import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import type { DraftItem } from "@/components/playlists/types";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
@@ -28,9 +28,10 @@ export function parseSimplePlaylist(value: string) {
 
   const parsed = lines.map((line) => {
     const [url, repetitions, ...extra] = line.split(";").map((part) => part.trim());
+    const normalizedUrl = normalizeVideoUrlInput(url);
     const count = Number(repetitions);
-    return extra.length === 0 && isPlayableMediaUrl(url) && Number.isInteger(count) && count > 0
-      ? { url, repetitions: count }
+    return extra.length === 0 && isPlayableMediaUrl(normalizedUrl) && Number.isInteger(count) && count > 0
+      ? { url: normalizedUrl, repetitions: count }
       : null;
   });
 
@@ -40,7 +41,7 @@ export function parseSimplePlaylist(value: string) {
 export function draftsFromSimple(value: string): DraftItem[] {
   const drafts = value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
     const [url = "", repetitions = "1"] = line.split(";").map((part) => part.trim());
-    return { id: crypto.randomUUID(), url, repetitions };
+    return { id: crypto.randomUUID(), url: normalizeVideoUrlInput(url), repetitions };
   });
 
   return drafts.length > 0 ? drafts : [initialDraftItem];

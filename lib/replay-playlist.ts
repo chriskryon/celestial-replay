@@ -1,4 +1,4 @@
-import { isPlayableMediaUrl } from "@/lib/media-url";
+import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { z } from "zod";
 
 export type VideoItem = { id: string; src: string; repetitions: number };
@@ -17,7 +17,7 @@ export const makeItem = (src: string, repetitions: number): VideoItem => ({ id: 
 export const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "", repetitions: "1" });
 
 export function parseSingleReplay(source: string, repetitions: string, canPlay: CanPlay): ParsedPlaylistItem | null {
-  const result = playlistLineSchema.safeParse({ src: source, repetitions });
+  const result = playlistLineSchema.safeParse({ src: normalizeVideoUrlInput(source), repetitions });
   return result.success && canPlay(result.data.src) ? { src: result.data.src, count: result.data.repetitions } : null;
 }
 
