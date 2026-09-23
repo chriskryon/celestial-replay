@@ -16,6 +16,7 @@ type ReplayComposerProps = {
   error: string | null;
   isEditingQueue: boolean;
   isLoggedIn: boolean;
+  isLoadingSavedPlaylists: boolean;
   isSavingPlaylist: boolean;
   mode: ReplayMode;
   onAddDraft: () => void;
@@ -23,6 +24,7 @@ type ReplayComposerProps = {
   onOpenSaveDialog: () => void;
   onPlaylistInputModeChange: (mode: PlaylistInputMode) => void;
   onRepetitionsChange: (value: string) => void;
+  onRetrySavedPlaylists: () => void;
   onRemoveDraft: (id: string) => void;
   onSimplePlaylistChange: (value: string) => void;
   onSourceChange: (value: string) => void;
@@ -38,6 +40,7 @@ type ReplayComposerProps = {
   previewAvailable: boolean;
   repetitions: string;
   savedPlaylists: SavedPlaylist[];
+  savedPlaylistsError: string | null;
   simplePlaylist: string;
   simplePlaylistItemsCount: number;
   simplePlaylistLineCount: number;
@@ -53,6 +56,7 @@ export function ReplayComposer({
   error,
   isEditingQueue,
   isLoggedIn,
+  isLoadingSavedPlaylists,
   isSavingPlaylist,
   mode,
   onAddDraft,
@@ -60,6 +64,7 @@ export function ReplayComposer({
   onOpenSaveDialog,
   onPlaylistInputModeChange,
   onRepetitionsChange,
+  onRetrySavedPlaylists,
   onRemoveDraft,
   onSimplePlaylistChange,
   onSourceChange,
@@ -75,6 +80,7 @@ export function ReplayComposer({
   previewAvailable,
   repetitions,
   savedPlaylists,
+  savedPlaylistsError,
   simplePlaylist,
   simplePlaylistItemsCount,
   simplePlaylistLineCount,
@@ -110,6 +116,8 @@ export function ReplayComposer({
         <button className={playlistInputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "simple"} onClick={() => onPlaylistInputModeChange("simple")}>Colar lista</button>
         <button className={playlistInputMode === "advanced" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "advanced"} onClick={() => onPlaylistInputModeChange("advanced")}>Editar por campos</button>
       </div>
+      {isLoadingSavedPlaylists && <p className="field-help" role="status">Carregando suas playlists…</p>}
+      {savedPlaylistsError && <p className="field-error" role="alert">{savedPlaylistsError} <button className="saved-playlists-retry" onClick={onRetrySavedPlaylists} type="button">Tentar novamente</button></p>}
       {savedPlaylists.length > 0 && <section className="saved-playlists" aria-labelledby="saved-playlists-title">
         <h3 id="saved-playlists-title">Minhas playlists</h3>
         <div>{savedPlaylists.map((playlist) => <button className="saved-playlist" type="button" key={playlist.id} onClick={() => onLoadSavedPlaylist(playlist)}><span className="saved-playlist-name">{playlist.name}</span><span className="saved-playlist-count">{playlist.items.length} {playlist.items.length === 1 ? "vídeo" : "vídeos"}</span></button>)}</div>

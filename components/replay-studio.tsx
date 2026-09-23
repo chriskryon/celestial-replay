@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, type FormEvent, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ListMusic, RotateCcw, Save, Trash2, Video, X } from "lucide-react";
 
 import { PlaybackQueue } from "@/components/playback-queue";
@@ -57,12 +57,26 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [saveName, setSaveName] = useState("Minha playlist");
   const [saveDialogError, setSaveDialogError] = useState<string | null>(null);
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
+  const [isLoadingSavedPlaylists, setIsLoadingSavedPlaylists] = useState(false);
+  const [savedPlaylistsError, setSavedPlaylistsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
   const routedPlaylistIdRef = useRef<string | null>(null);
   const { canSubmitPlaylist, canSubmitSingle, draftPlaylistId, drafts, firstSimplePlaylistItem, invalidSimpleLine, isSavingPlaylist, mode, playlistHint, playlistInputMode, playlistItems, playlistName, playlistSaveMessage, repetitions, setDraftPlaylistId, setDrafts, setIsSavingPlaylist, setMode, setPlaylistInputMode, setPlaylistName, setPlaylistSaveMessage, setRepetitions, setSimplePlaylist, setSource, simplePlaylist, simplePlaylistItems, simplePlaylistLineCount, singleHint, singleReplay, source, updateDraft } = usePlaylistComposer({ initialMode, setError, setStatus });
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
   const isLoggedIn = Boolean(session.data?.user);
+
+  const refreshSavedPlaylists = useCallback(async () => {
+    setIsLoadingSavedPlaylists(true);
+    setSavedPlaylistsError(null);
+    try {
+      setSavedPlaylists(await loadPlaylists());
+    } catch {
+      setSavedPlaylistsError("Não foi possível carregar suas playlists agora.");
+    } finally {
+      setIsLoadingSavedPlaylists(false);
+    }
+  }, []);
 
   // usePlaybackEngine precisa de clearResumeSession/recordCompletedVideo (de
   // useSessionPersistence), que por sua vez precisa de activeIndex/activeVideo/
@@ -124,8 +138,13 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   useEffect(() => {
     if (mode !== "playlist") return;
-    void loadPlaylists().then(setSavedPlaylists).catch(() => undefined);
-  }, [mode]);
+    if (!isLoggedIn) {
+      setSavedPlaylists([]);
+      setSavedPlaylistsError(null);
+      return;
+    }
+    void refreshSavedPlaylists();
+  }, [isLoggedIn, mode, refreshSavedPlaylists]);
 
   useEffect(() => {
     if (mode !== "playlist" || savedPlaylists.length === 0) return;
@@ -282,6 +301,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             invalidSimpleLine={invalidSimpleLine}
             isEditingQueue={isEditingQueue}
             isLoggedIn={isLoggedIn}
+            isLoadingSavedPlaylists={isLoadingSavedPlaylists}
             isSavingPlaylist={isSavingPlaylist}
             mode={mode}
             onAddDraft={() => { setDraftPlaylistId(null); setDrafts((items) => [...items, makeDraft()]); }}
@@ -289,6 +309,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onOpenSaveDialog={() => openSaveDialog("draft")}
             onPlaylistInputModeChange={setPlaylistInputMode}
             onPlaybackRateChange={setPlaybackRate}
+            onRetrySavedPlaylists={() => void refreshSavedPlaylists()}
             onRemoveDraft={(id) => { setDraftPlaylistId(null); setDrafts((items) => items.filter((item) => item.id !== id)); }}
             onRepetitionsChange={setRepetitions}
             onSimplePlaylistChange={(value) => { setDraftPlaylistId(null); setSimplePlaylist(value); setError(null); }}
@@ -304,6 +325,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             previewAvailable={!activeVideo && Boolean(previewVideo) && !error}
             repetitions={repetitions}
             savedPlaylists={savedPlaylists}
+            savedPlaylistsError={savedPlaylistsError}
             simplePlaylist={simplePlaylist}
             simplePlaylistItemsCount={simplePlaylistItems?.reduce((total, item) => total + item.count, 0) ?? 0}
             simplePlaylistLineCount={simplePlaylistLineCount}
