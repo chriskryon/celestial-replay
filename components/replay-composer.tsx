@@ -1,5 +1,7 @@
-import type { FormEvent } from "react";
-import { CheckCircle2, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { CheckCircle2, Download, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import { canPlaySrc } from "@/components/react-player-client";
@@ -15,11 +17,13 @@ type ReplayComposerProps = {
   drafts: PlaylistDraft[];
   error: string | null;
   isEditingQueue: boolean;
+  isImportingYoutubePlaylist: boolean;
   isLoggedIn: boolean;
   isLoadingSavedPlaylists: boolean;
   isSavingPlaylist: boolean;
   mode: ReplayMode;
   onAddDraft: () => void;
+  onImportYoutubePlaylist: (url: string) => Promise<boolean>;
   onLoadSavedPlaylist: (playlist: SavedPlaylist) => void;
   onOpenSaveDialog: () => void;
   onPlaylistInputModeChange: (mode: PlaylistInputMode) => void;
@@ -55,11 +59,13 @@ export function ReplayComposer({
   drafts,
   error,
   isEditingQueue,
+  isImportingYoutubePlaylist,
   isLoggedIn,
   isLoadingSavedPlaylists,
   isSavingPlaylist,
   mode,
   onAddDraft,
+  onImportYoutubePlaylist,
   onLoadSavedPlaylist,
   onOpenSaveDialog,
   onPlaylistInputModeChange,
@@ -90,6 +96,11 @@ export function ReplayComposer({
 }: ReplayComposerProps) {
   const formHint = mode === "single" ? singleHint : playlistHint;
   const advancedPlaylistRepetitions = drafts.reduce((total, draft) => total + Math.max(0, Number(draft.repetitions) || 0), 0);
+  const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState("");
+  const importYoutubePlaylist = async () => {
+    if (!youtubePlaylistUrl.trim()) return;
+    if (await onImportYoutubePlaylist(youtubePlaylistUrl)) setYoutubePlaylistUrl("");
+  };
 
   return <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={onStart}>
     {mode === "single" ? <>
@@ -111,6 +122,11 @@ export function ReplayComposer({
       <div className="playlist-heading">
         <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Monte sua playlist</h2></div>
         <p>Escolha a forma que for mais confortável. A playlist só começa quando tudo estiver válido.</p>
+      </div>
+      <div className="youtube-playlist-import">
+        <label htmlFor="youtube-playlist-url">Importar playlist do YouTube</label>
+        <div><input autoComplete="url" id="youtube-playlist-url" inputMode="url" onChange={(event) => setYoutubePlaylistUrl(event.target.value)} placeholder="https://www.youtube.com/playlist?list=..." value={youtubePlaylistUrl} /><button className="secondary-button" disabled={!youtubePlaylistUrl.trim() || isImportingYoutubePlaylist} onClick={() => void importYoutubePlaylist()} type="button"><Download aria-hidden="true" size={16} />{isImportingYoutubePlaylist ? "Importando…" : "Importar"}</button></div>
+        <p>Importa até 100 vídeos públicos com 1 repetição cada.</p>
       </div>
       <div className="playlist-input-mode" role="tablist" aria-label="Forma de montar a playlist">
         <button className={playlistInputMode === "simple" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistInputMode === "simple"} onClick={() => onPlaylistInputModeChange("simple")}>Colar lista</button>

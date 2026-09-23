@@ -13,6 +13,7 @@ const limits: Record<string, Limit> = {
   "auth-signout": { requests: 60, window: "1 m" },
   "playlist-read": { requests: 120, window: "1 m" },
   "playlist-write": { requests: 20, window: "1 m" },
+  "youtube-playlist-import": { requests: 10, window: "1 m" },
   "history-read": { requests: 120, window: "1 m" },
   "history-write": { requests: 60, window: "1 m" },
   "upload-audio": { requests: 20, window: "10 m" },

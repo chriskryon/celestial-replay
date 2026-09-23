@@ -95,6 +95,7 @@ APP_ORIGIN=http://localhost:3000
 
 Para autenticação, configure `http://localhost:3000` e o domínio de produção como trusted origins no Neon Auth. Mais detalhes estão em [NEON_AUTH_SETUP.md](./NEON_AUTH_SETUP.md).
 Para uploads de áudio, crie um store no Vercel Blob e copie o `BLOB_READ_WRITE_TOKEN` para `.env.local` e para as variáveis do projeto na Vercel.
+Para importar playlists públicas do YouTube, configure `YOUTUBE_API_KEY` com acesso apenas à YouTube Data API v3.
 
 ## Qualidade e banco
 

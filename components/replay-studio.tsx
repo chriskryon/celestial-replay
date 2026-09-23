@@ -59,6 +59,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
   const [isLoadingSavedPlaylists, setIsLoadingSavedPlaylists] = useState(false);
   const [savedPlaylistsError, setSavedPlaylistsError] = useState<string | null>(null);
+  const [isImportingYoutubePlaylist, setIsImportingYoutubePlaylist] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
   const routedPlaylistIdRef = useRef<string | null>(null);
@@ -172,6 +173,30 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const startNewPlaylist = () => {
     setDraftPlaylistId(null);
     resetQueue();
+  };
+
+  const importYoutubePlaylist = async (url: string) => {
+    setIsImportingYoutubePlaylist(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/youtube-playlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const payload = await response.json().catch(() => null) as { error?: string; hasMore?: boolean; items?: Array<{ url: string; repetitions: number }> } | null;
+      if (!response.ok || !payload?.items) throw new Error(payload?.error ?? "Não foi possível importar essa playlist agora.");
+      setDraftPlaylistId(null);
+      setPlaylistInputMode("advanced");
+      setDrafts(payload.items.map((item) => ({ id: crypto.randomUUID(), src: item.url, repetitions: String(item.repetitions) })));
+      setPlaylistSaveMessage(payload.hasMore ? "Os primeiros 100 vídeos foram importados. Revise antes de iniciar." : `${payload.items.length} ${payload.items.length === 1 ? "vídeo importado" : "vídeos importados"}. Revise antes de iniciar.`);
+      return true;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível importar essa playlist agora.");
+      return false;
+    } finally {
+      setIsImportingYoutubePlaylist(false);
+    }
   };
 
   const stopPlaylist = () => {
@@ -300,11 +325,13 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             error={error}
             invalidSimpleLine={invalidSimpleLine}
             isEditingQueue={isEditingQueue}
+            isImportingYoutubePlaylist={isImportingYoutubePlaylist}
             isLoggedIn={isLoggedIn}
             isLoadingSavedPlaylists={isLoadingSavedPlaylists}
             isSavingPlaylist={isSavingPlaylist}
             mode={mode}
             onAddDraft={() => { setDraftPlaylistId(null); setDrafts((items) => [...items, makeDraft()]); }}
+            onImportYoutubePlaylist={importYoutubePlaylist}
             onLoadSavedPlaylist={loadSavedPlaylist}
             onOpenSaveDialog={() => openSaveDialog("draft")}
             onPlaylistInputModeChange={setPlaylistInputMode}

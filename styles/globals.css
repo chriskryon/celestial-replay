@@ -304,6 +304,7 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 
 .playlist-form { display: flex; flex-direction: column; align-items: stretch; gap: 0.5rem; padding: 0.1rem 0 0; }
 .playlist-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.youtube-playlist-import { display: grid; gap: .35rem; padding: .55rem 0; border-block: 1px solid rgba(218, 228, 255, .08); } .youtube-playlist-import > div { display: flex; gap: .4rem; } .youtube-playlist-import input { min-width: 0; flex: 1; } .youtube-playlist-import .secondary-button { min-height: 36px; } .youtube-playlist-import p { margin: 0; color: var(--muted); font-size: .72rem; }
 .playlist-heading .form-heading { padding: 0; }
 .playlist-heading p { max-width: 50ch; margin: .1rem 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.4; text-align: right; }
 .playlist-editor { display: grid; gap: 0.38rem; }
@@ -688,6 +689,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .control-surface .primary-button { grid-column: auto; grid-row: auto; justify-self: stretch; }
   .playlist-heading { align-items: start; flex-direction: column; gap: 0.2rem; }
   .playlist-heading p { text-align: left; }
+  .youtube-playlist-import > div { flex-direction: column; }
+  .youtube-playlist-import .secondary-button { justify-content: center; }
   .playlist-editor-toolbar { align-items: stretch; flex-direction: column; }
   .playlist-editor-toolbar .add-row { width: 100%; }
   .playlist-editor-actions { flex-direction: column; }
