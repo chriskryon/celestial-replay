@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
+import type { AudioFile } from "@/hooks/use-audio-library";
 import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { createDraftItem, draftsFromSimple, initialDraftItem, parseSimplePlaylist, sourceDomain } from "@/lib/playlist-draft";
 
@@ -64,7 +65,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setItems((current) => reorderDraftItems(current, sourceId, targetId));
   }
 
-  function updateItem(id: string, field: "url" | "repetitions", value: string) {
+  function updateItem(id: string, field: "url" | "title" | "repetitions", value: string) {
     setItems((current) => current.map((item) => item.id === id ? { ...item, [field]: field === "url" ? normalizeVideoUrlInput(value) : value } : item));
   }
 
@@ -122,6 +123,17 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setShareTarget((current) => current && current.id === playlist.id ? { ...current, isPublic } : current);
   }
 
+  async function toggleFavorite(playlist: Playlist) {
+    const response = await fetch(`/api/playlists/${playlist.id}/favorite`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ isFavorite: !playlist.isFavorite }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) return setMessage(result?.error ?? "Não foi possível atualizar o favorito agora.");
+    setPlaylists((current) => current.map((item) => item.id === playlist.id ? { ...item, isFavorite: result.playlist.isFavorite, updatedAt: result.playlist.updatedAt } : item));
+  }
+
   return {
     availableDomains,
     create,
@@ -153,7 +165,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     sort,
     domainFilter,
     addItem: () => setItems((current) => [...current, createDraftItem()]),
-    addUploadedItem: (url: string) => setItems((current) => [...current, { ...createDraftItem(), url }]),
+    addUploadedItem: (file: AudioFile) => setItems((current) => [...current, { ...createDraftItem(), url: file.url, title: file.displayName ?? "" }]),
     changeInputMode,
     duplicateItem: (item: DraftItem) => setItems((current) => [...current, { ...item, id: crypto.randomUUID() }]),
     moveItem,
@@ -163,11 +175,12 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     share: (playlist: Playlist) => setShared(playlist, true),
     unshare: (playlist: Playlist) => setShared(playlist, false),
     updateItem,
+    toggleFavorite,
   };
 }
 
 function toDraftItem(item: Playlist["items"][number]): DraftItem {
-  return { id: crypto.randomUUID(), url: item.url, repetitions: String(item.repetitions) };
+  return { id: crypto.randomUUID(), url: item.url, title: item.title ?? "", repetitions: String(item.repetitions) };
 }
 
 function toSimpleInput(playlist: Playlist) {
@@ -175,11 +188,11 @@ function toSimpleInput(playlist: Playlist) {
 }
 
 function toSavedItems(items: Playlist["items"]) {
-  return items.map((item) => ({ url: item.url, repetitions: item.repetitions }));
+  return items.map((item) => ({ url: item.url, title: item.title ?? undefined, repetitions: item.repetitions }));
 }
 
 function toDraftPayload(items: DraftItem[]) {
-  return items.map((item) => ({ url: normalizeVideoUrlInput(item.url.trim()), repetitions: Number(item.repetitions) }));
+  return items.map((item) => ({ url: normalizeVideoUrlInput(item.url.trim()), title: item.title.trim() || undefined, repetitions: Number(item.repetitions) }));
 }
 
 function getAvailableDomains(playlists: Playlist[]) {
@@ -207,6 +220,7 @@ function filterPlaylists(playlists: Playlist[], search: string, domainFilter: st
     const matchesDomain = domainFilter === "todos" || playlist.items.some((item) => sourceDomain(item.url) === domainFilter);
     return matchesSearch && matchesDomain;
   }).sort((left, right) => {
+    if (left.isFavorite !== right.isFavorite) return left.isFavorite ? -1 : 1;
     if (sort === "name") return left.name.localeCompare(right.name, "pt-BR");
     if (sort === "size") return right.items.length - left.items.length || left.name.localeCompare(right.name, "pt-BR");
     return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();

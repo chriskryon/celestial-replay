@@ -29,7 +29,7 @@ type ReplayComposerProps = {
   onStart: (event: FormEvent<HTMLFormElement>) => void;
   onStartNewPlaylist: () => void;
   onUpdateDraft: (id: string, field: "src" | "repetitions", value: string) => void;
-  onUploadAudio: (url: string) => void;
+  onUploadAudio: (url: string, displayName: string | null) => void;
   onPlaybackRateChange: (rate: number) => void;
   playbackRate: number;
   playlistHint: string | null;
@@ -93,6 +93,9 @@ export function ReplayComposer({
       {canSubmitSingle && <span className="source-validity" role="status"><CheckCircle2 aria-hidden="true" size={14} />Fonte suportada</span>}
       <label htmlFor="repetitions">Repetições</label>
       <input id="repetitions" type="number" min="1" step="1" value={repetitions} onChange={(event) => onRepetitionsChange(event.target.value)} />
+      <div className="repetition-presets" role="group" aria-label="Atalhos de repetições">
+        {[1, 3, 5, 10].map((count) => <button aria-pressed={repetitions === String(count)} className={repetitions === String(count) ? "mode-button is-selected" : "mode-button"} key={count} onClick={() => onRepetitionsChange(String(count))} type="button">{count}×</button>)}
+      </div>
       <p className="field-help repetition-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
     </> : isEditingQueue ? <div className="playlist-running-note">
       <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Playlist em andamento</h2></div>

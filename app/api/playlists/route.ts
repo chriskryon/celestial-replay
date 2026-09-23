@@ -12,7 +12,11 @@ import { requireSameOrigin } from "@/lib/request-security";
 
 export const playlistInput = z.object({
   name: z.string().trim().min(1).max(80),
-  items: z.array(z.object({ url: z.url().refine(isPlayableMediaUrl), repetitions: z.number().int().positive() })).min(1).max(100),
+  items: z.array(z.object({
+    url: z.url().refine(isPlayableMediaUrl),
+    title: z.string().trim().min(1).max(80).optional(),
+    repetitions: z.number().int().positive(),
+  })).min(1).max(100),
 });
 
 async function requireUser() {
@@ -56,6 +60,7 @@ export async function POST(request: Request) {
     db.insert(playlistItems).values(result.data.items.map((item, position) => ({
       playlistId,
       url: item.url,
+      title: item.title,
       repetitions: item.repetitions,
       position,
     }))).returning(),

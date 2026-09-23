@@ -37,6 +37,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     db.insert(playlistItems).values(input.data.items.map((item, position) => ({
       playlistId: ownedPlaylist.id,
       url: item.url,
+      title: item.title,
       repetitions: item.repetitions,
       position,
     }))).returning(),

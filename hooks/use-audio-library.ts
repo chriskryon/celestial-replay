@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type AudioFile = { url: string; pathname: string; size: number; uploadedAt: string };
+export type AudioFile = { url: string; pathname: string; size: number; uploadedAt: string; displayName: string | null };
 
 export function useAudioLibrary() {
   const [files, setFiles] = useState<AudioFile[]>([]);
@@ -36,7 +36,19 @@ export function useAudioLibrary() {
     setMessage("Áudio apagado.");
   }
 
+  async function rename(file: AudioFile, displayName: string) {
+    const response = await fetch("/api/uploads/audio", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: file.url, displayName }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) return setMessage(result?.error ?? "Não foi possível renomear este áudio agora.");
+    setFiles((current) => current.map((item) => item.url === file.url ? { ...item, displayName: result.audio.displayName } : item));
+    setMessage("Nome do áudio atualizado.");
+  }
+
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 
-  return { deleteTarget, files, isLoading, maxBytes, maxFiles, message, remove, setDeleteTarget, totalBytes };
+  return { deleteTarget, files, isLoading, maxBytes, maxFiles, message, remove, rename, setDeleteTarget, totalBytes };
 }

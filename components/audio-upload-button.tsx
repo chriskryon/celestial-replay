@@ -6,7 +6,7 @@ import { Upload } from "lucide-react";
 import { useAudioUpload } from "@/hooks/use-audio-upload";
 
 type AudioUploadButtonProps = {
-  onUploaded: (url: string) => void;
+  onUploaded: (url: string, displayName: string | null) => void;
 };
 
 export function AudioUploadButton({ onUploaded }: AudioUploadButtonProps) {
@@ -18,7 +18,7 @@ export function AudioUploadButton({ onUploaded }: AudioUploadButtonProps) {
     event.target.value = "";
     if (!file) return;
     const url = await uploadFile(file);
-    if (url) onUploaded(url);
+    if (url) onUploaded(url, file.name.replace(/\.[^.]+$/, ""));
   };
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy, ListFilter, ListMusic, Pencil, Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { Copy, Heart, ListFilter, ListMusic, Pencil, Play, Plus, Search } from "lucide-react";
 
 import type { Playlist } from "@/components/playlists/types";
 import { sourceDomain } from "@/lib/playlist-draft";
@@ -15,13 +16,14 @@ type PlaylistLibraryProps = {
   onSearchChange: (value: string) => void;
   onDomainChange: (value: string) => void;
   onSortChange: (value: "recent" | "name" | "size") => void;
+  onToggleFavorite: (playlist: Playlist) => void;
   playlists: Playlist[];
   search: string;
   selectedId: string | null;
   sort: "recent" | "name" | "size";
 };
 
-export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlaylists, onCreate, onDuplicate, onEdit, onSearchChange, onDomainChange, onSortChange, playlists, search, selectedId, sort }: PlaylistLibraryProps) {
+export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlaylists, onCreate, onDuplicate, onEdit, onSearchChange, onDomainChange, onSortChange, onToggleFavorite, playlists, search, selectedId, sort }: PlaylistLibraryProps) {
   return (
     <aside aria-label="Playlists salvas" className="library-list">
       <button className="new-playlist" onClick={onCreate} type="button"><Plus aria-hidden="true" size={17} />Nova playlist</button>
@@ -45,6 +47,8 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
                       <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
+                    <Link aria-label={`Reproduzir ${playlist.name}`} className="library-play" href={`/?playlistId=${playlist.id}&autoplay=1`} title="Reproduzir playlist"><Play aria-hidden="true" size={15} /></Link>
+                    <button aria-label={playlist.isFavorite ? `Remover ${playlist.name} dos favoritos` : `Favoritar ${playlist.name}`} aria-pressed={playlist.isFavorite} className={playlist.isFavorite ? "library-favorite is-active" : "library-favorite"} onClick={() => onToggleFavorite(playlist)} title={playlist.isFavorite ? "Remover dos favoritos" : "Favoritar"} type="button"><Heart aria-hidden="true" size={15} /></button>
                     <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
                   </div>
                 </li>

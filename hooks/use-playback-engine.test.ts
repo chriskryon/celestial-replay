@@ -196,4 +196,63 @@ describe("usePlaybackEngine", () => {
     expect(result.current.engine.activeIndex).toBe(1);
     expect(result.current.engine.isSessionComplete).toBe(false);
   });
+
+  it("ignores a transient provider error when playback starts immediately after", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item: VideoItem = { id: "youtube", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
+
+    act(() => {
+      result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" });
+    });
+    act(() => {
+      result.current.engine.handlePlaybackError();
+    });
+    act(() => {
+      result.current.engine.handlePlaybackPlay(item.id);
+    });
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.engine.isPlaying).toBe(true);
+  });
+
+  it("ignores a late provider error while the media is already playing", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item: VideoItem = { id: "youtube", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
+
+    act(() => {
+      result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" });
+    });
+    result.current.playerRef.current.paused = false;
+    act(() => {
+      result.current.engine.handlePlaybackPlay(item.id);
+      result.current.engine.handlePlaybackError();
+    });
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.engine.isPlaying).toBe(true);
+  });
+
+  it("shows a provider error when playback never starts", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item: VideoItem = { id: "youtube", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
+
+    act(() => {
+      result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" });
+    });
+    act(() => {
+      result.current.engine.handlePlaybackError();
+    });
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(result.current.error).toContain("YouTube");
+    expect(result.current.engine.isPlaying).toBe(false);
+  });
 });

@@ -592,6 +592,12 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .audio-library-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; }
 .audio-library-size { flex: 0 0 auto; color: var(--muted); font-size: 0.74rem; font-variant-numeric: tabular-nums; }
 .audio-use-button { flex: 0 0 auto; min-height: 32px; padding: .3rem .48rem; }
+.row-action-button, .library-play, .library-favorite { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 0; border-radius: .42rem; color: var(--muted); background: transparent; }
+.row-action-button:hover, .library-play:hover, .library-favorite:hover { color: var(--ink); background: rgba(190, 207, 248, .12); }
+.library-favorite.is-active { color: #f2b8cb; }
+.audio-library-list input { flex: 1 1 auto; min-width: 0; min-height: 32px; }
+.repetition-presets { display: flex; grid-column: 3; grid-row: 2; align-items: center; gap: .24rem; margin-top: .1rem; }
+.repetition-presets .mode-button { min-width: 34px; min-height: 28px; padding: .2rem .35rem; font-size: .72rem; }
 .library-items { display: grid; gap: 0.45rem; }
 .library-items .playlist-row { grid-template-columns: 26px 28px minmax(0, 1fr) 78px auto; }
 .drag-handle, .row-actions button, .library-duplicate { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 0.42rem; color: var(--muted); background: transparent; }
@@ -673,9 +679,11 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .control-surface { grid-template-columns: 1fr; grid-template-rows: none; align-items: stretch; padding: 0.2rem 0 0; }
   .control-surface .form-heading { grid-column: auto; grid-row: auto; }
   .control-surface label[for="source"], .control-surface label[for="repetitions"], .control-surface #source, .control-surface #repetitions { grid-column: auto; grid-row: auto; }
+  .repetition-presets { grid-column: auto; grid-row: auto; margin-top: 0; }
   .form-heading { padding: 0.1rem 0; }
   .control-surface label { display: block; }
-  .field-help, .field-error { grid-column: auto; }
+  .field-help, .field-error { grid-column: auto; grid-row: auto; }
+  .control-surface .repetition-help, .control-surface .submit-hint { grid-row: auto; }
   .secondary-button { grid-column: auto; justify-self: stretch; }
   .control-surface .primary-button { grid-column: auto; grid-row: auto; justify-self: stretch; }
   .playlist-heading { align-items: start; flex-direction: column; gap: 0.2rem; }
@@ -736,6 +744,9 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .library-playlist > button:first-child { flex-basis: calc(100% - 36px); }
   .library-editor .primary-button { justify-self: stretch; }
   .library-items .playlist-row { grid-template-columns: 24px 24px minmax(0, 1fr) 56px; grid-template-rows: auto auto; row-gap: 0.3rem; }
+  .audio-library-list li { flex-wrap: wrap; }
+  .audio-library-list .audio-library-name, .audio-library-list input { flex-basis: calc(100% - 4rem); }
+  .audio-library-size { margin-left: auto; }
   .library-items .row-actions { grid-column: 1 / -1; grid-row: 2; justify-content: flex-end; }
   .library-items .drag-handle, .library-items .row-actions button { width: 40px; height: 40px; }
   .history-card { grid-template-columns: 34px minmax(0, 1fr); gap: 0.58rem; }

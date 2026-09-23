@@ -1,8 +1,11 @@
+import { and, eq, inArray } from "drizzle-orm";
 import { del, list } from "@vercel/blob";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/current-user";
+import { db } from "@/lib/db";
+import { uploadedAudios } from "@/lib/db/schema";
 import { AUDIO_MIME_EXTENSIONS, isOwnUploadUrl } from "@/lib/media-url";
 import { requireWithinRateLimit } from "@/lib/rate-limit";
 import { requireSameOrigin } from "@/lib/request-security";
@@ -28,8 +31,12 @@ export async function GET(request: Request) {
   if (!hasBlobToken()) return blobNotConfiguredResponse();
 
   const { blobs } = await list({ prefix: `audio/${user.id}/` });
+  const audioUrls = blobs.map((blob) => blob.url);
+  const metadata = audioUrls.length === 0 ? [] : await db.select().from(uploadedAudios)
+    .where(and(eq(uploadedAudios.ownerId, user.id), inArray(uploadedAudios.url, audioUrls)));
+  const displayNames = new Map(metadata.map((audio) => [audio.url, audio.displayName]));
   return NextResponse.json({
-    files: blobs.map((blob) => ({ url: blob.url, pathname: blob.pathname, size: blob.size, uploadedAt: blob.uploadedAt })),
+    files: blobs.map((blob) => ({ url: blob.url, pathname: blob.pathname, size: blob.size, uploadedAt: blob.uploadedAt, displayName: displayNames.get(blob.url) ?? null })),
     maxFiles: MAX_FILES_PER_USER,
     maxBytes: MAX_BYTES_PER_USER,
   });
@@ -50,7 +57,28 @@ export async function DELETE(request: Request) {
   if (!pathname.startsWith(`audio/${user.id}/`)) return NextResponse.json({ error: "Você só pode apagar seus próprios áudios." }, { status: 403 });
 
   await del(url);
+  await db.delete(uploadedAudios).where(and(eq(uploadedAudios.ownerId, user.id), eq(uploadedAudios.url, url)));
   return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(request: Request) {
+  const rateLimitError = await requireWithinRateLimit(request, "upload-audio"); if (rateLimitError) return rateLimitError;
+  const originError = requireSameOrigin(request); if (originError) return originError;
+  const user = await getCurrentUser();
+  if (!user?.id) return NextResponse.json({ error: "Faça login para renomear áudio." }, { status: 401 });
+
+  const body = (await request.json().catch(() => null)) as { url?: string; displayName?: string } | null;
+  const url = body?.url;
+  const displayName = body?.displayName?.trim();
+  if (!url || !displayName || displayName.length > 80 || !isOwnUploadUrl(url)) return NextResponse.json({ error: "Informe um nome de até 80 caracteres." }, { status: 400 });
+
+  const pathname = new URL(url).pathname.replace(/^\//, "");
+  if (!pathname.startsWith(`audio/${user.id}/`)) return NextResponse.json({ error: "Você só pode renomear seus próprios áudios." }, { status: 403 });
+
+  const [audio] = await db.insert(uploadedAudios).values({ ownerId: user.id, url, pathname, displayName })
+    .onConflictDoUpdate({ target: [uploadedAudios.ownerId, uploadedAudios.url], set: { displayName, pathname, updatedAt: new Date() } })
+    .returning();
+  return NextResponse.json({ audio });
 }
 
 export async function POST(request: Request) {

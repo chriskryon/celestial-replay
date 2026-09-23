@@ -5,11 +5,12 @@ import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 export const initialDraftItem: DraftItem = {
   id: "new-playlist-item",
   url: "",
+  title: "",
   repetitions: "1",
 };
 
 export function createDraftItem(): DraftItem {
-  return { id: crypto.randomUUID(), url: "", repetitions: "1" };
+  return { id: crypto.randomUUID(), url: "", title: "", repetitions: "1" };
 }
 
 export function sourceDomain(url: string) {
@@ -41,7 +42,7 @@ export function parseSimplePlaylist(value: string) {
 export function draftsFromSimple(value: string): DraftItem[] {
   const drafts = value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
     const [url = "", repetitions = "1"] = line.split(";").map((part) => part.trim());
-    return { id: crypto.randomUUID(), url: normalizeVideoUrlInput(url), repetitions };
+    return { id: crypto.randomUUID(), url: normalizeVideoUrlInput(url), title: "", repetitions };
   });
 
   return drafts.length > 0 ? drafts : [initialDraftItem];

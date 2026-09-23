@@ -68,6 +68,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   const endedVideoIdRef = useRef<string | null>(null);
   const ignoreStaleEndedRef = useRef(false);
   const scheduledEndRef = useRef<number | null>(null);
+  const pendingPlaybackErrorRef = useRef<number | null>(null);
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
   activeVideoIdRef.current = activeVideo?.id ?? null;
@@ -85,6 +86,14 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   const canGoBackRepetition = activeVideo !== null && activeIndex !== null && remaining < activeVideo.repetitions;
 
   const playLoadedVideo = attemptPlay;
+
+  const clearPendingPlaybackError = () => {
+    if (pendingPlaybackErrorRef.current === null) return;
+    window.clearTimeout(pendingPlaybackErrorRef.current);
+    pendingPlaybackErrorRef.current = null;
+  };
+
+  useEffect(() => () => clearPendingPlaybackError(), []);
 
   // Guia inativa: timers e eventos de mídia são estrangulados em background,
   // então o `ended` pode nunca chegar. Ao voltar o foco, reconcilia pelo
@@ -424,16 +433,34 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const handlePlaybackError = () => {
-    ignoreStaleEndedRef.current = false;
-    setIsPlaying(false);
-    setHasPlaybackStarted(false);
-    setRemaining(0);
-    setDuration(null);
-    setPlayed(0);
-    setLoaded(0);
-    setError(playbackErrorMessage(activeVideo?.src ?? ""));
-    setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
-    clearResumeSession();
+    const failedVideoId = activeVideoIdRef.current;
+    if (!failedVideoId) return;
+    const commitError = () => {
+      if (failedVideoId !== activeVideoIdRef.current) return;
+      pendingPlaybackErrorRef.current = null;
+      ignoreStaleEndedRef.current = false;
+      setIsPlaying(false);
+      setHasPlaybackStarted(false);
+      setRemaining(0);
+      setDuration(null);
+      setPlayed(0);
+      setLoaded(0);
+      setError(playbackErrorMessage(activeVideo?.src ?? ""));
+      setStatus("Reprodução interrompida: a fonte atual não pôde ser carregada.");
+      clearResumeSession();
+    };
+
+    // O iframe da prévia do YouTube pode terminar uma falha de carregamento
+    // logo após o clique em Iniciar, inclusive depois de emitir onPlay. Espera
+    // uma batida curta e só confirma se a mídia também não estiver tocando.
+    clearPendingPlaybackError();
+    pendingPlaybackErrorRef.current = window.setTimeout(() => {
+      if (isMediaActuallyPlaying(playerRef.current)) {
+        pendingPlaybackErrorRef.current = null;
+        return;
+      }
+      commitError();
+    }, 700);
   };
 
   const handlePlayerReady = (videoId: string) => {
@@ -443,6 +470,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
 
   const handlePlaybackStarted = (videoId: string) => {
     if (!activeVideo || activeIndex === null || videoId !== activeVideoIdRef.current) return;
+    clearPendingPlaybackError();
     const mediaDuration = playerRef.current?.duration;
     if (typeof mediaDuration === "number" && Number.isFinite(mediaDuration) && mediaDuration > 0) setDuration(mediaDuration);
     ignoreStaleEndedRef.current = false;
@@ -487,6 +515,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
       return;
     }
     endedVideoIdRef.current = null;
+    clearPendingPlaybackError();
     setPlayBlocked(false);
     setIsPlaying(true);
     // Marca started já no `play` para sair do "Iniciando…" mesmo em buffering.
@@ -510,6 +539,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
 
   const retryCurrentVideo = () => {
     if (!activeVideo) return;
+    clearPendingPlaybackError();
     endedVideoIdRef.current = null;
     setError(null);
     setHasPlaybackStarted(false);

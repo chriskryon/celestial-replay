@@ -37,6 +37,13 @@ export function useAudioUpload() {
         handleUploadUrl: "/api/uploads/audio",
         contentType: file.type,
       });
+      // O Blob mantém o nome de arquivo estável para deduplicação; o nome que a
+      // pessoa vê fica nos metadados e pode ser alterado sem reenviar o áudio.
+      await fetch("/api/uploads/audio", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: blob.url, displayName: file.name.replace(/\.[^.]+$/, "") }),
+      }).catch(() => undefined);
       return blob.url;
     } catch (uploadError) {
       setError(uploadError instanceof Error && uploadError.message ? uploadError.message : "Falha ao enviar o áudio. Tente novamente.");

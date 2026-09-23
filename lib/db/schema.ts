@@ -8,6 +8,7 @@ export const playlists = pgTable(
     ownerId: text("owner_id").notNull(),
     name: text("name").notNull(),
     isPublic: boolean("is_public").notNull().default(false),
+    isFavorite: boolean("is_favorite").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -22,12 +23,30 @@ export const playlistItems = pgTable(
       .notNull()
       .references(() => playlists.id, { onDelete: "cascade" }),
     url: text("url").notNull(),
+    title: text("title"),
     position: integer("position").notNull(),
     repetitions: integer("repetitions").notNull(),
   },
   (table) => [
     uniqueIndex("playlist_items_playlist_position_unique").on(table.playlistId, table.position),
     check("playlist_items_repetitions_positive", sql`${table.repetitions} > 0`),
+  ],
+);
+
+export const uploadedAudios = pgTable(
+  "uploaded_audios",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: text("owner_id").notNull(),
+    url: text("url").notNull(),
+    pathname: text("pathname").notNull(),
+    displayName: text("display_name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("uploaded_audios_owner_url_unique").on(table.ownerId, table.url),
+    index("uploaded_audios_owner_updated_at_idx").on(table.ownerId, table.updatedAt),
   ],
 );
 

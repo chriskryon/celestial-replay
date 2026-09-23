@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
+import type { AudioFile } from "@/hooks/use-audio-library";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaylistEditorProps = {
@@ -14,7 +15,7 @@ type PlaylistEditorProps = {
   items: DraftItem[];
   name: string;
   onAddItem: () => void;
-  onAddUploadedItem: (url: string) => void;
+  onAddUploadedItem: (file: AudioFile) => void;
   onChangeMode: (mode: PlaylistInputMode) => void;
   onDelete: () => void;
   onDuplicateItem: (item: DraftItem) => void;
@@ -25,7 +26,7 @@ type PlaylistEditorProps = {
   onSave: () => void;
   onShare: () => void;
   onSimpleInputChange: (value: string) => void;
-  onUpdateItem: (id: string, field: "url" | "repetitions", value: string) => void;
+  onUpdateItem: (id: string, field: "url" | "title" | "repetitions", value: string) => void;
   selected: Playlist | null;
   simpleInput: string;
 };
@@ -94,7 +95,7 @@ function AdvancedPlaylistInput({ items, onAddItem, onAddUploadedItem, onDuplicat
       </div>
       <div className="playlist-editor-actions">
         <button className="add-row" onClick={onAddItem} type="button"><Plus aria-hidden="true" size={17} />Adicionar vídeo</button>
-        <AudioUploadButton onUploaded={onAddUploadedItem} />
+        <AudioUploadButton onUploaded={(url, displayName) => onAddUploadedItem({ url, pathname: "", size: 0, uploadedAt: new Date().toISOString(), displayName })} />
       </div>
     </>
   );
@@ -107,7 +108,7 @@ type PlaylistItemEditorProps = {
   onMove: (id: string, direction: -1 | 1) => void;
   onRemove: (id: string) => void;
   onReorder: (sourceId: string, targetId: string) => void;
-  onUpdate: (id: string, field: "url" | "repetitions", value: string) => void;
+  onUpdate: (id: string, field: "url" | "title" | "repetitions", value: string) => void;
   total: number;
 };
 
@@ -122,6 +123,8 @@ function PlaylistItemEditor({ index, item, onDuplicate, onMove, onRemove, onReor
       <span className="playlist-source-field">
         {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
         <input autoComplete="url" id={`library-url-${item.id}`} inputMode="url" onChange={(event) => onUpdate(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" value={item.url} />
+        <label className="sr-only" htmlFor={`library-title-${item.id}`}>Nome opcional do vídeo {index + 1}</label>
+        <input id={`library-title-${item.id}`} maxLength={80} onChange={(event) => onUpdate(item.id, "title", event.target.value)} placeholder="Nome opcional" value={item.title} />
       </span>
       <label className="sr-only" htmlFor={`library-repetitions-${item.id}`}>Repetições do vídeo {index + 1}</label>
       <input id={`library-repetitions-${item.id}`} min="1" onChange={(event) => onUpdate(item.id, "repetitions", event.target.value)} step="1" type="number" value={item.repetitions} />

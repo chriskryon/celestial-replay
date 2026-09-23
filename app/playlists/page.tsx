@@ -30,10 +30,12 @@ export default async function PlaylistsPage() {
     id: playlist.id,
     name: playlist.name,
     isPublic: playlist.isPublic,
+    isFavorite: playlist.isFavorite,
     updatedAt: playlist.updatedAt.toISOString(),
     items: items.filter((item) => item.playlistId === playlist.id).map((item) => ({
       id: item.id,
       url: item.url,
+      title: item.title,
       repetitions: item.repetitions,
       position: item.position,
     })),
