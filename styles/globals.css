@@ -313,6 +313,7 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .playlist-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 78px 38px; gap: 0.4rem; align-items: center; }
 .row-number { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 99px; color: var(--blue); background: rgba(188, 204, 255, 0.1); font-size: 0.74rem; font-weight: 600; }
 .playlist-row input { min-width: 0; }
+.playlist-row input.is-display-title { color: #dce7ff; font-weight: 650; }
 .playlist-source-field { display: grid; min-width: 0; gap: .22rem; }
 .playlist-source-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #dce7ff; font-size: .72rem; font-weight: 700; }
 .remove-row, .add-row { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 0.4rem; border: 1px solid var(--line); border-radius: 0.55rem; color: var(--ink); background: rgba(230, 238, 255, 0.06); font-size: 0.8rem; font-weight: 600; }

@@ -79,7 +79,13 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
 
   const updateDraft = (id: string, field: "src" | "repetitions", value: string) => {
     setDraftPlaylistId(null);
-    setDrafts((items) => items.map((item) => item.id === id ? { ...item, [field]: field === "src" ? normalizeVideoUrlInput(value) : value } : item));
+    setDrafts((items) => items.map((item) => item.id === id
+      ? {
+        ...item,
+        [field]: field === "src" ? normalizeVideoUrlInput(value) : value,
+        ...(field === "src" ? { title: undefined } : {}),
+      }
+      : item));
     setError(null);
   };
 

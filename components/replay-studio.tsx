@@ -184,11 +184,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const payload = await response.json().catch(() => null) as { error?: string; hasMore?: boolean; items?: Array<{ url: string; repetitions: number }> } | null;
+      const payload = await response.json().catch(() => null) as { error?: string; hasMore?: boolean; items?: Array<{ url: string; title?: string; repetitions: number }> } | null;
       if (!response.ok || !payload?.items) throw new Error(payload?.error ?? "Não foi possível importar essa playlist agora.");
       setDraftPlaylistId(null);
       setPlaylistInputMode("advanced");
-      setDrafts(payload.items.map((item) => ({ id: crypto.randomUUID(), src: item.url, repetitions: String(item.repetitions) })));
+      setDrafts(payload.items.map((item) => ({ id: crypto.randomUUID(), src: item.url, title: item.title, repetitions: String(item.repetitions) })));
       setPlaylistSaveMessage(payload.hasMore ? "Os primeiros 100 vídeos foram importados. Revise antes de iniciar." : `${payload.items.length} ${payload.items.length === 1 ? "vídeo importado" : "vídeos importados"}. Revise antes de iniciar.`);
       return true;
     } catch (reason) {

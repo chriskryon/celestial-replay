@@ -97,6 +97,8 @@ export function ReplayComposer({
   const formHint = mode === "single" ? singleHint : playlistHint;
   const advancedPlaylistRepetitions = drafts.reduce((total, draft) => total + Math.max(0, Number(draft.repetitions) || 0), 0);
   const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState("");
+  const [focusedDraftId, setFocusedDraftId] = useState<string | null>(null);
+  const [hoveredDraftId, setHoveredDraftId] = useState<string | null>(null);
   const importYoutubePlaylist = async () => {
     if (!youtubePlaylistUrl.trim()) return;
     if (await onImportYoutubePlaylist(youtubePlaylistUrl)) setYoutubePlaylistUrl("");
@@ -148,12 +150,14 @@ export function ReplayComposer({
           const touched = draft.src.trim() !== "" || draft.repetitions !== "1";
           const rowInvalid = touched && !parseSingleReplay(draft.src, draft.repetitions, canPlaySrc);
           const uploadName = uploadDisplayNameFromUrl(draft.src);
+          const isSourceRevealed = focusedDraftId === draft.id || hoveredDraftId === draft.id;
+          const displaySource = draft.title && !isSourceRevealed ? draft.title : draft.src;
           return <div className="playlist-row" key={draft.id}>
             <span className="row-number" aria-hidden="true">{index + 1}</span>
             <label className="sr-only" htmlFor={`playlist-url-${draft.id}`}>URL do vídeo {index + 1}</label>
             <span className="playlist-source-field">
               {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
-              <input id={`playlist-url-${draft.id}`} value={draft.src} onChange={(event) => onUpdateDraft(draft.id, "src", event.target.value)} placeholder="Cole a URL do vídeo" inputMode="url" autoComplete="url" aria-invalid={rowInvalid} />
+              <input aria-description={draft.title ? "O título é exibido enquanto o campo não está ativo. Foque para editar a URL." : undefined} aria-invalid={rowInvalid} className={draft.title && !isSourceRevealed ? "is-display-title" : undefined} id={`playlist-url-${draft.id}`} inputMode="url" autoComplete="url" onBlur={() => setFocusedDraftId((current) => current === draft.id ? null : current)} onChange={(event) => onUpdateDraft(draft.id, "src", event.target.value)} onFocus={() => setFocusedDraftId(draft.id)} onMouseEnter={() => setHoveredDraftId(draft.id)} onMouseLeave={() => setHoveredDraftId((current) => current === draft.id ? null : current)} placeholder="Cole a URL do vídeo" title={draft.title ? (isSourceRevealed ? draft.src : "Clique ou foque para editar a URL") : undefined} value={displaySource} />
             </span>
             <label className="sr-only" htmlFor={`playlist-count-${draft.id}`}>Repetições do vídeo {index + 1}</label>
             <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => onUpdateDraft(draft.id, "repetitions", event.target.value)} aria-invalid={rowInvalid} />

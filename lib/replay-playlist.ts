@@ -2,7 +2,7 @@ import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { z } from "zod";
 
 export type VideoItem = { id: string; src: string; repetitions: number };
-export type PlaylistDraft = { id: string; src: string; repetitions: string };
+export type PlaylistDraft = { id: string; src: string; title?: string; repetitions: string };
 export type ParsedPlaylistItem = { src: string; count: number };
 export type SavedPlaylist = { id: string; name: string; items: Array<{ id: string; url: string; repetitions: number }> };
 export type ResumableSession = { queue: VideoItem[]; activeIndex: number; remaining: number; playlistName: string; volume: number; playbackRate?: number };
