@@ -673,11 +673,14 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .navbar-link { min-height: 42px; padding-inline: .62rem; }
   .navbar-menu-trigger { display: grid; }
   .studio-grid { grid-template-rows: clamp(290px, 54dvh, 430px) auto; }
-  .studio-grid.is-playing { grid-template-rows: clamp(330px, 60dvh, 500px) auto; }
+  .studio-grid.has-media { grid-template-rows: auto auto; }
+  .studio-grid.is-playing { grid-template-rows: auto auto; }
   .studio-grid.is-empty { grid-template-rows: clamp(205px, 32dvh, 280px) auto; }
   .studio-shell.is-playing-session { padding-bottom: calc(5.8rem + env(safe-area-inset-bottom)); }
   .player-surface { min-height: 200px; }
   .player-surface.is-empty { min-height: 0; }
+  .player-stage-motion { width: 100%; height: auto; min-width: 0; max-width: 100%; aspect-ratio: 16 / 9; align-self: start; justify-self: stretch; }
+  .player-stage { min-width: 0; }
   .keyboard-help { display: none; }
   .playback-tools { gap: 0.3rem; }
   .control-surface { grid-template-columns: 1fr; grid-template-rows: none; align-items: stretch; padding: 0.2rem 0 0; }

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
+import { createPortal } from "react-dom";
 import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
@@ -148,11 +149,16 @@ export function ReplayPlayerSurface({
 }: ReplayPlayerSurfaceProps) {
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const [isMobileVolumeOpen, setIsMobileVolumeOpen] = useState(false);
+  const [isClientMounted, setIsClientMounted] = useState(false);
   const mobileOptionsDialogRef = useRef<HTMLDialogElement>(null);
   const mobileVolumeControlRef = useRef<HTMLDivElement>(null);
   const playerStageRef = useRef<HTMLDivElement>(null);
   const previousStageLayout = useRef<{ rect: DOMRect; state: string } | null>(null);
   const stageAnimation = useRef<Animation | null>(null);
+
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
 
   useEffect(() => {
     const dialog = mobileOptionsDialogRef.current;
@@ -370,7 +376,7 @@ export function ReplayPlayerSurface({
         <div className="player-more-panel">{renderMoreOptions()}</div>
       </details>
     </div>}
-    {activeVideo && !error && <div className="mobile-session-controls" role="toolbar" aria-label="Controles principais de reprodução">
+    {isClientMounted && activeVideo && !error && createPortal(<div className="mobile-session-controls" role="toolbar" aria-label="Controles principais de reprodução">
       <button className="icon-save-button" type="button" onClick={onPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição" title="Voltar repetição"><StepBack aria-hidden="true" size={21} /></button>
       <button className="pause-button" type="button" onClick={onTogglePlay} aria-label={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"} title={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={21} /> : <Play aria-hidden="true" size={21} />}</button>
       <button className="icon-save-button" type="button" onClick={onNextRepetition} disabled={!canSkipRepetition} aria-label="Pular repetição" title="Pular repetição"><SkipForward aria-hidden="true" size={21} /></button>
@@ -379,7 +385,7 @@ export function ReplayPlayerSurface({
         {isMobileVolumeOpen && <div className="mobile-volume-popover" role="group" aria-label="Volume"><label className="sr-only" htmlFor="mobile-volume">Volume</label><input className="celestial-volume" id="mobile-volume" type="range" min="0" max="1" step="0.05" value={volume} style={{ "--volume-level": `${volume * 100}%` } as CSSProperties} onChange={(event) => onSetVolume(Number(event.target.value))} /></div>}
       </div>
       <button className="icon-save-button" type="button" onClick={() => setIsMobileOptionsOpen(true)} aria-haspopup="dialog" aria-label="Mais opções" title="Mais opções"><MoreHorizontal aria-hidden="true" size={21} /></button>
-    </div>}
+    </div>, document.body)}
     <dialog ref={mobileOptionsDialogRef} className="player-mobile-sheet" aria-labelledby="mobile-options-title" onCancel={() => setIsMobileOptionsOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setIsMobileOptionsOpen(false); }}>
       <div className="player-mobile-sheet-content">
         <div className="player-mobile-sheet-heading"><div><span>Preferências</span><h2 id="mobile-options-title">Mais opções</h2></div><button className="icon-save-button" type="button" onClick={() => setIsMobileOptionsOpen(false)} aria-label="Fechar opções"><X aria-hidden="true" size={18} /></button></div>
