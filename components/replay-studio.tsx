@@ -307,7 +307,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
 
   return (
     <>
-      <section className={`studio-shell${mode === "playlist" && queue.length > 0 ? " has-playback-queue" : ""}`} aria-labelledby="studio-title">
+      <section className={`studio-shell${mode === "playlist" && queue.length > 0 ? " has-playback-queue" : ""}${activeVideo && !error ? " is-playing-session" : ""}`} aria-labelledby="studio-title">
         <div className="studio-session-area">
           {resumeSession && <aside className="resume-session" aria-label="Sessão disponível para retomar"><div><strong>Continue de onde parou</strong><span>{resumeSession.playlistName} · vídeo {resumeSession.activeIndex + 1} de {resumeSession.queue.length} · repetição {Math.max(1, (resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1) - resumeSession.remaining + 1)} de {resumeSession.queue[resumeSession.activeIndex]?.repetitions ?? 1}</span></div><div className="resume-session-actions"><button className="icon-save-button" type="button" onClick={() => setIsDiscardResumeOpen(true)} aria-label="Descartar sessão salva" title="Descartar sessão"><Trash2 aria-hidden="true" size={16} /></button><button className="secondary-button" type="button" onClick={resume}><RotateCcw aria-hidden="true" size={16} />Retomar</button></div></aside>}
         </div>
@@ -317,7 +317,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           <button className={mode === "playlist" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={mode === "playlist"} onClick={() => setMode("playlist")}><ListMusic aria-hidden="true" size={16} />Playlist</button>
         </div>
 
-        <div className={`studio-grid ${displayedVideo ? "has-media" : "is-empty"}`}>
+        <div className={`studio-grid ${displayedVideo ? "has-media" : "is-empty"}${activeVideo && !error ? " is-playing" : ""}`}>
           <ReplayComposer
             canSubmitPlaylist={canSubmitPlaylist}
             canSubmitSingle={canSubmitSingle}

@@ -147,7 +147,9 @@ export function ReplayPlayerSurface({
   volume,
 }: ReplayPlayerSurfaceProps) {
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
+  const [isMobileVolumeOpen, setIsMobileVolumeOpen] = useState(false);
   const mobileOptionsDialogRef = useRef<HTMLDialogElement>(null);
+  const mobileVolumeControlRef = useRef<HTMLDivElement>(null);
   const playerStageRef = useRef<HTMLDivElement>(null);
   const previousStageLayout = useRef<{ rect: DOMRect; state: string } | null>(null);
   const stageAnimation = useRef<Animation | null>(null);
@@ -160,12 +162,25 @@ export function ReplayPlayerSurface({
     if (!isMobileOptionsOpen && dialog.open) dialog.close();
   }, [isMobileOptionsOpen]);
 
+  useEffect(() => {
+    if (!isMobileVolumeOpen) return;
+    const closeVolume = (event: PointerEvent) => {
+      if (!mobileVolumeControlRef.current?.contains(event.target as Node)) setIsMobileVolumeOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileVolumeOpen(false);
+    };
+    document.addEventListener("pointerdown", closeVolume);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeVolume);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMobileVolumeOpen]);
+
   const renderMoreOptions = () => <>
-    <div className="player-mobile-repeat-actions" role="toolbar" aria-label="Repetições">
-      <button className="icon-save-button" type="button" onClick={onPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição"><StepBack aria-hidden="true" size={18} /></button>
-      <button className="icon-save-button" type="button" onClick={onNextRepetition} disabled={!canSkipRepetition} aria-label="Pular repetição"><SkipForward aria-hidden="true" size={18} /></button>
-    </div>
     <div className="player-speed-control" role="toolbar" aria-label="Velocidade">{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-label={`Velocidade ${rate}x`} aria-pressed={playbackRate === rate} onClick={() => onSetPlaybackRate(rate)}>{rate}x</button>)}</div>
+    {(hasPrevVideo || hasNextVideo) && <div className="player-video-actions" role="toolbar" aria-label="Vídeos">{hasPrevVideo && <button className="icon-save-button" type="button" onClick={onPreviousVideo} aria-label="Vídeo anterior" title="Vídeo anterior"><SkipBack aria-hidden="true" size={18} /></button>}{hasNextVideo && <button className="icon-save-button" type="button" onClick={onNextVideo} aria-label="Próximo vídeo" title="Próximo vídeo"><StepForward aria-hidden="true" size={18} /></button>}</div>}
     <div className="player-display-control" role="toolbar" aria-label="Exibição">{displayedVideo && canEnablePIP(displayedVideo.src) && <button className="icon-save-button" type="button" onClick={onTogglePip} aria-label="Picture-in-picture" title="Picture-in-picture" aria-pressed={pip}><PictureInPicture2 aria-hidden="true" size={18} /></button>}<button className="icon-save-button" type="button" onClick={onFullscreen} aria-label="Tela cheia" title="Tela cheia"><Maximize aria-hidden="true" size={18} /></button></div>
     <details className="player-more-shortcuts"><summary><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>
   </>;
@@ -266,6 +281,7 @@ export function ReplayPlayerSurface({
         </div>
         {activeVideo && remaining > 0 && !error && <span className="player-repeat-badge"><Repeat2 aria-hidden="true" size={14} />{remaining} {remaining === 1 ? "repetição restante" : "repetições restantes"}</span>}
       </div>
+      {activeVideo && activeIndex !== null && queueLength > 1 && !error && <div className="player-mobile-session-summary" role="status"><span>Vídeo {activeIndex + 1} de {queueLength}</span><span>{remaining}× restantes</span></div>}
       {queueLength > 0 && activeIndex !== null && totalRepetitions > 0 && !error && <>
         <div className="playlist-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(playbackProgress)} aria-label={`Progresso da playlist: ${completedRepetitions} de ${totalRepetitions} repetições concluídas`} style={{ "--playlist-progress": playbackProgress / 100 } as CSSProperties}>
           {playlistSegments.map((segment, index) => <span key={segment.id} className={`playlist-progress-segment tone-${segment.tone}${index < completedRepetitions ? " is-complete" : ""}${index === completedRepetitions ? " is-current" : ""}`} style={{ "--segment-weight": segment.weight, ...(index === completedRepetitions ? { "--segment-progress": currentRepetitionProgress } : {}) } as CSSProperties} title={`${segment.label} · ≈ ${formatTime(segment.weight)}`} aria-hidden="true" />)}
@@ -353,7 +369,16 @@ export function ReplayPlayerSurface({
         <summary aria-label="Mais opções" title="Mais opções"><MoreHorizontal aria-hidden="true" size={18} /></summary>
         <div className="player-more-panel">{renderMoreOptions()}</div>
       </details>
-      <button className="player-mobile-options-trigger" type="button" onClick={() => setIsMobileOptionsOpen(true)} aria-haspopup="dialog" aria-label="Mais opções"><MoreHorizontal aria-hidden="true" size={20} /></button>
+    </div>}
+    {activeVideo && !error && <div className="mobile-session-controls" role="toolbar" aria-label="Controles principais de reprodução">
+      <button className="icon-save-button" type="button" onClick={onPreviousRepetition} disabled={!canGoBackRepetition} aria-label="Voltar repetição" title="Voltar repetição"><StepBack aria-hidden="true" size={21} /></button>
+      <button className="pause-button" type="button" onClick={onTogglePlay} aria-label={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"} title={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={21} /> : <Play aria-hidden="true" size={21} />}</button>
+      <button className="icon-save-button" type="button" onClick={onNextRepetition} disabled={!canSkipRepetition} aria-label="Pular repetição" title="Pular repetição"><SkipForward aria-hidden="true" size={21} /></button>
+      <div className="mobile-volume-control" ref={mobileVolumeControlRef}>
+        <button className="icon-save-button" type="button" onClick={() => setIsMobileVolumeOpen((value) => !value)} aria-expanded={isMobileVolumeOpen} aria-label={volume === 0 ? "Abrir controle de volume, som desativado" : "Abrir controle de volume"} title="Volume">{volume === 0 ? <VolumeX aria-hidden="true" size={21} /> : <Volume2 aria-hidden="true" size={21} />}</button>
+        {isMobileVolumeOpen && <div className="mobile-volume-popover" role="group" aria-label="Volume"><label className="sr-only" htmlFor="mobile-volume">Volume</label><input className="celestial-volume" id="mobile-volume" type="range" min="0" max="1" step="0.05" value={volume} style={{ "--volume-level": `${volume * 100}%` } as CSSProperties} onChange={(event) => onSetVolume(Number(event.target.value))} /></div>}
+      </div>
+      <button className="icon-save-button" type="button" onClick={() => setIsMobileOptionsOpen(true)} aria-haspopup="dialog" aria-label="Mais opções" title="Mais opções"><MoreHorizontal aria-hidden="true" size={21} /></button>
     </div>}
     <dialog ref={mobileOptionsDialogRef} className="player-mobile-sheet" aria-labelledby="mobile-options-title" onCancel={() => setIsMobileOptionsOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setIsMobileOptionsOpen(false); }}>
       <div className="player-mobile-sheet-content">

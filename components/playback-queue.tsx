@@ -53,7 +53,7 @@ export function PlaybackQueue({
 }: PlaybackQueueProps) {
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const currentItem = isSessionComplete || activeIndex === null ? null : queue[activeIndex] ?? null;
   const currentMetadata = currentItem ? metadata[currentItem.src] : null;
   const currentTitle = currentItem ? currentMetadata?.title ?? uploadDisplayNameFromUrl(currentItem.src) ?? (() => {
@@ -61,12 +61,12 @@ export function PlaybackQueue({
   })() : null;
 
   useEffect(() => {
-    currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (isExpanded) currentItemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     if (activeIndex === null) return;
     setRecentIndex(activeIndex);
     const timeout = window.setTimeout(() => setRecentIndex(null), 1200);
     return () => window.clearTimeout(timeout);
-  }, [activeIndex]);
+  }, [activeIndex, isExpanded]);
 
   const renderQueueItem = (item: VideoItem, index: number) => {
     const isCurrent = !isSessionComplete && index === activeIndex;
@@ -140,15 +140,15 @@ export function PlaybackQueue({
         </span>
         <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
       </button>
-      <div className="queue-title-actions">
-        {!isSessionComplete && <button className="queue-stop-button" type="button" onClick={onStop} title="Pedir confirmação para encerrar a playlist" aria-label="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar</button>}
+    </div>
+    <div aria-hidden={!isExpanded} className={`queue-content-wrapper${isExpanded ? " is-expanded" : ""}`} id="queue-content" inert={!isExpanded}>
+      <div className="queue-content">
+      <div className="queue-expanded-actions">
+        {!isSessionComplete && <button className="queue-stop-button" type="button" onClick={onStop} title="Pedir confirmação para encerrar a playlist" aria-label="Encerrar playlist em execução"><Square aria-hidden="true" size={14} />Encerrar playlist</button>}
         {isLoggedIn && !isSavedPlaylist && <button className="icon-save-button" type="button" onClick={onSave} disabled={isSaving} aria-label="Salvar playlist em execução" title="Salvar playlist">
           <Save aria-hidden="true" size={18} />
         </button>}
       </div>
-    </div>
-    <div aria-hidden={!isExpanded} className={`queue-content-wrapper${isExpanded ? " is-expanded" : ""}`} id="queue-content" inert={!isExpanded}>
-      <div className="queue-content">
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
       {isSessionComplete && <div className="queue-complete-summary" role="status">
         <span>{queue.length} {queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}</span>
