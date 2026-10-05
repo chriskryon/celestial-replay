@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
 import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
+import { isOdyseeSource } from "@/lib/odysee";
 import { parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
 import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
 
@@ -41,7 +42,7 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
   const singleHint = !canSubmitSingle
     ? !source.trim()
       ? "Cole a URL do vídeo para liberar o início."
-      : !isPlayableMediaUrl(source.trim()) || !canPlaySrc(source.trim())
+      : !isPlayableMediaUrl(source.trim()) || (!canPlaySrc(source.trim()) && !isOdyseeSource(source.trim()))
         ? "Essa URL não é reproduzível aqui — use YouTube, Vimeo ou arquivo direto."
         : "Repetições: número inteiro maior que zero."
     : null;

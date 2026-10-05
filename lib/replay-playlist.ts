@@ -1,5 +1,6 @@
 import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { z } from "zod";
+import { isOdyseeSource } from "@/lib/odysee";
 
 export type VideoItem = { id: string; src: string; repetitions: number; skippedRepetitions?: number };
 export type PlaylistDraft = { id: string; src: string; title?: string; repetitions: string };
@@ -18,7 +19,7 @@ export const makeDraft = (): PlaylistDraft => ({ id: crypto.randomUUID(), src: "
 
 export function parseSingleReplay(source: string, repetitions: string, canPlay: CanPlay): ParsedPlaylistItem | null {
   const result = playlistLineSchema.safeParse({ src: normalizeVideoUrlInput(source), repetitions });
-  return result.success && canPlay(result.data.src) ? { src: result.data.src, count: result.data.repetitions } : null;
+  return result.success && (canPlay(result.data.src) || isOdyseeSource(result.data.src)) ? { src: result.data.src, count: result.data.repetitions } : null;
 }
 
 export function parsePlaylistDrafts(drafts: PlaylistDraft[], canPlay: CanPlay): ParsedPlaylistItem[] | null {
@@ -31,7 +32,7 @@ export function parsePlaylistDrafts(drafts: PlaylistDraft[], canPlay: CanPlay): 
 
 export function isPlayableItem(item: VideoItem, canPlay: CanPlay) {
   const src = item.src.trim();
-  return isPlayableMediaUrl(src) && canPlay(src) && Number.isInteger(item.repetitions) && item.repetitions > 0;
+  return isPlayableMediaUrl(src) && (canPlay(src) || isOdyseeSource(src)) && Number.isInteger(item.repetitions) && item.repetitions > 0;
 }
 
 export function parsePlaylistLines(value: string, canPlay: CanPlay): ParsedPlaylistItem[] | null {

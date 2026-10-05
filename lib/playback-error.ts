@@ -1,4 +1,5 @@
 import { canPlaySrc } from "@/components/react-player-client";
+import { isOdyseeSource } from "@/lib/odysee";
 
 function hostname(source: string) {
   try {
@@ -14,6 +15,9 @@ function hostname(source: string) {
  * a mensagem descreve possibilidades, nunca afirma uma causa específica.
  */
 export function playbackErrorMessage(source: string) {
+  if (isOdyseeSource(source)) {
+    return "Não foi possível renovar a fonte temporária do Odysee. Tente novamente em instantes.";
+  }
   if (!source || !canPlaySrc(source)) {
     return "Esta fonte não é suportada. Use YouTube, Vimeo, HLS/DASH ou um arquivo de vídeo/áudio direto.";
   }

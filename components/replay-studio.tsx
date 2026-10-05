@@ -14,6 +14,7 @@ import { loadPlaylists, savePlaylist as persistPlaylist } from "@/lib/replay-api
 import { canSavePlaylist } from "@/lib/replay-validation";
 import { canPlaySrc } from "@/components/react-player-client";
 import { useAudioCache } from "@/hooks/use-audio-cache";
+import { useOdyseeSource } from "@/hooks/use-odysee-source";
 import { usePlaybackEngine } from "@/hooks/use-playback-engine";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 import { usePlaylistComposer } from "@/hooks/use-playlist-composer";
@@ -134,6 +135,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   }, [activeVideo, firstSimplePlaylistItem, mode, playlistInputMode, playlistItems, singleReplay]);
   const displayedVideo = activeVideo ?? previewVideo;
   const { isResolving: isAudioResolving, resolvedSrc: resolvedAudioSrc } = useAudioCache(displayedVideo);
+  const { isResolving: isOdyseeResolving, resolvedSrc: resolvedOdyseeSrc } = useOdyseeSource(displayedVideo);
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
   const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
 
@@ -397,7 +399,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             hasNextVideo={hasNextVideo}
             hasPlaybackStarted={hasPlaybackStarted}
             hasPrevVideo={hasPrevVideo}
-            isAudioResolving={isAudioResolving}
+            isAudioResolving={isAudioResolving || isOdyseeResolving}
             isPlaying={isPlaying}
             isSessionComplete={isSessionComplete}
             loaded={loaded}
@@ -440,7 +442,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             queue={queue}
             queueLength={queue.length}
             remaining={remaining}
-            resolvedAudioSrc={resolvedAudioSrc}
+            resolvedAudioSrc={resolvedAudioSrc ?? resolvedOdyseeSrc}
             totalRepetitions={totalRepetitions}
             videoAuthor={videoMetadata.authorName}
             videoDurations={videoDurations}
