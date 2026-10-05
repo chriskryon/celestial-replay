@@ -322,6 +322,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             canSubmitPlaylist={canSubmitPlaylist}
             canSubmitSingle={canSubmitSingle}
             drafts={drafts}
+            autoSkipErrors={autoSkipErrors}
             error={error}
             invalidSimpleLine={invalidSimpleLine}
             isEditingQueue={isEditingQueue}
@@ -331,6 +332,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             isSavingPlaylist={isSavingPlaylist}
             mode={mode}
             onAddDraft={() => { setDraftPlaylistId(null); setDrafts((items) => [...items, makeDraft()]); }}
+            onAutoSkipErrorsChange={setAutoSkipErrors}
             onImportYoutubePlaylist={importYoutubePlaylist}
             onLoadSavedPlaylist={loadSavedPlaylist}
             onOpenSaveDialog={() => openSaveDialog("draft")}
@@ -361,8 +363,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
 
           <ReplayPlayerSurface
-            autoSkipErrors={autoSkipErrors}
-            onSetAutoSkipErrors={setAutoSkipErrors}
             rememberMediaPreferences={rememberMediaPreferences}
             onSetRememberMediaPreferences={setRememberMediaPreferences}
             playbackNotice={playbackNotice}

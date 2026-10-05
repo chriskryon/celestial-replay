@@ -10,7 +10,7 @@ function surfaceProps(loadVideoById: (id: string) => void): Parameters<typeof Re
   const video = { id: "a", src: "https://www.youtube.com/watch?v=qqM4cAlbroQ", repetitions: 1 };
   return {
     activeIndex: 0, activeVideo: video, displayedVideo: video,
-    autoSkipErrors: true, rememberMediaPreferences: true,
+    rememberMediaPreferences: true,
     canGoBackRepetition: false, canSkipRepetition: true, completedRepetitions: 0,
     duration: null, error: null, hasNextVideo: true, hasPlaybackStarted: false,
     hasPrevVideo: false, isPlaying: true, isSessionComplete: false, loaded: 0,
@@ -20,7 +20,7 @@ function surfaceProps(loadVideoById: (id: string) => void): Parameters<typeof Re
     onPreviousRepetition: noop, onPreviousVideo: noop, onProgress: noop, onRateChange: noop,
     onRetry: noop, onRestartSession: noop, onSeeked: noop, onSeekSliderChange: noop,
     onSeekSliderDown: noop, onSeekSliderUp: noop, onSetPlaybackRate: noop,
-    onSetAutoSkipErrors: noop, onSetRememberMediaPreferences: noop, onSetVolume: noop,
+    onSetRememberMediaPreferences: noop, onSetVolume: noop,
     onTimeUpdate: noop, onToggleMute: noop, onTogglePlay: noop, onTogglePip: noop,
     onFullscreen: noop, onVideoEnded: noop, pip: false, playbackRate: 1, played: 0,
     playerRef: { current: { api: { loadVideoById } } as unknown as HTMLVideoElement },

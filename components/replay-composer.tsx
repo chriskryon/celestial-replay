@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CheckCircle2, Download, ListPlus, Play, Plus, Save, Trash2 } from "lucide-react";
+import { CheckCircle2, Download, ListPlus, Play, Plus, Save, Settings2, Trash2 } from "lucide-react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import { canPlaySrc } from "@/components/react-player-client";
@@ -10,6 +10,7 @@ import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type ReplayMode = "single" | "playlist";
 type PlaylistInputMode = "simple" | "advanced";
+type PlaylistSetupView = "videos" | "settings";
 
 type ReplayComposerProps = {
   canSubmitPlaylist: boolean;
@@ -23,6 +24,7 @@ type ReplayComposerProps = {
   isSavingPlaylist: boolean;
   mode: ReplayMode;
   onAddDraft: () => void;
+  onAutoSkipErrorsChange: (value: boolean) => void;
   onImportYoutubePlaylist: (url: string) => Promise<boolean>;
   onLoadSavedPlaylist: (playlist: SavedPlaylist) => void;
   onOpenSaveDialog: () => void;
@@ -38,6 +40,7 @@ type ReplayComposerProps = {
   onUploadAudio: (url: string, displayName: string | null) => void;
   onPlaybackRateChange: (rate: number) => void;
   playbackRate: number;
+  autoSkipErrors: boolean;
   playlistHint: string | null;
   playlistInputMode: PlaylistInputMode;
   playlistSaveMessage: string | null;
@@ -65,6 +68,7 @@ export function ReplayComposer({
   isSavingPlaylist,
   mode,
   onAddDraft,
+  onAutoSkipErrorsChange,
   onImportYoutubePlaylist,
   onLoadSavedPlaylist,
   onOpenSaveDialog,
@@ -80,6 +84,7 @@ export function ReplayComposer({
   onUploadAudio,
   onPlaybackRateChange,
   playbackRate,
+  autoSkipErrors,
   playlistHint,
   playlistInputMode,
   playlistSaveMessage,
@@ -99,6 +104,7 @@ export function ReplayComposer({
   const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState("");
   const [focusedDraftId, setFocusedDraftId] = useState<string | null>(null);
   const [hoveredDraftId, setHoveredDraftId] = useState<string | null>(null);
+  const [playlistSetupView, setPlaylistSetupView] = useState<PlaylistSetupView>("videos");
   const importYoutubePlaylist = async () => {
     if (!youtubePlaylistUrl.trim()) return;
     if (await onImportYoutubePlaylist(youtubePlaylistUrl)) setYoutubePlaylistUrl("");
@@ -125,6 +131,20 @@ export function ReplayComposer({
         <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Monte sua playlist</h2></div>
         <p>Escolha a forma que for mais confortável. A playlist só começa quando tudo estiver válido.</p>
       </div>
+      <div className="playlist-setup-tabs" role="tablist" aria-label="Etapa da playlist">
+        <button className={playlistSetupView === "videos" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistSetupView === "videos"} onClick={() => setPlaylistSetupView("videos")}><ListPlus aria-hidden="true" size={16} />Vídeos</button>
+        <button className={playlistSetupView === "settings" ? "mode-button is-selected" : "mode-button"} type="button" role="tab" aria-selected={playlistSetupView === "settings"} onClick={() => setPlaylistSetupView("settings")}><Settings2 aria-hidden="true" size={16} />Configurações <span className={`playlist-setting-state ${autoSkipErrors ? "is-enabled" : ""}`} aria-label={autoSkipErrors ? "Pular vídeos com erro ativado" : "Pular vídeos com erro desativado"} /></button>
+      </div>
+      {playlistSetupView === "settings" ? <section className="playlist-settings-panel" aria-label="Configurações da playlist">
+        <div className="playlist-settings-heading">
+          <div><h3>Configurações da playlist</h3><p>Defina como a fila reage quando um vídeo não pode ser reproduzido.</p></div>
+          <span className={`playlist-settings-status ${autoSkipErrors ? "is-enabled" : ""}`}>{autoSkipErrors ? "Ativo" : "Desativado"}</span>
+        </div>
+        <label className="playlist-setting-toggle">
+          <input type="checkbox" checked={autoSkipErrors} onChange={(event) => onAutoSkipErrorsChange(event.target.checked)} />
+          <span><strong>Pular vídeos com erro</strong><small>Marca o item como pulado e carrega o próximo vídeo disponível.</small></span>
+        </label>
+      </section> : <>
       <div className="youtube-playlist-import">
         <label htmlFor="youtube-playlist-url">Importar playlist do YouTube</label>
         <div><input autoComplete="url" id="youtube-playlist-url" inputMode="url" onChange={(event) => setYoutubePlaylistUrl(event.target.value)} placeholder="https://www.youtube.com/playlist?list=..." value={youtubePlaylistUrl} /><button className="secondary-button" disabled={!youtubePlaylistUrl.trim() || isImportingYoutubePlaylist} onClick={() => void importYoutubePlaylist()} type="button"><Download aria-hidden="true" size={16} />{isImportingYoutubePlaylist ? "Importando…" : "Importar"}</button></div>
@@ -167,6 +187,7 @@ export function ReplayComposer({
       </div>}
       {playlistInputMode === "advanced" && <div className="playlist-editor-toolbar"><span className="playlist-form-summary" aria-live="polite">{drafts.length} {drafts.length === 1 ? "vídeo" : "vídeos"} · {advancedPlaylistRepetitions} {advancedPlaylistRepetitions === 1 ? "execução" : "execuções"}</span><div className="playlist-editor-actions"><button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>{isLoggedIn && <AudioUploadButton onUploaded={onUploadAudio} />}</div></div>}
       {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
+      </>}
     </>}
     {error && <p className="field-error" role="alert">{error}</p>}
     {!isEditingQueue && mode === "playlist" && <div className="playlist-actions">

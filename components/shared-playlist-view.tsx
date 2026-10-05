@@ -38,7 +38,7 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
 
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, rememberMediaPreferences, seekingRef, seekBy, setDuration, setLoaded, setPip, setRememberMediaPreferences, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
 
-  const { activeIndex, activeVideo, autoSkipErrors, canGoBackRepetition, canSkipRepetition, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playbackNotice, playNextRepetition, playPreviousRepetition, previousVideo, queue, remaining, restartSession, retryCurrentVideo, setAutoSkipErrors, setIsPlaying, startQueue, toggleMute, togglePlay, totalRepetitions, usesNativeYoutubePlaylist, videoDurations, youtubePlaylistSources } = usePlaybackEngine({
+  const { activeIndex, activeVideo, canGoBackRepetition, canSkipRepetition, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playbackNotice, playNextRepetition, playPreviousRepetition, previousVideo, queue, remaining, restartSession, retryCurrentVideo, setIsPlaying, startQueue, toggleMute, togglePlay, totalRepetitions, usesNativeYoutubePlaylist, videoDurations, youtubePlaylistSources } = usePlaybackEngine({
     attemptPlay,
     clearResumeSession: () => undefined,
     duration,
@@ -110,8 +110,6 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
       </div>
       <div className="studio-grid has-media">
         <ReplayPlayerSurface
-          autoSkipErrors={autoSkipErrors}
-          onSetAutoSkipErrors={setAutoSkipErrors}
           rememberMediaPreferences={rememberMediaPreferences}
           onSetRememberMediaPreferences={setRememberMediaPreferences}
           playbackNotice={playbackNotice}

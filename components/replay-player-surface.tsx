@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
-import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, Settings2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
+import { Clapperboard, Keyboard, Maximize, MoreHorizontal, Pause, PictureInPicture2, Play, Repeat2, SkipBack, SkipForward, StepBack, StepForward, Volume2, VolumeX, X } from "lucide-react";
 
 import { canEnablePIP } from "@/components/react-player-client";
 import { buildPlaylistSegments } from "@/lib/playback-progress";
@@ -21,7 +21,6 @@ type YoutubeMediaElement = HTMLVideoElement & { api?: { loadVideoById?: (id: str
 type ReplayPlayerSurfaceProps = {
   activeIndex: number | null;
   activeVideo: VideoItem | null;
-  autoSkipErrors: boolean;
   rememberMediaPreferences: boolean;
   canGoBackRepetition: boolean;
   canSkipRepetition: boolean;
@@ -57,7 +56,6 @@ type ReplayPlayerSurfaceProps = {
   onSeekSliderDown: () => void;
   onSeekSliderUp: (value: number) => void;
   onSetPlaybackRate: (value: number) => void;
-  onSetAutoSkipErrors: (value: boolean) => void;
   onSetRememberMediaPreferences: (value: boolean) => void;
   onSetVolume: (value: number) => void;
   onTimeUpdate: (videoId: string) => void;
@@ -91,7 +89,6 @@ type ReplayPlayerSurfaceProps = {
 export function ReplayPlayerSurface({
   activeIndex,
   activeVideo,
-  autoSkipErrors,
   rememberMediaPreferences,
   canGoBackRepetition,
   canSkipRepetition,
@@ -128,7 +125,6 @@ export function ReplayPlayerSurface({
   onSeekSliderDown,
   onSeekSliderUp,
   onSetPlaybackRate,
-  onSetAutoSkipErrors,
   onSetRememberMediaPreferences,
   onSetVolume,
   onTimeUpdate,
@@ -407,7 +403,7 @@ export function ReplayPlayerSurface({
       </div>
     </dialog>
     {playbackNotice && <p className="field-help playback-notice" role="status">{playbackNotice}</p>}
-    <details className="playback-settings"><summary><Settings2 aria-hidden="true" size={14} />Configurações</summary><label><input type="checkbox" checked={autoSkipErrors} onChange={(event) => onSetAutoSkipErrors(event.target.checked)} />Pular vídeos com erro na playlist</label><label><input type="checkbox" checked={rememberMediaPreferences} onChange={(event) => onSetRememberMediaPreferences(event.target.checked)} />Lembrar volume e velocidade</label></details>
+    <details className="playback-settings"><summary><span>Preferências do player</span></summary><label><input type="checkbox" checked={rememberMediaPreferences} onChange={(event) => onSetRememberMediaPreferences(event.target.checked)} />Lembrar volume e velocidade</label></details>
     {activeVideo && <details className="keyboard-help"><summary title="Ver atalhos de teclado"><Keyboard aria-hidden="true" size={14} />Atalhos</summary><p>Espaço pausa · M silencia · ↑ ↓ volume · J/L avança ou volta 10 s · N/B muda de vídeo</p></details>}
   </div>;
 }
