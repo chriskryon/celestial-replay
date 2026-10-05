@@ -36,9 +36,9 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
+  const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, rememberMediaPreferences, seekingRef, seekBy, setDuration, setLoaded, setPip, setRememberMediaPreferences, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
 
-  const { activeIndex, activeVideo, canGoBackRepetition, canSkipRepetition, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playPreviousRepetition, previousVideo, queue, remaining, restartSession, retryCurrentVideo, setIsPlaying, startQueue, toggleMute, togglePlay, totalRepetitions, usesNativeYoutubePlaylist, videoDurations, youtubePlaylistSources } = usePlaybackEngine({
+  const { activeIndex, activeVideo, autoSkipErrors, canGoBackRepetition, canSkipRepetition, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playbackNotice, playNextRepetition, playPreviousRepetition, previousVideo, queue, remaining, restartSession, retryCurrentVideo, setAutoSkipErrors, setIsPlaying, startQueue, toggleMute, togglePlay, totalRepetitions, usesNativeYoutubePlaylist, videoDurations, youtubePlaylistSources } = usePlaybackEngine({
     attemptPlay,
     clearResumeSession: () => undefined,
     duration,
@@ -72,8 +72,8 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
   const displayedVideo = activeVideo ?? previewVideo;
   const { isResolving: isAudioResolving, resolvedSrc: resolvedAudioSrc } = useAudioCache(displayedVideo);
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
-  const playerStatus = getPlayerStatus({ activeVideo, error, fallbackStatus: status, hasPlaybackStarted, isPlaying, isSessionComplete, playBlocked, previewVideo, remaining });
-  const progressLabel = activeIndex === null || error ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
+  const playerStatus = isSessionComplete && queue.some((item) => item.skippedRepetitions) ? "Fila encerrada com vídeos pulados por erro." : getPlayerStatus({ activeVideo, error, fallbackStatus: status, hasPlaybackStarted, isPlaying, isSessionComplete, playBlocked, previewVideo, remaining });
+  const progressLabel = activeIndex === null || error || isSessionComplete ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
 
   useTransportShortcuts({ activeIndex, activeVideo, nextVideo, playerRef, previousVideo, remaining, seekBy, setIsPlaying, setVolume });
 
@@ -110,6 +110,11 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
       </div>
       <div className="studio-grid has-media">
         <ReplayPlayerSurface
+          autoSkipErrors={autoSkipErrors}
+          onSetAutoSkipErrors={setAutoSkipErrors}
+          rememberMediaPreferences={rememberMediaPreferences}
+          onSetRememberMediaPreferences={setRememberMediaPreferences}
+          playbackNotice={playbackNotice}
           activeIndex={activeIndex}
           activeVideo={activeVideo}
           canGoBackRepetition={canGoBackRepetition}

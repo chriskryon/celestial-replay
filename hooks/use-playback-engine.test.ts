@@ -35,6 +35,7 @@ function useTestHarness() {
   const [playerRef] = useState(() => ({ current: createMockVideoElement() }));
   const [seekingRef] = useState(() => ({ current: false }));
   const [programmaticSeekRef] = useState(() => ({ current: false }));
+  const [recordCompletedVideo] = useState(() => vi.fn());
 
   const engine = usePlaybackEngine({
     attemptPlay: vi.fn(() => true),
@@ -49,7 +50,7 @@ function useTestHarness() {
     playlistInputMode: "advanced",
     playlistItems: null,
     programmaticSeekRef,
-    recordCompletedVideo: vi.fn(),
+    recordCompletedVideo,
     seekingRef,
     setDuration,
     setError,
@@ -63,10 +64,11 @@ function useTestHarness() {
     volume,
   });
 
-  return { duration, engine, error, playerRef, setDuration, setPlayed };
+  return { duration, engine, error, playerRef, recordCompletedVideo, setDuration, setPlayed };
 }
 
 beforeEach(() => {
+  localStorage.clear();
   vi.useFakeTimers();
   // jsdom não implementa matchMedia; o watchdog de autoplay bloqueado chama isso.
   window.matchMedia = ((query: string) => ({
@@ -86,6 +88,104 @@ afterEach(() => {
 });
 
 describe("usePlaybackEngine", () => {
+  it("skips a confirmed error by default without counting it or recording history", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const items: VideoItem[] = ["a", "b"].map((id) => ({ id, src: `https://cdn.example.com/${id}.mp4`, repetitions: 3 }));
+    act(() => result.current.engine.startQueue(items, { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackError("a"));
+    expect(result.current.engine.activeVideo?.id).toBe("a");
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.activeVideo?.id).toBe("b");
+    expect(result.current.engine.remaining).toBe(3);
+    expect(result.current.engine.isPlaying).toBe(true);
+    expect(result.current.engine.completedRepetitions).toBe(0);
+    expect(result.current.engine.completedQueue).toEqual([]);
+    expect(result.current.engine.queue[0].skippedRepetitions).toBe(3);
+    expect(result.current.recordCompletedVideo).not.toHaveBeenCalled();
+    act(() => result.current.engine.handlePlaybackError("a"));
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.activeVideo?.id).toBe("b");
+    for (const remaining of [3, 2, 1]) {
+      act(() => result.current.engine.handlePlaybackStarted("b"));
+      act(() => result.current.engine.handleEnded("b", remaining));
+    }
+    expect(result.current.engine.completedRepetitions).toBe(3);
+    expect(result.current.recordCompletedVideo).toHaveBeenCalledExactlyOnceWith(items[1]);
+  });
+
+  it("does not auto-skip a transient error if playlist playback starts", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const items: VideoItem[] = ["a", "b"].map((id) => ({ id, src: `https://cdn.example.com/${id}.mp4`, repetitions: 1 }));
+    act(() => result.current.engine.startQueue(items, { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackError("a"));
+    act(() => result.current.engine.handlePlaybackStarted("a"));
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.activeVideo?.id).toBe("a");
+    expect(result.current.engine.queue[0].skippedRepetitions).toBeUndefined();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("persists the setting and respects disabling it while an error is pending", () => {
+    const { result, unmount } = renderHook(() => useTestHarness());
+    const items: VideoItem[] = ["a", "b"].map((id) => ({ id, src: `https://cdn.example.com/${id}.mp4`, repetitions: 1 }));
+    act(() => result.current.engine.startQueue(items, { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackError("a"));
+    act(() => result.current.engine.setAutoSkipErrors(false));
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.activeVideo?.id).toBe("a");
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.engine.remaining).toBe(1);
+    unmount();
+    const restored = renderHook(() => useTestHarness());
+    expect(restored.result.current.engine.autoSkipErrors).toBe(false);
+  });
+
+  it("ends a queue of unavailable videos without a retry loop or completed history", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const items: VideoItem[] = ["a", "b"].map((id) => ({ id, src: `https://cdn.example.com/${id}.mp4`, repetitions: 1 }));
+    act(() => result.current.engine.startQueue(items, { playlistId: null, statusMessage: "go" }));
+    for (const id of ["a", "b"]) {
+      act(() => result.current.engine.handlePlaybackError(id));
+      act(() => vi.advanceTimersByTime(800));
+    }
+    expect(result.current.engine.isSessionComplete).toBe(true);
+    expect(result.current.engine.isPlaying).toBe(false);
+    expect(result.current.engine.completedRepetitions).toBe(0);
+    expect(result.current.recordCompletedVideo).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(10000));
+    expect(result.current.engine.isPlaying).toBe(false);
+    act(() => result.current.engine.restartSession());
+    expect(result.current.engine.queue.every((item) => !item.skippedRepetitions)).toBe(true);
+    expect(result.current.engine.activeVideo?.id).toBe("a");
+  });
+
+  it("keeps completed repetitions when only the remaining executions fail", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const items: VideoItem[] = ["a", "b"].map((id) => ({ id, src: `https://cdn.example.com/${id}.mp4`, repetitions: 3 }));
+    act(() => result.current.engine.startQueue(items, { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackStarted("a"));
+    act(() => result.current.engine.handleEnded("a", 3));
+    act(() => result.current.engine.handlePlaybackError("a"));
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.completedRepetitions).toBe(1);
+    expect(result.current.engine.queue[0].skippedRepetitions).toBe(2);
+    const savedQueue = result.current.engine.queue;
+    act(() => result.current.engine.resumeQueue({ queue: savedQueue, activeIndex: 1, remaining: 3, playlistName: "test", volume: 70 }));
+    expect(result.current.engine.completedRepetitions).toBe(1);
+  });
+
+  it("uses the latest queue when a video is added during a pending error", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item: VideoItem = { id: "a", src: "https://cdn.example.com/a.mp4", repetitions: 1 };
+    act(() => result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackError("a"));
+    act(() => { result.current.engine.appendToQueue("https://cdn.example.com/b.mp4", "2"); });
+    act(() => vi.advanceTimersByTime(800));
+    expect(result.current.engine.activeIndex).toBe(1);
+    expect(result.current.engine.remaining).toBe(2);
+    expect(result.current.engine.isSessionComplete).toBe(false);
+  });
+
   it("appends a normalized video without interrupting the current repetition", () => {
     const { result } = renderHook(() => useTestHarness());
     const first: VideoItem = { id: "first", src: "https://cdn.example.com/first.mp4", repetitions: 2 };

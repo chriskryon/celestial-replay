@@ -10,13 +10,13 @@ import { requireWithinRateLimit } from "@/lib/rate-limit";
 import { requireSameOrigin } from "@/lib/request-security";
 
 const sessionInput = z.object({
-  queue: z.array(z.object({ id: z.string().min(1).max(100), src: z.url().refine(isPlayableMediaUrl), repetitions: z.number().int().positive() })).min(1).max(100),
+  queue: z.array(z.object({ id: z.string().min(1).max(100), src: z.url().refine(isPlayableMediaUrl), repetitions: z.number().int().positive(), skippedRepetitions: z.number().int().positive().optional() }).refine((item) => (item.skippedRepetitions ?? 0) <= item.repetitions)).min(1).max(100),
   activeIndex: z.number().int().nonnegative(),
   remaining: z.number().int().positive(),
   playlistName: z.string().trim().min(1).max(80),
   volume: z.number().int().min(0).max(100),
   playbackRate: z.number().min(0.25).max(4).default(1),
-}).refine((value) => value.activeIndex < value.queue.length && value.remaining <= value.queue[value.activeIndex].repetitions);
+}).refine((value) => value.activeIndex < value.queue.length && value.remaining <= value.queue[value.activeIndex].repetitions && value.queue.every((item, index) => !item.skippedRepetitions || index < value.activeIndex));
 
 async function requireUser() {
   const user = await getCurrentUser();

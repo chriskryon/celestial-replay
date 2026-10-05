@@ -1,7 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import screenfull from "screenfull";
+import { z } from "zod";
+
+const mediaPreferencesKey = "celestial-replay:media-preferences";
+const mediaPreferencesSchema = z.object({
+  remember: z.boolean(),
+  volume: z.number().min(0).max(1).optional(),
+  playbackRate: z.number().min(0.25).max(4).optional(),
+});
 
 export function usePlayerMedia() {
   const [duration, setDuration] = useState<number | null>(null);
@@ -10,9 +18,33 @@ export function usePlayerMedia() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [played, setPlayed] = useState(0);
   const [volume, setVolume] = useState(0.7);
+  const [rememberMediaPreferences, setRememberMediaPreferences] = useState(true);
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const playerRef = useRef<HTMLVideoElement | null>(null);
   const programmaticSeekRef = useRef(false);
   const seekingRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(mediaPreferencesKey);
+      const parsed = stored ? mediaPreferencesSchema.safeParse(JSON.parse(stored)) : null;
+      if (parsed?.success) {
+        setRememberMediaPreferences(parsed.data.remember);
+        if (parsed.data.remember) {
+          if (parsed.data.volume !== undefined) setVolume(parsed.data.volume);
+          if (parsed.data.playbackRate !== undefined) setPlaybackRate(parsed.data.playbackRate);
+        }
+      }
+    } catch { /* Storage indisponível ou inválido: mantém os padrões. */ }
+    setPreferencesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+    const preferences = mediaPreferencesSchema.safeParse({ remember: rememberMediaPreferences, ...(rememberMediaPreferences ? { volume, playbackRate } : {}) });
+    if (!preferences.success) return;
+    try { localStorage.setItem(mediaPreferencesKey, JSON.stringify(preferences.data)); } catch { /* As escolhas continuam válidas nesta sessão. */ }
+  }, [playbackRate, preferencesLoaded, rememberMediaPreferences, volume]);
 
   const attemptPlay = () => {
     try {
@@ -96,11 +128,13 @@ export function usePlayerMedia() {
     playbackRate,
     playerRef,
     programmaticSeekRef,
+    rememberMediaPreferences,
     seekingRef,
     seekBy,
     setDuration,
     setLoaded,
     setPip,
+    setRememberMediaPreferences,
     setPlaybackRate,
     setPlayed,
     setVolume,

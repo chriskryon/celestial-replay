@@ -22,7 +22,7 @@ export function getPlaybackSnapshot(queue: VideoItem[], activeIndex: number | nu
     completedRepetitions,
     hasNextVideo: activeIndex !== null && activeIndex + 1 < queue.length,
     hasPrevVideo: activeIndex !== null && activeIndex > 0,
-    completedQueue: activeIndex === null ? [] : queue.slice(0, activeIndex),
+    completedQueue: activeIndex === null ? [] : queue.slice(0, activeIndex).filter((item) => !item.skippedRepetitions),
     visibleQueue: activeIndex === null ? queue : queue.slice(activeIndex),
   };
 }

@@ -64,11 +64,30 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [queuePlaylistName, setQueuePlaylistName] = useState("Minha playlist");
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>({});
+  const [autoSkipErrors, setAutoSkipErrorsState] = useState(true);
+  const autoSkipErrorsRef = useRef(true);
+  const [playbackNotice, setPlaybackNotice] = useState<string | null>(null);
   const activeVideoIdRef = useRef<string | null>(null);
   const endedVideoIdRef = useRef<string | null>(null);
   const ignoreStaleEndedRef = useRef(false);
   const scheduledEndRef = useRef<number | null>(null);
   const pendingPlaybackErrorRef = useRef<number | null>(null);
+  const playbackStateRef = useRef({ queue, activeIndex, remaining, isSessionComplete });
+  playbackStateRef.current = { queue, activeIndex, remaining, isSessionComplete };
+
+  useEffect(() => {
+    try {
+      const enabled = localStorage.getItem("celestial-replay:auto-skip-errors") !== "false";
+      autoSkipErrorsRef.current = enabled;
+      setAutoSkipErrorsState(enabled);
+    } catch { /* Preferência indisponível: mantém o padrão. */ }
+  }, []);
+
+  const setAutoSkipErrors = (enabled: boolean) => {
+    autoSkipErrorsRef.current = enabled;
+    setAutoSkipErrorsState(enabled);
+    try { localStorage.setItem("celestial-replay:auto-skip-errors", String(enabled)); } catch { /* Vale para esta sessão. */ }
+  };
 
   const { activeVideo, completedQueue, completedRepetitions, hasNextVideo, hasPrevVideo, totalRepetitions, visibleQueue } = getPlaybackSnapshot(queue, activeIndex, remaining);
   activeVideoIdRef.current = activeVideo?.id ?? null;
@@ -217,6 +236,9 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
 
   const restartSession = () => {
     if (queue.length === 0) return;
+    clearPendingPlaybackError();
+    setPlaybackNotice(null);
+    setQueue((items) => items.map(({ skippedRepetitions: _skipped, ...item }) => item));
     const firstVideo = queue[0];
     setActiveIndex(0);
     setRemaining(firstVideo.repetitions);
@@ -237,11 +259,13 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   // vídeo único nunca reseta duration/nome da playlist).
   const startQueue = (items: VideoItem[], { playImmediately = false, playlistId, playlistName, resetDuration = true, statusMessage }: { playImmediately?: boolean; playlistId: string | null; playlistName?: string; resetDuration?: boolean; statusMessage: string }) => {
     if (items.length === 0) return;
+    clearPendingPlaybackError();
+    setPlaybackNotice(null);
     // Gesto do usuário: dá play na instância atual antes de trocar o estado,
     // assim o navegador mantém a ativação e não recarrega o preview.
     if (playImmediately) attemptPlay();
     if (playlistName !== undefined) setQueuePlaylistName(playlistName);
-    setQueue(items);
+    setQueue(items.map(({ skippedRepetitions: _skipped, ...item }) => item));
     setActiveSavedPlaylistId(playlistId);
     setActiveIndex(0);
     setRemaining(items[0].repetitions);
@@ -257,6 +281,8 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const resetQueue = () => {
+    clearPendingPlaybackError();
+    setPlaybackNotice(null);
     setActiveSavedPlaylistId(null);
     setQueue([]);
     setActiveIndex(null);
@@ -269,6 +295,8 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const stopQueue = () => {
+    clearPendingPlaybackError();
+    setPlaybackNotice(null);
     // Encerrar deve interromper a sessão atual, sem apagar o rascunho que o
     // usuário pode editar para montar a próxima fila.
     try { playerRef.current?.pause(); } catch { /* o estado abaixo encerra o ciclo declarativo */ }
@@ -294,6 +322,8 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const resumeQueue = (session: ResumableSession) => {
+    clearPendingPlaybackError();
+    setPlaybackNotice(null);
     setQueue(session.queue);
     setActiveSavedPlaylistId(null);
     setActiveIndex(session.activeIndex);
@@ -366,6 +396,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
       return;
     }
     setActiveIndex(activeIndex - 1);
+    setQueue((items) => items.map((item, index) => index >= activeIndex - 1 ? { ...item, skippedRepetitions: undefined } : item));
     setRemaining(prevVideo.repetitions);
     setPlayed(0);
     setLoaded(0);
@@ -441,11 +472,40 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const handlePlaybackError = (failedVideoId: string) => {
-    if (!activeVideo || failedVideoId !== activeVideoIdRef.current) return;
+    if (!activeVideo || isSessionComplete || failedVideoId !== activeVideoIdRef.current) return;
     const commitError = () => {
-      if (failedVideoId !== activeVideoIdRef.current) return;
+      if (failedVideoId !== activeVideoIdRef.current || playbackStateRef.current.isSessionComplete) return;
+      const { queue, activeIndex, remaining } = playbackStateRef.current;
       pendingPlaybackErrorRef.current = null;
       ignoreStaleEndedRef.current = false;
+      if (autoSkipErrorsRef.current && queue.length > 1 && activeIndex !== null && (activeIndex + 1 >= queue.length || isPlayableItem(queue[activeIndex + 1], canPlaySrc))) {
+        const nextIndex = activeIndex + 1;
+        setQueue((items) => items.map((item) => item.id === failedVideoId ? { ...item, skippedRepetitions: remaining } : item));
+        setHasPlaybackStarted(false);
+        setPlayBlocked(false);
+        setDuration(null);
+        setPlayed(0);
+        setLoaded(0);
+        seekingRef.current = false;
+        endedVideoIdRef.current = null;
+        setError(null);
+        setPlaybackNotice(`Vídeo ${activeIndex + 1} pulado por erro de reprodução.`);
+        if (nextIndex < queue.length && isPlayableItem(queue[nextIndex], canPlaySrc)) {
+          setActiveIndex(nextIndex);
+          setRemaining(queue[nextIndex].repetitions);
+          setIsPlaying(true);
+          setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
+          return;
+        }
+        if (nextIndex >= queue.length) {
+          setRemaining(0);
+          setIsPlaying(false);
+          setIsSessionComplete(true);
+          setStatus("Fila encerrada. Houve vídeos pulados por erro.");
+          clearResumeSession();
+          return;
+        }
+      }
       setIsPlaying(false);
       setHasPlaybackStarted(false);
       setDuration(null);
@@ -594,6 +654,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     activeSavedPlaylistId,
     activeVideo,
     appendToQueue,
+    autoSkipErrors,
     canGoBackRepetition,
     canSkipRepetition,
     completedQueue,
@@ -613,6 +674,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     isSessionComplete,
     nextVideo,
     playBlocked,
+    playbackNotice,
     playNextRepetition,
     playNextVideo,
     playPreviousRepetition,
@@ -629,6 +691,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     startQueue,
     stopQueue,
     setActiveSavedPlaylistId,
+    setAutoSkipErrors,
     setIsPlaying,
     setQueuePlaylistName,
     toggleMute,

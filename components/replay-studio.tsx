@@ -64,7 +64,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
   const routedPlaylistIdRef = useRef<string | null>(null);
   const { canSubmitPlaylist, canSubmitSingle, draftPlaylistId, drafts, firstSimplePlaylistItem, invalidSimpleLine, isSavingPlaylist, mode, playlistHint, playlistInputMode, playlistItems, playlistName, playlistSaveMessage, repetitions, setDraftPlaylistId, setDrafts, setIsSavingPlaylist, setMode, setPlaylistInputMode, setPlaylistName, setPlaylistSaveMessage, setRepetitions, setSimplePlaylist, setSource, simplePlaylist, simplePlaylistItems, simplePlaylistLineCount, singleHint, singleReplay, source, updateDraft } = usePlaylistComposer({ initialMode, setError, setStatus });
-  const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, seekingRef, seekBy, setDuration, setLoaded, setPip, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
+  const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, rememberMediaPreferences, seekingRef, seekBy, setDuration, setLoaded, setPip, setRememberMediaPreferences, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
   const isLoggedIn = Boolean(session.data?.user);
 
   const refreshSavedPlaylists = useCallback(async () => {
@@ -86,7 +86,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const clearResumeSessionRef = useRef<() => void>(() => undefined);
   const recordCompletedVideoRef = useRef<(item: VideoItem) => void>(() => undefined);
 
-  const { activeIndex, activeSavedPlaylistId, activeVideo, appendToQueue, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, resetQueue, restartSession, resumeQueue, retryCurrentVideo, setActiveSavedPlaylistId, setIsPlaying, setQueuePlaylistName, startQueue, stopQueue, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, usesNativeYoutubePlaylist, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
+  const { activeIndex, activeSavedPlaylistId, activeVideo, appendToQueue, autoSkipErrors, canGoBackRepetition, canSkipRepetition, completedQueue, completedRepetitions, handleActiveTimeUpdate, handleDurationChange, handleEnded, handlePlaybackError, handlePlaybackPause, handlePlaybackPlay, handlePlaybackStarted, handlePlayerReady, hasNextVideo, hasPlaybackStarted, hasPrevVideo, isPlaying, isSessionComplete, nextVideo, playBlocked, playbackNotice, playNextRepetition, playNextVideo, playPreviousRepetition, playPreviousVideo, previousVideo, queue, queuePlaylistName, remaining, removeFutureItem, resetQueue, restartSession, resumeQueue, retryCurrentVideo, setActiveSavedPlaylistId, setAutoSkipErrors, setIsPlaying, setQueuePlaylistName, startQueue, stopQueue, toggleMute, togglePlay, totalRepetitions, updateUpcomingItem, usesNativeYoutubePlaylist, videoDurations, visibleQueue, youtubePlaylistSources } = usePlaybackEngine({
     attemptPlay,
     clearResumeSession: () => clearResumeSessionRef.current(),
     duration,
@@ -119,7 +119,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   recordCompletedVideoRef.current = recordCompletedVideo;
 
   const isEditingQueue = mode === "playlist" && activeIndex !== null && queue.length > 0 && !isSessionComplete;
-  const progressLabel = activeIndex === null || error ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
+  const progressLabel = activeIndex === null || error || isSessionComplete ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
   const previewVideo = useMemo<VideoItem | null>(() => {
     if (activeVideo) return null;
     if (mode === "single" && singleReplay) return { id: "single-preview", src: singleReplay.src, repetitions: singleReplay.count };
@@ -135,7 +135,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
   const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
 
-  const playerStatus = getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, isSessionComplete, error, fallbackStatus: status, remaining });
+  const playerStatus = isSessionComplete && queue.some((item) => item.skippedRepetitions) ? "Fila encerrada com vídeos pulados por erro." : getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, isSessionComplete, error, fallbackStatus: status, remaining });
 
   useEffect(() => {
     if (mode !== "playlist") return;
@@ -361,6 +361,11 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
 
           <ReplayPlayerSurface
+            autoSkipErrors={autoSkipErrors}
+            onSetAutoSkipErrors={setAutoSkipErrors}
+            rememberMediaPreferences={rememberMediaPreferences}
+            onSetRememberMediaPreferences={setRememberMediaPreferences}
+            playbackNotice={playbackNotice}
             activeIndex={activeIndex}
             activeVideo={activeVideo}
             canGoBackRepetition={canGoBackRepetition}
@@ -426,7 +431,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
           />
         </div>
 
-        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={isSessionComplete ? queue : completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} isSessionComplete={isSessionComplete} metadata={queueMetadata} onAddToQueue={appendToQueue} onRemoveFutureItem={removeFutureItem} onRestartSession={restartSession} onSave={() => openSaveDialog("queue")} onStartNewPlaylist={startNewPlaylist} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
+        {mode === "playlist" && queue.length > 0 && <PlaybackQueue activeIndex={activeIndex} completedQueue={isSessionComplete ? queue.filter((item) => !item.skippedRepetitions) : completedQueue} error={error} hasPlaybackStarted={hasPlaybackStarted} isLoggedIn={isLoggedIn} isPlaying={isPlaying} isSavedPlaylist={activeSavedPlaylistId !== null} isSaving={isSavingQueue} isSessionComplete={isSessionComplete} metadata={queueMetadata} onAddToQueue={appendToQueue} onRemoveFutureItem={removeFutureItem} onRestartSession={restartSession} onSave={() => openSaveDialog("queue")} onStartNewPlaylist={startNewPlaylist} onStop={() => setIsStopConfirmOpen(true)} onUpdateUpcomingItem={updateUpcomingItem} queue={queue} remaining={remaining} saveMessage={queueSaveMessage} visibleQueue={visibleQueue} />}
       </section>
       {isDiscardResumeOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="discard-resume-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="discard-resume-title">Descartar retomada?</h2><p>O ponto salvo desta playlist será removido.</p><div><button className="secondary-button" onClick={() => setIsDiscardResumeOpen(false)} type="button">Cancelar</button><button className="danger-button" onClick={discardResume} type="button">Descartar</button></div></section></div>}
       {isStopConfirmOpen && <div className="confirm-backdrop" role="presentation"><section aria-labelledby="stop-playlist-title" aria-modal="true" className="confirm-dialog" role="alertdialog"><h2 id="stop-playlist-title">Encerrar playlist?</h2><p>A reprodução será interrompida e o ponto de retomada será removido. Seus vídeos e o rascunho continuam disponíveis.</p><div><button className="secondary-button" onClick={() => setIsStopConfirmOpen(false)} type="button">Continuar</button><button className="danger-button" onClick={() => { setIsStopConfirmOpen(false); stopPlaylist(); }} type="button">Encerrar</button></div></section></div>}

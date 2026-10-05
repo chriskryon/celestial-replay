@@ -365,8 +365,13 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .queue-add-form { display: grid; grid-template-columns: minmax(0, 1fr) 88px auto; align-items: end; gap: .5rem; margin-block: .75rem; }
 .queue-add-form label { display: grid; min-width: 0; gap: .25rem; color: var(--muted); font-size: .72rem; }
 .queue-add-form input { width: 100%; min-width: 0; min-height: 40px; }
-.queue-add-form .secondary-button { min-height: 40px; }
+.queue-add-form .secondary-button { min-height: 40px; grid-column: auto; }
 .queue-feedback { margin: .35rem 0 .65rem; overflow-wrap: anywhere; }
+.playback-settings { margin-top: .6rem; color: var(--muted); font-size: .76rem; }
+.playback-settings summary { display: flex; width: fit-content; min-height: 44px; align-items: center; gap: .35rem; cursor: pointer; }
+.playback-settings label { display: flex; min-height: 44px; align-items: center; gap: .55rem; }
+.playback-settings input { width: 18px; height: 18px; min-height: 0; flex: 0 0 auto; accent-color: var(--blue); }
+.playback-notice { overflow-wrap: anywhere; }
 .queue-complete-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .55rem; margin-top: .55rem; padding: .6rem; border: 1px solid rgba(190, 209, 255, .14); border-radius: .62rem; background: rgba(128, 158, 234, .08); }
 .queue-complete-summary > span { color: var(--muted); font-size: .76rem; font-variant-numeric: tabular-nums; }
 .queue-complete-summary > span:first-child { color: var(--ink); font-weight: 700; }

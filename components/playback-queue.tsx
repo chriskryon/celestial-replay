@@ -53,6 +53,10 @@ export function PlaybackQueue({
   saveMessage,
   visibleQueue,
 }: PlaybackQueueProps) {
+  const skippedQueue = queue.filter((item) => item.skippedRepetitions);
+  const concludedQueue = queue.filter((item) => !item.skippedRepetitions);
+  const completeLabel = skippedQueue.length ? "Fila encerrada" : "Playlist concluída";
+  const completeSummary = `${concludedQueue.length} ${concludedQueue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}${skippedQueue.length ? ` · ${skippedQueue.length} ${skippedQueue.length === 1 ? "pulado" : "pulados"}` : ""}`;
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -86,7 +90,7 @@ export function PlaybackQueue({
   const renderQueueItem = (item: VideoItem, index: number) => {
     const isCurrent = !isSessionComplete && index === activeIndex;
     const isFuture = !isSessionComplete && activeIndex !== null && index > activeIndex;
-    const state = isSessionComplete
+    const state = item.skippedRepetitions ? "Pulado por erro" : isSessionComplete
       ? "Concluído"
       : isCurrent
       ? error
@@ -105,7 +109,7 @@ export function PlaybackQueue({
       <li ref={isCurrent ? currentItemRef : undefined} className={`queue-item${isCurrent ? " is-current" : ""}${recentIndex === index ? " is-recent" : ""}`} key={item.id}>
         <span className="queue-state">
           <b>{index + 1}</b>
-          <small>{state}</small>
+          <small title={state}>{state}</small>
         </span>
         {isFuture ? <>
           <label className="sr-only" htmlFor={`queue-url-${item.id}`}>URL do vídeo {index + 1}</label>
@@ -150,8 +154,8 @@ export function PlaybackQueue({
     <div className="queue-title">
       <button className="queue-toggle" type="button" onClick={() => setIsExpanded((value) => !value)} aria-controls="queue-content" aria-expanded={isExpanded}>
         <span className="queue-toggle-copy">
-          <strong id="queue-title">{isSessionComplete ? "Playlist concluída" : "Playlist em execução"}</strong>
-          <small key={isSessionComplete ? "complete" : activeIndex ?? "idle"}>{isSessionComplete ? `${queue.length} ${queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}` : currentTitle ? `${currentTitle} · vídeo ${(activeIndex ?? 0) + 1} de ${queue.length}${remaining ? ` · ${remaining}× restante${remaining === 1 ? "" : "s"}` : ""}` : "Edite somente os vídeos que ainda não começaram."}</small>
+          <strong id="queue-title">{isSessionComplete ? completeLabel : "Playlist em execução"}</strong>
+          <small key={isSessionComplete ? "complete" : activeIndex ?? "idle"}>{isSessionComplete ? completeSummary : currentTitle ? `${currentTitle} · vídeo ${(activeIndex ?? 0) + 1} de ${queue.length}${remaining ? ` · ${remaining}× restante${remaining === 1 ? "" : "s"}` : ""}` : "Edite somente os vídeos que ainda não começaram."}</small>
         </span>
         <span className="queue-toggle-meta">{queue.length} vídeos <ChevronDown aria-hidden="true" size={16} /></span>
       </button>
@@ -172,8 +176,8 @@ export function PlaybackQueue({
       {queueMessage && <p className="field-help queue-feedback" role="status">{queueMessage}</p>}
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
       {isSessionComplete && <div className="queue-complete-summary" role="status">
-        <span>{queue.length} {queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}</span>
-        <span>{queue.reduce((total, item) => total + item.repetitions, 0)} repetições no total</span>
+        <span>{completeSummary}</span>
+        <span>{queue.reduce((total, item) => total + item.repetitions - (item.skippedRepetitions ?? 0), 0)} repetições concluídas</span>
         <div>
           <button className="primary-button" type="button" onClick={onRestartSession}><Play aria-hidden="true" size={16} />Reproduzir novamente</button>
           {isLoggedIn && !isSavedPlaylist && <button className="secondary-button" type="button" onClick={onSave} disabled={isSaving}><Save aria-hidden="true" size={16} />Salvar playlist</button>}
@@ -184,8 +188,9 @@ export function PlaybackQueue({
       {!isSessionComplete && <ol className="queue-active-list" aria-label="Vídeo atual e próximos vídeos">{visibleQueue.map((item, offset) => renderQueueItem(item, (activeIndex ?? 0) + offset))}</ol>}
       {completedQueue.length > 0 && <details className="queue-completed">
         <summary>Já reproduzidos <span>{completedQueue.length}</span></summary>
-        <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item, index) => renderQueueItem(item, index))}</ol>
+        <ol aria-label="Vídeos já reproduzidos">{completedQueue.map((item) => renderQueueItem(item, queue.findIndex((entry) => entry.id === item.id)))}</ol>
       </details>}
+      {skippedQueue.length > 0 && <details className="queue-completed"><summary>Pulados por erro <span>{skippedQueue.length}</span></summary><ol aria-label="Vídeos pulados por erro">{skippedQueue.map((item) => renderQueueItem(item, queue.findIndex((entry) => entry.id === item.id)))}</ol></details>}
       </div>
     </div>
   </section>;
