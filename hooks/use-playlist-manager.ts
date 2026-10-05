@@ -9,6 +9,7 @@ import { createDraftItem, draftsFromSimple, initialDraftItem, parseSimplePlaylis
 import type { PlaylistVerificationItem, PlaylistVerificationTarget } from "@/lib/playlist-verification";
 
 type PlaylistSort = "recent" | "name" | "size";
+type PlaylistManagerView = "library" | "editor";
 
 export function usePlaylistManager(initialPlaylists: Playlist[]) {
   const [playlists, setPlaylists] = useState(initialPlaylists);
@@ -25,6 +26,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
   const [search, setSearch] = useState("");
   const [domainFilter, setDomainFilter] = useState("todos");
   const [sort, setSort] = useState<PlaylistSort>("recent");
+  const [view, setView] = useState<PlaylistManagerView>("library");
   const [verificationByPlaylist, setVerificationByPlaylist] = useState<Record<string, PlaylistVerificationItem[]>>({});
   const [verifyingPlaylistId, setVerifyingPlaylistId] = useState<string | null>(null);
 
@@ -41,6 +43,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setSimpleInput(toSimpleInput(playlist));
     setInputMode("advanced");
     setMessage(null);
+    setView("editor");
   }
 
   function create() {
@@ -49,6 +52,12 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setSimpleInput("");
     setItems([initialDraftItem]);
     setInputMode("advanced");
+    setMessage(null);
+    setView("editor");
+  }
+
+  function showLibrary() {
+    setView("library");
     setMessage(null);
   }
 
@@ -111,7 +120,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     const response = await fetch(`/api/playlists/${playlist.id}`, { method: "DELETE" });
     if (!response.ok) return setMessage("Não foi possível apagar esta playlist agora.");
     setPlaylists((current) => current.filter((currentPlaylist) => currentPlaylist.id !== playlist.id));
-    if (selectedId === playlist.id) create();
+    if (selectedId === playlist.id) showLibrary();
     setMessage("Playlist apagada.");
     setDeleteTarget(null);
   }
@@ -183,6 +192,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     playlists,
     remove,
     search,
+    showLibrary,
     selected,
     selectedId,
     setDeleteTarget,
@@ -195,6 +205,7 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     shareTarget,
     simpleInput,
     sort,
+    view,
     domainFilter,
     verificationByPlaylist,
     verifyingPlaylistId,

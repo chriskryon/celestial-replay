@@ -600,22 +600,21 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .library-heading h1, .library-editor h2 { margin: 0; letter-spacing: -0.035em; }
 .library-heading h1 { font-size: clamp(1.2rem, 4vw, 1.45rem); }
 .library-heading p, .library-editor-heading p { margin: 0.18rem 0 0; color: var(--muted); font-size: 0.84rem; }
-.library-grid { display: grid; grid-template-columns: minmax(260px, 0.55fr) minmax(0, 1.45fr); gap: 1rem; align-items: start; }
 .library-list, .library-editor { display: grid; gap: 0.65rem; min-width: 0; padding: 0.7rem; border: 1px solid rgba(216, 227, 255, 0.09); border-radius: 0.75rem; background: rgba(1, 7, 22, 0.16); }
-.library-list { max-height: 510px; overflow: auto; }
+.library-list { gap: .85rem; min-height: min(610px, calc(100dvh - 11rem)); padding: 1rem; }
 .library-list > p { margin: 0.4rem; color: var(--muted); font-size: 0.8rem; }
 .new-playlist { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 40px; border: 1px solid rgba(187, 207, 255, 0.21); border-radius: 0.6rem; color: #dce7ff; background: rgba(128, 158, 234, 0.13); font-size: 0.8rem; font-weight: 700; }
 .new-playlist:hover { background: rgba(128, 158, 234, 0.23); }
-.library-list ul { display: grid; gap: 0.34rem; margin: 0; padding: 0; list-style: none; }
+.library-list ul { display: grid; gap: 0.48rem; margin: 0; padding: 0; list-style: none; }
 .library-list li { display: block; padding: 0; background: transparent; }
-.library-playlist { display: flex; align-items: center; justify-content: space-between; gap: 0.28rem; width: 100%; min-height: 52px; padding: 0.32rem 0.38rem; border: 1px solid transparent; border-radius: 0.6rem; color: var(--ink); background: transparent; text-align: left; }
+.library-playlist { display: flex; align-items: center; justify-content: space-between; gap: 0.42rem; width: 100%; min-height: 70px; padding: 0.52rem 0.62rem; border: 1px solid transparent; border-radius: 0.6rem; color: var(--ink); background: transparent; text-align: left; }
 .library-playlist:hover { border-color: rgba(187, 207, 255, 0.15); background: rgba(174, 196, 255, 0.075); }
 .library-playlist.is-selected { border-color: rgba(187, 207, 255, 0.2); background: rgba(128, 158, 234, 0.14); box-shadow: inset 0 1px rgba(255, 255, 255, 0.07); }
-.library-playlist > button:first-child { display: flex; flex: 1 1 auto; align-items: center; justify-content: space-between; gap: 0.55rem; min-width: 0; min-height: 42px; padding: 0.3rem 0.34rem; border: 0; border-radius: 0.45rem; color: inherit; background: transparent; text-align: left; }
+.library-playlist > button:first-child { display: flex; flex: 1 1 auto; align-items: center; justify-content: space-between; gap: 0.55rem; min-width: 0; min-height: 54px; padding: 0.3rem 0.34rem; border: 0; border-radius: 0.45rem; color: inherit; background: transparent; text-align: left; }
 .library-playlist > button:first-child:hover { background: rgba(205, 221, 255, 0.07); }
 .library-playlist > button:first-child > span { display: grid; min-width: 0; gap: 0.12rem; }
 .library-playlist strong, .library-playlist small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.library-playlist strong { font-size: 0.82rem; }
+.library-playlist strong { font-size: 0.9rem; }
 .library-playlist small { color: var(--muted); font-size: 0.72rem; }
 .library-playlist-domain { color: #b8c9ef !important; font-size: .66rem !important; }
 .library-verification { display: inline-flex; align-items: center; gap: .25rem; color: var(--muted); font-size: .66rem !important; font-weight: 650; }
@@ -623,10 +622,13 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .library-verification.is-unavailable { color: var(--danger) !important; }
 .library-verification.is-checking svg { animation: verification-spin .85s linear infinite; }
 .library-playlist svg { flex: 0 0 auto; color: var(--muted); }
-.library-editor { gap: 0.7rem; }
+.playlist-editor-view { display: grid; width: min(100%, 1020px); gap: 1rem; margin: 0 auto; }
+.library-editor { gap: 0.75rem; padding: 1rem; }
 .library-editor-heading { display: flex; align-items: start; justify-content: space-between; gap: 0.7rem; padding-bottom: 0.15rem; }
 .library-editor-actions { display: flex; flex: 0 0 auto; gap: 0.4rem; }
 .library-editor h2 { font-size: 1.05rem; }
+.editor-back { display: inline-flex; align-items: center; gap: .35rem; min-height: 34px; margin: -.18rem 0 .45rem; padding: .2rem 0; border: 0; color: #c5d5fb; background: transparent; font-size: .78rem; font-weight: 700; }
+.editor-back:hover { color: #f5f8ff; }
 .library-editor > label { color: var(--muted); font-size: 0.78rem; font-weight: 650; }
 .audio-library h2 { display: flex; align-items: center; gap: 0.4rem; }
 .audio-library-quota { display: flex; align-items: center; gap: 0.35rem; }
@@ -650,8 +652,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .row-actions { display: flex; align-items: center; gap: 0.08rem; }
 .row-actions button:hover, .library-duplicate:hover { color: var(--ink); background: rgba(190, 207, 248, 0.12); }
 .row-actions .remove-row:hover { color: var(--danger); background: rgba(255, 173, 190, 0.1); }
-.library-filters { position: sticky; z-index: 2; top: 0; display: grid; gap: 0.35rem; padding-bottom: .35rem; background: rgba(7, 15, 36, .92); backdrop-filter: blur(12px); }
-.library-filters > span { display: flex; align-items: center; gap: 0.35rem; min-height: 34px; padding: 0 0.45rem; border-bottom: 1px solid rgba(216, 227, 255, 0.09); color: var(--muted); }
+.library-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .42fr) minmax(180px, .38fr); gap: .5rem; }
+.library-filters > span { display: flex; align-items: center; gap: 0.35rem; min-height: 38px; padding: 0 .55rem; border: 1px solid rgba(216, 227, 255, 0.1); border-radius: .52rem; color: var(--muted); background: rgba(7, 15, 36, .38); }
 .library-filters input, .library-filters select { min-width: 0; min-height: 32px; border: 0 !important; padding: 0 !important; color: var(--ink); background: transparent !important; box-shadow: none !important; font-size: 0.76rem; }
 .library-filters select { cursor: pointer; color-scheme: dark; }
 .library-no-results { margin: 0.45rem; color: var(--muted); font-size: 0.78rem; }
@@ -787,8 +789,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .resume-session-actions { width: 100%; }
   .resume-session .secondary-button { flex: 1; align-self: stretch; }
   .playlist-library { min-height: calc(100dvh - 5.55rem); }
-  .library-grid { grid-template-columns: 1fr; }
-  .library-list { max-height: 250px; }
+  .library-list { min-height: 0; padding: .75rem; }
+  .library-filters { grid-template-columns: 1fr; }
   .library-playlist { flex-wrap: wrap; }
   .library-playlist > button:first-child { flex-basis: calc(100% - 36px); }
   .library-editor .primary-button { justify-self: stretch; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Copy, GripVertical, Plus, Save, Share2, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Copy, GripVertical, Plus, Save, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
@@ -17,6 +17,7 @@ type PlaylistEditorProps = {
   name: string;
   onAddItem: () => void;
   onAddUploadedItem: (file: AudioFile) => void;
+  onBack: () => void;
   onChangeMode: (mode: PlaylistInputMode) => void;
   onDelete: () => void;
   onDuplicateItem: (item: DraftItem) => void;
@@ -34,11 +35,11 @@ type PlaylistEditorProps = {
 };
 
 export function PlaylistEditor(props: PlaylistEditorProps) {
-  const { inputMode, isSaving, isValid, items, name, onAddItem, onAddUploadedItem, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onShare, onSimpleInputChange, onUpdateItem, selected, simpleInput, verificationResults } = props;
+  const { inputMode, isSaving, isValid, items, name, onAddItem, onAddUploadedItem, onBack, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onShare, onSimpleInputChange, onUpdateItem, selected, simpleInput, verificationResults } = props;
   return (
     <section aria-labelledby="editor-title" className="library-editor">
       <header className="library-editor-heading">
-        <div><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>
+        <div><button className="editor-back" onClick={onBack} type="button"><ArrowLeft aria-hidden="true" size={16} />Suas playlists</button><h2 id="editor-title">{selected ? "Editar playlist" : "Nova playlist"}</h2><p>{selected ? "As mudanças substituem a versão salva." : "Adicione um ou mais vídeos para criar sua fila."}</p></div>
         {selected && <div className="library-editor-actions"><button aria-label={`Compartilhar ${selected.name}`} className="icon-save-button" onClick={onShare} type="button"><Share2 aria-hidden="true" size={17} /></button><button aria-label={`Apagar ${selected.name}`} className="icon-danger" onClick={onDelete} type="button"><Trash2 aria-hidden="true" size={17} /></button></div>}
       </header>
 
