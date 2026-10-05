@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { CheckCircle2, Download, ListPlus, Play, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { CheckCircle2, CircleAlert, CircleHelp, Download, ListPlus, LoaderCircle, Pencil, Play, Plus, ScanSearch, Save, Settings2, Trash2 } from "lucide-react";
 
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import { canPlaySrc } from "@/components/react-player-client";
 import { type PlaylistDraft, type SavedPlaylist, parseSingleReplay } from "@/lib/replay-playlist";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
+import { type PlaylistVerificationItem } from "@/lib/playlist-verification";
 
 type ReplayMode = "single" | "playlist";
 type PlaylistInputMode = "simple" | "advanced";
@@ -29,6 +30,8 @@ type ReplayComposerProps = {
   onLoadSavedPlaylist: (playlist: SavedPlaylist) => void;
   onOpenSaveDialog: () => void;
   onPlaylistInputModeChange: (mode: PlaylistInputMode) => void;
+  onVerifyBeforeStartingChange: (value: boolean) => void;
+  onVerifyPlaylist: () => Promise<void>;
   onRepetitionsChange: (value: string) => void;
   onRetrySavedPlaylists: () => void;
   onRemoveDraft: (id: string) => void;
@@ -41,6 +44,8 @@ type ReplayComposerProps = {
   onPlaybackRateChange: (rate: number) => void;
   playbackRate: number;
   autoSkipErrors: boolean;
+  hasVerificationFailures: boolean;
+  isVerifyingPlaylist: boolean;
   playlistHint: string | null;
   playlistInputMode: PlaylistInputMode;
   playlistSaveMessage: string | null;
@@ -54,6 +59,8 @@ type ReplayComposerProps = {
   singleHint: string | null;
   source: string;
   invalidSimpleLine: number;
+  verificationResults: Record<string, PlaylistVerificationItem>;
+  verifyBeforeStarting: boolean;
 };
 
 export function ReplayComposer({
@@ -73,6 +80,8 @@ export function ReplayComposer({
   onLoadSavedPlaylist,
   onOpenSaveDialog,
   onPlaylistInputModeChange,
+  onVerifyBeforeStartingChange,
+  onVerifyPlaylist,
   onRepetitionsChange,
   onRetrySavedPlaylists,
   onRemoveDraft,
@@ -85,6 +94,8 @@ export function ReplayComposer({
   onPlaybackRateChange,
   playbackRate,
   autoSkipErrors,
+  hasVerificationFailures,
+  isVerifyingPlaylist,
   playlistHint,
   playlistInputMode,
   playlistSaveMessage,
@@ -98,6 +109,8 @@ export function ReplayComposer({
   singleHint,
   source,
   invalidSimpleLine,
+  verificationResults,
+  verifyBeforeStarting,
 }: ReplayComposerProps) {
   const formHint = mode === "single" ? singleHint : playlistHint;
   const advancedPlaylistRepetitions = drafts.reduce((total, draft) => total + Math.max(0, Number(draft.repetitions) || 0), 0);
@@ -108,6 +121,25 @@ export function ReplayComposer({
   const importYoutubePlaylist = async () => {
     if (!youtubePlaylistUrl.trim()) return;
     if (await onImportYoutubePlaylist(youtubePlaylistUrl)) setYoutubePlaylistUrl("");
+  };
+
+  useEffect(() => {
+    if (hasVerificationFailures) setPlaylistSetupView("videos");
+  }, [hasVerificationFailures]);
+
+  const focusFirstUnavailableVideo = () => {
+    setPlaylistSetupView("videos");
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".playlist-row.is-verification-unavailable input")?.focus());
+  };
+
+  const renderVerification = (item: PlaylistVerificationItem | undefined) => {
+    if (!item) return null;
+    const icon = item.status === "ready" ? <CheckCircle2 aria-hidden="true" size={14} />
+      : item.status === "unavailable" ? <CircleAlert aria-hidden="true" size={14} />
+        : item.status === "checking" ? <LoaderCircle aria-hidden="true" size={14} />
+          : <CircleHelp aria-hidden="true" size={14} />;
+    const label = item.status === "ready" ? "Pronto" : item.status === "unavailable" ? "Indisponível" : item.status === "checking" ? "Verificando" : "Não confirmado";
+    return <span className={`playlist-verification-state is-${item.status}`} title={item.message}>{icon}<span>{label}</span></span>;
   };
 
   return <form className={`control-surface ${mode === "playlist" ? "playlist-form" : ""}`} onSubmit={onStart}>
@@ -144,6 +176,10 @@ export function ReplayComposer({
           <input type="checkbox" checked={autoSkipErrors} onChange={(event) => onAutoSkipErrorsChange(event.target.checked)} />
           <span><strong>Pular vídeos com erro</strong><small>Marca o item como pulado e carrega o próximo vídeo disponível.</small></span>
         </label>
+        <label className="playlist-setting-toggle">
+          <input type="checkbox" checked={verifyBeforeStarting} onChange={(event) => onVerifyBeforeStartingChange(event.target.checked)} />
+          <span><strong>Testar vídeos antes de iniciar</strong><small>Confere disponibilidade e embed do YouTube antes de preparar a fila.</small></span>
+        </label>
       </section> : <>
       <div className="youtube-playlist-import">
         <label htmlFor="youtube-playlist-url">Importar playlist do YouTube</label>
@@ -172,12 +208,15 @@ export function ReplayComposer({
           const uploadName = uploadDisplayNameFromUrl(draft.src);
           const isSourceRevealed = focusedDraftId === draft.id || hoveredDraftId === draft.id;
           const displaySource = draft.title && !isSourceRevealed ? draft.title : draft.src;
-          return <div className="playlist-row" key={draft.id}>
+          const verification = verificationResults[draft.id];
+          return <div className={`playlist-row${verification ? ` is-verification-${verification.status}` : ""}`} key={draft.id}>
             <span className="row-number" aria-hidden="true">{index + 1}</span>
             <label className="sr-only" htmlFor={`playlist-url-${draft.id}`}>URL do vídeo {index + 1}</label>
             <span className="playlist-source-field">
               {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
               <input aria-description={draft.title ? "O título é exibido enquanto o campo não está ativo. Foque para editar a URL." : undefined} aria-invalid={rowInvalid} className={draft.title && !isSourceRevealed ? "is-display-title" : undefined} id={`playlist-url-${draft.id}`} inputMode="url" autoComplete="url" onBlur={() => setFocusedDraftId((current) => current === draft.id ? null : current)} onChange={(event) => onUpdateDraft(draft.id, "src", event.target.value)} onFocus={() => setFocusedDraftId(draft.id)} onMouseEnter={() => setHoveredDraftId(draft.id)} onMouseLeave={() => setHoveredDraftId((current) => current === draft.id ? null : current)} placeholder="Cole a URL do vídeo" title={draft.title ? (isSourceRevealed ? draft.src : "Clique ou foque para editar a URL") : undefined} value={displaySource} />
+              {renderVerification(verification)}
+              {verification?.status === "unavailable" && <button className="verification-edit" type="button" onClick={() => document.getElementById(`playlist-url-${draft.id}`)?.focus()}><Pencil aria-hidden="true" size={13} />Editar URL</button>}
             </span>
             <label className="sr-only" htmlFor={`playlist-count-${draft.id}`}>Repetições do vídeo {index + 1}</label>
             <input id={`playlist-count-${draft.id}`} type="number" min="1" step="1" value={draft.repetitions} onChange={(event) => onUpdateDraft(draft.id, "repetitions", event.target.value)} aria-invalid={rowInvalid} />
@@ -186,6 +225,9 @@ export function ReplayComposer({
         })}
       </div>}
       {playlistInputMode === "advanced" && <div className="playlist-editor-toolbar"><span className="playlist-form-summary" aria-live="polite">{drafts.length} {drafts.length === 1 ? "vídeo" : "vídeos"} · {advancedPlaylistRepetitions} {advancedPlaylistRepetitions === 1 ? "execução" : "execuções"}</span><div className="playlist-editor-actions"><button className="add-row" type="button" onClick={onAddDraft}><Plus aria-hidden="true" size={18} />Adicionar outro vídeo</button>{isLoggedIn && <AudioUploadButton onUploaded={onUploadAudio} />}</div></div>}
+      {playlistInputMode === "simple" && Object.values(verificationResults).some((item) => item.id.startsWith("simple-")) && <div className="simple-verification-list" aria-label="Resultado da verificação">
+        {Object.values(verificationResults).filter((item) => item.id.startsWith("simple-")).map((item) => <div className={`is-${item.status}`} key={item.id}>{renderVerification(item)}<span>{item.message}</span></div>)}
+      </div>}
       {playlistSaveMessage && <p className="field-help playlist-save-message" role="status">{playlistSaveMessage}</p>}
       </>}
     </>}
@@ -193,7 +235,8 @@ export function ReplayComposer({
     {!isEditingQueue && mode === "playlist" && <div className="playlist-actions">
       {isLoggedIn && <button className="icon-save-button" type="button" onClick={onOpenSaveDialog} disabled={!canSubmitPlaylist || isSavingPlaylist} aria-label="Salvar playlist" title="Salvar playlist"><Save aria-hidden="true" size={18} /></button>}
       {previewAvailable && <div className="control-group preview-rate" role="toolbar" aria-label="Velocidade inicial"><span>Começar em</span>{[1, 1.5, 2].map((rate) => <button key={rate} className={playbackRate === rate ? "mode-button is-selected" : "mode-button"} type="button" aria-pressed={playbackRate === rate} onClick={() => onPlaybackRateChange(rate)} title={`Começar em ${rate}x`}>{rate}x</button>)}</div>}
-      <button className={`primary-button celestial-start-button ${canSubmitPlaylist ? "is-ready" : ""}`} type="submit" disabled={!canSubmitPlaylist}><Play aria-hidden="true" size={18} />Iniciar playlist</button>
+      <button className="secondary-button playlist-verify-button" type="button" disabled={!canSubmitPlaylist || isVerifyingPlaylist} onClick={() => void onVerifyPlaylist()}><ScanSearch aria-hidden="true" size={16} />{isVerifyingPlaylist ? "Testando…" : "Testar vídeos"}</button>
+      {hasVerificationFailures ? <button className="primary-button celestial-start-button is-ready" type="button" onClick={focusFirstUnavailableVideo}><Pencil aria-hidden="true" size={18} />Editar vídeos</button> : <button className={`primary-button celestial-start-button ${canSubmitPlaylist ? "is-ready" : ""}`} type="submit" disabled={!canSubmitPlaylist || isVerifyingPlaylist}><Play aria-hidden="true" size={18} />{isVerifyingPlaylist ? "Testando vídeos…" : "Iniciar playlist"}</button>}
     </div>}
     {!isEditingQueue && mode === "single" && <button className={`primary-button celestial-start-button ${canSubmitSingle ? "is-ready" : ""}`} type="submit" disabled={!canSubmitSingle}><Play aria-hidden="true" size={18} />Iniciar</button>}
     {!isEditingQueue && formHint && <p className="field-help submit-hint" role="status">{formHint}</p>}

@@ -17,6 +17,7 @@ import { useAudioCache } from "@/hooks/use-audio-cache";
 import { usePlaybackEngine } from "@/hooks/use-playback-engine";
 import { usePlayerMedia } from "@/hooks/use-player-media";
 import { usePlaylistComposer } from "@/hooks/use-playlist-composer";
+import { usePlaylistVerification } from "@/hooks/use-playlist-verification";
 import { useSessionPersistence } from "@/hooks/use-session-persistence";
 import { useTransportShortcuts } from "@/hooks/use-transport-shortcuts";
 import { useQueueMetadata, useVideoMetadata } from "@/hooks/use-video-metadata";
@@ -64,6 +65,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
   const routedPlaylistIdRef = useRef<string | null>(null);
   const { canSubmitPlaylist, canSubmitSingle, draftPlaylistId, drafts, firstSimplePlaylistItem, invalidSimpleLine, isSavingPlaylist, mode, playlistHint, playlistInputMode, playlistItems, playlistName, playlistSaveMessage, repetitions, setDraftPlaylistId, setDrafts, setIsSavingPlaylist, setMode, setPlaylistInputMode, setPlaylistName, setPlaylistSaveMessage, setRepetitions, setSimplePlaylist, setSource, simplePlaylist, simplePlaylistItems, simplePlaylistLineCount, singleHint, singleReplay, source, updateDraft } = usePlaylistComposer({ initialMode, setError, setStatus });
+  const { hasCurrentVerification, hasUnavailableItems, isVerifying: isVerifyingPlaylist, results: verificationResults, setVerifyBeforeStarting, verify, verifyBeforeStarting } = usePlaylistVerification({ drafts, playlistInputMode, simplePlaylist });
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, rememberMediaPreferences, seekingRef, seekBy, setDuration, setLoaded, setPip, setRememberMediaPreferences, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
   const isLoggedIn = Boolean(session.data?.user);
 
@@ -270,7 +272,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     }
   };
 
-  const start = (event: FormEvent) => {
+  const start = async (event: FormEvent) => {
     event.preventDefault();
     // Tira o foco do botão submit: sem isso, Espaço depois do clique
     // re-dispararia o submit e reiniciaria a sessão do zero.
@@ -289,6 +291,18 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (!canSubmitPlaylist) {
       setError("Revise cada linha: todas precisam ter uma URL válida e pelo menos uma repetição.");
       return;
+    }
+    if (verifyBeforeStarting) {
+      if (hasUnavailableItems) {
+        setError("Há vídeos indisponíveis na playlist. Edite ou remova os itens marcados antes de iniciar.");
+        setStatus("Playlist aguardando revisão dos vídeos indisponíveis.");
+        return;
+      }
+      if (!hasCurrentVerification) {
+        await verify();
+        setStatus("Teste concluído. Revise os itens marcados e clique em Iniciar playlist quando estiver pronto.");
+        return;
+      }
     }
     const entries = playlistInputMode === "simple" ? simplePlaylistItems! : playlistItems!;
     const nextQueue = entries.map((item) => makeItem(item.src.trim(), item.count));
@@ -324,12 +338,14 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             drafts={drafts}
             autoSkipErrors={autoSkipErrors}
             error={error}
+            hasVerificationFailures={hasUnavailableItems}
             invalidSimpleLine={invalidSimpleLine}
             isEditingQueue={isEditingQueue}
             isImportingYoutubePlaylist={isImportingYoutubePlaylist}
             isLoggedIn={isLoggedIn}
             isLoadingSavedPlaylists={isLoadingSavedPlaylists}
             isSavingPlaylist={isSavingPlaylist}
+            isVerifyingPlaylist={isVerifyingPlaylist}
             mode={mode}
             onAddDraft={() => { setDraftPlaylistId(null); setDrafts((items) => [...items, makeDraft()]); }}
             onAutoSkipErrorsChange={setAutoSkipErrors}
@@ -337,6 +353,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             onLoadSavedPlaylist={loadSavedPlaylist}
             onOpenSaveDialog={() => openSaveDialog("draft")}
             onPlaylistInputModeChange={setPlaylistInputMode}
+            onVerifyBeforeStartingChange={setVerifyBeforeStarting}
+            onVerifyPlaylist={async () => { await verify(); setStatus("Teste concluído. Revise os itens marcados antes de iniciar."); }}
             onPlaybackRateChange={setPlaybackRate}
             onRetrySavedPlaylists={() => void refreshSavedPlaylists()}
             onRemoveDraft={(id) => { setDraftPlaylistId(null); setDrafts((items) => items.filter((item) => item.id !== id)); }}
@@ -360,6 +378,8 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             simplePlaylistLineCount={simplePlaylistLineCount}
             singleHint={singleHint}
             source={source}
+            verificationResults={verificationResults}
+            verifyBeforeStarting={verifyBeforeStarting}
           />
 
           <ReplayPlayerSurface
