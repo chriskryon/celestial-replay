@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, ty
 import { canPlaySrc } from "@/components/react-player-client";
 import type { PlaybackSnapshot } from "@/components/replay-studio";
 import { playbackErrorMessage } from "@/lib/playback-error";
+import { advancePlayback, moveToNextVideo, moveToPreviousVideo, skipFailedPlayback, startPlayback } from "@/lib/playback-machine";
 import { isPlayableItem, makeItem, parseSingleReplay, type ParsedPlaylistItem, type ResumableSession, type VideoItem } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot } from "@/lib/replay-session";
 
@@ -235,13 +236,13 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   };
 
   const restartSession = () => {
-    if (queue.length === 0) return;
+    const cursor = startPlayback(queue);
+    if (!cursor) return;
     clearPendingPlaybackError();
     setPlaybackNotice(null);
     setQueue((items) => items.map(({ skippedRepetitions: _skipped, ...item }) => item));
-    const firstVideo = queue[0];
-    setActiveIndex(0);
-    setRemaining(firstVideo.repetitions);
+    setActiveIndex(cursor.activeIndex);
+    setRemaining(cursor.remaining);
     setPlayed(0);
     setLoaded(0);
     setDuration(null);
@@ -340,8 +341,9 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   // Avança uma repetição do vídeo atual (manual = botão; automático = ended).
   const playNextRepetition = (manual: boolean) => {
     if (!activeVideo || activeIndex === null) return;
-    if (remaining <= 1) { playNextVideo(manual); return; }
-    const nextRemaining = remaining - 1;
+    const transition = advancePlayback(queue, { activeIndex, remaining });
+    if (transition.kind !== "repeat") { playNextVideo(manual); return; }
+    const nextRemaining = transition.cursor.remaining;
     setRemaining(nextRemaining);
     setPlayed(0);
     setHasPlaybackStarted(false);
@@ -388,16 +390,18 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   // Volta para o vídeo anterior (manual = botão, sem gravar histórico).
   const playPreviousVideo = () => {
     if (!activeVideo || activeIndex === null || activeIndex <= 0) return;
-    const prevVideo = queue[activeIndex - 1];
+    const transition = moveToPreviousVideo(queue, activeIndex);
+    if (!transition) return;
+    const prevVideo = queue[transition.cursor.activeIndex];
     if (!isPlayableItem(prevVideo, canPlaySrc)) {
       setIsPlaying(false);
       setError("O vídeo anterior precisa de uma URL válida e de pelo menos uma repetição antes de continuar.");
       setStatus("Playlist pausada para revisar o vídeo anterior.");
       return;
     }
-    setActiveIndex(activeIndex - 1);
-    setQueue((items) => items.map((item, index) => index >= activeIndex - 1 ? { ...item, skippedRepetitions: undefined } : item));
-    setRemaining(prevVideo.repetitions);
+    setActiveIndex(transition.cursor.activeIndex);
+    setQueue(transition.queue);
+    setRemaining(transition.cursor.remaining);
     setPlayed(0);
     setLoaded(0);
     setDuration(null);
@@ -428,18 +432,18 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
   // Avança para o próximo vídeo (manual = botão, sem gravar histórico).
   const playNextVideo = (manual: boolean) => {
     if (!activeVideo || activeIndex === null) return;
-    const nextIndex = activeIndex + 1;
+    const transition = moveToNextVideo(queue, activeIndex);
     if (!manual) recordCompletedVideo(activeVideo);
-    if (nextIndex < queue.length) {
-      const nextVideo = queue[nextIndex];
+    if (transition.kind === "next") {
+      const nextVideo = queue[transition.cursor.activeIndex];
       if (!isPlayableItem(nextVideo, canPlaySrc)) {
         setIsPlaying(false);
         setError("O próximo vídeo precisa de uma URL válida e de pelo menos uma repetição antes de continuar.");
         setStatus("Playlist pausada para revisar o próximo vídeo.");
         return;
       }
-      setActiveIndex(nextIndex);
-      setRemaining(nextVideo.repetitions);
+      setActiveIndex(transition.cursor.activeIndex);
+      setRemaining(transition.cursor.remaining);
       if (!manual && usesNativeYoutubePlaylist) {
         ignoreStaleEndedRef.current = true;
         // Se o próximo vídeo nunca começar a tocar (autoplay bloqueado, comum em
@@ -452,7 +456,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
       setDuration(null);
       seekingRef.current = false;
       setHasPlaybackStarted(false);
-      setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
+      setStatus(`Reproduzindo vídeo ${transition.cursor.activeIndex + 1} de ${queue.length}.`);
       return;
     }
     setIsPlaying(false);
@@ -479,8 +483,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
       pendingPlaybackErrorRef.current = null;
       ignoreStaleEndedRef.current = false;
       if (autoSkipErrorsRef.current && queue.length > 1 && activeIndex !== null && (activeIndex + 1 >= queue.length || isPlayableItem(queue[activeIndex + 1], canPlaySrc))) {
-        const nextIndex = activeIndex + 1;
-        setQueue((items) => items.map((item) => item.id === failedVideoId ? { ...item, skippedRepetitions: remaining } : item));
+        const transition = skipFailedPlayback(queue, { activeIndex, remaining });
         setHasPlaybackStarted(false);
         setPlayBlocked(false);
         setDuration(null);
@@ -490,14 +493,16 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
         endedVideoIdRef.current = null;
         setError(null);
         setPlaybackNotice(`Vídeo ${activeIndex + 1} pulado por erro de reprodução.`);
-        if (nextIndex < queue.length && isPlayableItem(queue[nextIndex], canPlaySrc)) {
-          setActiveIndex(nextIndex);
-          setRemaining(queue[nextIndex].repetitions);
+        if (transition.kind === "next" && isPlayableItem(queue[transition.cursor.activeIndex], canPlaySrc)) {
+          setQueue(transition.queue);
+          setActiveIndex(transition.cursor.activeIndex);
+          setRemaining(transition.cursor.remaining);
           setIsPlaying(true);
-          setStatus(`Reproduzindo vídeo ${nextIndex + 1} de ${queue.length}.`);
+          setStatus(`Reproduzindo vídeo ${transition.cursor.activeIndex + 1} de ${queue.length}.`);
           return;
         }
-        if (nextIndex >= queue.length) {
+        if (transition.kind === "complete") {
+          setQueue(transition.queue);
           setRemaining(0);
           setIsPlaying(false);
           setIsSessionComplete(true);
