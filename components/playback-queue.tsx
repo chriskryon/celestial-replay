@@ -1,9 +1,9 @@
 import { ChevronDown, ExternalLink, Play, Plus, Save, Square, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
-import { isPlayableMediaUrl } from "@/lib/media-url";
-import { isPlayableItem, type VideoItem } from "@/lib/replay-playlist";
+import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
+import { isPlayableItem, parseSingleReplay, type VideoItem } from "@/lib/replay-playlist";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaybackQueueProps = {
@@ -17,6 +17,7 @@ type PlaybackQueueProps = {
   isSaving: boolean;
   isSessionComplete: boolean;
   metadata: Record<string, { authorName: string | null; title: string | null; loading: boolean }>;
+  onAddToQueue: (source: string, repetitions: string) => boolean;
   onRemoveFutureItem: (id: string) => void;
   onRestartSession: () => void;
   onSave: () => void;
@@ -40,6 +41,7 @@ export function PlaybackQueue({
   isSaving,
   isSessionComplete,
   metadata,
+  onAddToQueue,
   onRemoveFutureItem,
   onRestartSession,
   onSave,
@@ -54,6 +56,19 @@ export function PlaybackQueue({
   const currentItemRef = useRef<HTMLLIElement | null>(null);
   const [recentIndex, setRecentIndex] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [newSource, setNewSource] = useState("");
+  const [newRepetitions, setNewRepetitions] = useState("1");
+  const [queueMessage, setQueueMessage] = useState<string | null>(null);
+  const canAdd = Boolean(parseSingleReplay(newSource, newRepetitions, canPlaySrc));
+  const addToQueue = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!onAddToQueue(newSource, newRepetitions)) {
+      setQueueMessage("Não foi possível adicionar. Confira o link e as repetições ou inicie uma nova sessão.");
+      return;
+    }
+    setNewSource("");
+    setQueueMessage("Vídeo adicionado ao fim da fila.");
+  };
   const currentItem = isSessionComplete || activeIndex === null ? null : queue[activeIndex] ?? null;
   const currentMetadata = currentItem ? metadata[currentItem.src] : null;
   const currentTitle = currentItem ? currentMetadata?.title ?? uploadDisplayNameFromUrl(currentItem.src) ?? (() => {
@@ -149,6 +164,12 @@ export function PlaybackQueue({
           <Save aria-hidden="true" size={18} />
         </button>}
       </div>
+      {!isSessionComplete && <form className="queue-add-form" onSubmit={addToQueue} aria-label="Adicionar vídeo à fila">
+        <label className="queue-add-source" htmlFor="queue-add-source">URL do vídeo<input id="queue-add-source" type="url" value={newSource} onChange={(event) => { setNewSource(normalizeVideoUrlInput(event.target.value)); setQueueMessage(null); }} required /></label>
+        <label htmlFor="queue-add-count">Repetições<input id="queue-add-count" type="number" min="1" step="1" value={newRepetitions} onChange={(event) => setNewRepetitions(event.target.value)} required /></label>
+        <button className="secondary-button" type="submit" disabled={!canAdd}><Plus aria-hidden="true" size={16} />Adicionar à fila</button>
+      </form>}
+      {queueMessage && <p className="field-help queue-feedback" role="status">{queueMessage}</p>}
       {saveMessage && <p className="field-help queue-save-message" role="status">{saveMessage}</p>}
       {isSessionComplete && <div className="queue-complete-summary" role="status">
         <span>{queue.length} {queue.length === 1 ? "vídeo concluído" : "vídeos concluídos"}</span>

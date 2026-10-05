@@ -86,6 +86,44 @@ afterEach(() => {
 });
 
 describe("usePlaybackEngine", () => {
+  it("appends a normalized video without interrupting the current repetition", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const first: VideoItem = { id: "first", src: "https://cdn.example.com/first.mp4", repetitions: 2 };
+    act(() => result.current.engine.startQueue([first], { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackStarted(first.id));
+    result.current.playerRef.current.currentTime = 42;
+    let added = false;
+    act(() => { added = result.current.engine.appendToQueue("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=extra", "3"); });
+
+    expect(added).toBe(true);
+    expect(result.current.engine.queue[1]).toMatchObject({ src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", repetitions: 3 });
+    expect(result.current.engine.activeVideo?.id).toBe(first.id);
+    expect(result.current.engine.remaining).toBe(2);
+    expect(result.current.engine.hasPlaybackStarted).toBe(true);
+    expect(result.current.engine.isPlaying).toBe(true);
+    expect(result.current.playerRef.current.currentTime).toBe(42);
+    act(() => result.current.engine.handleEnded(first.id, 2));
+    expect(result.current.engine.activeVideo?.id).toBe(first.id);
+    act(() => result.current.engine.handlePlaybackStarted(first.id));
+    act(() => result.current.engine.handleEnded(first.id, 1));
+    expect(result.current.engine.activeIndex).toBe(1);
+    expect(result.current.engine.remaining).toBe(3);
+  });
+
+  it("rejects invalid additions and additions to an idle or completed session", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const first: VideoItem = { id: "first", src: "https://cdn.example.com/first.mp4", repetitions: 1 };
+    expect(result.current.engine.appendToQueue(first.src, "1")).toBe(false);
+    act(() => result.current.engine.startQueue([first], { playlistId: null, statusMessage: "go" }));
+    expect(result.current.engine.appendToQueue("https://cdn.example.com/image.png", "1")).toBe(false);
+    expect(result.current.engine.appendToQueue(first.src, "0")).toBe(false);
+    expect(result.current.engine.appendToQueue(first.src, "1.5")).toBe(false);
+    expect(result.current.engine.queue).toHaveLength(1);
+    act(() => result.current.engine.handlePlaybackStarted(first.id));
+    act(() => result.current.engine.handleEnded(first.id, 1));
+    expect(result.current.engine.appendToQueue(first.src, "1")).toBe(false);
+  });
+
   it("does not swallow the next ended event after an automatic playlist advance", () => {
     const { result } = renderHook(() => useTestHarness());
     const item1: VideoItem = { id: "v1", src: "https://cdn.example.com/video1.mp4", repetitions: 1 };

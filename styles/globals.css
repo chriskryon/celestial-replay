@@ -362,6 +362,11 @@ input::placeholder, textarea::placeholder { color: #b8c2d9; }
 .queue-surface.is-expanded .queue-toggle-meta svg { transform: rotate(180deg); }
 .queue-toggle:hover .queue-toggle-copy strong, .queue-toggle:focus-visible .queue-toggle-copy strong { color: #f3f6ff; }
 .queue-expanded-actions { display: flex; align-items: center; justify-content: flex-end; gap: .42rem; margin-top: .55rem; }
+.queue-add-form { display: grid; grid-template-columns: minmax(0, 1fr) 88px auto; align-items: end; gap: .5rem; margin-block: .75rem; }
+.queue-add-form label { display: grid; min-width: 0; gap: .25rem; color: var(--muted); font-size: .72rem; }
+.queue-add-form input { width: 100%; min-width: 0; min-height: 40px; }
+.queue-add-form .secondary-button { min-height: 40px; }
+.queue-feedback { margin: .35rem 0 .65rem; overflow-wrap: anywhere; }
 .queue-complete-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .55rem; margin-top: .55rem; padding: .6rem; border: 1px solid rgba(190, 209, 255, .14); border-radius: .62rem; background: rgba(128, 158, 234, .08); }
 .queue-complete-summary > span { color: var(--muted); font-size: .76rem; font-variant-numeric: tabular-nums; }
 .queue-complete-summary > span:first-child { color: var(--ink); font-weight: 700; }
@@ -702,6 +707,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
   .playlist-editor-actions { flex-direction: column; }
   .playlist-row { grid-template-columns: 24px minmax(0, 1fr) 60px 38px; }
   .queue-item { grid-template-columns: 76px minmax(0, 1fr) 54px 30px; gap: 0.35rem; }
+  .queue-add-form { grid-template-columns: minmax(0, 1fr) 88px; }
+  .queue-add-form .secondary-button { grid-column: 1 / -1; justify-self: stretch; }
   .playlist-save { grid-template-columns: 1fr; align-items: stretch; } .playlist-save .secondary-button { justify-self: stretch; }
   .queue-save { grid-template-columns: 1fr; align-items: stretch; } .queue-save .secondary-button { justify-self: stretch; }
   .playlist-form .primary-button { align-self: stretch; margin-top: 0; }

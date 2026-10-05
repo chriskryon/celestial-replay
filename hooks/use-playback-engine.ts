@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, ty
 import { canPlaySrc } from "@/components/react-player-client";
 import type { PlaybackSnapshot } from "@/components/replay-studio";
 import { playbackErrorMessage } from "@/lib/playback-error";
-import { isPlayableItem, type ParsedPlaylistItem, type ResumableSession, type VideoItem } from "@/lib/replay-playlist";
+import { isPlayableItem, makeItem, parseSingleReplay, type ParsedPlaylistItem, type ResumableSession, type VideoItem } from "@/lib/replay-playlist";
 import { getPlaybackSnapshot } from "@/lib/replay-session";
 
 type UsePlaybackEngineParams = {
@@ -197,6 +197,14 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
       return items.filter((item) => item.id !== id);
     });
     setError(null);
+  };
+
+  const appendToQueue = (source: string, repetitions: string) => {
+    const parsed = parseSingleReplay(source, repetitions, canPlaySrc);
+    if (!parsed || !activeVideoIdRef.current || isSessionComplete) return false;
+    const item = makeItem(parsed.src, parsed.count);
+    setQueue((items) => [...items, item]);
+    return true;
   };
 
   const updateUpcomingItem = (id: string, field: "src" | "repetitions", value: string) => {
@@ -585,6 +593,7 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     activeIndex,
     activeSavedPlaylistId,
     activeVideo,
+    appendToQueue,
     canGoBackRepetition,
     canSkipRepetition,
     completedQueue,
