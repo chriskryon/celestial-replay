@@ -23,6 +23,21 @@ const redisUrl = process.env.KV_REST_API_URL;
 const redisToken = process.env.KV_REST_API_TOKEN;
 const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 const rateLimiters = new Map<string, Ratelimit>();
+const localRequests = new Map<string, { timestamps: number[]; expiresAt: number }>();
+
+function localLimit(key: string, limit: Limit) {
+  const now = Date.now();
+  const [amount, unit] = limit.window.split(" ");
+  const windowMs = Number(amount) * ({ s: 1000, m: 60_000, h: 3_600_000 }[unit as "s" | "m" | "h"]);
+  localRequests.forEach((state, entry) => {
+    if (state.expiresAt <= now) localRequests.delete(entry);
+  });
+  const timestamps = (localRequests.get(key)?.timestamps ?? []).filter((time) => time > now - windowMs);
+  const success = timestamps.length < limit.requests;
+  if (success) timestamps.push(now);
+  localRequests.set(key, { timestamps, expiresAt: timestamps[timestamps.length - 1] + windowMs });
+  return { success, reset: timestamps[0] + windowMs };
+}
 
 function getClientKey(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -47,7 +62,21 @@ function getLimiter(scope: keyof typeof limits) {
 export async function requireWithinRateLimit(request: Request, scope: keyof typeof limits) {
   if (!redis) return null;
 
-  const result = await getLimiter(scope).limit(`${scope}:${getClientKey(request)}`);
+  const key = `${scope}:${getClientKey(request)}`;
+  let result: { success: boolean; reset: number };
+  try {
+    result = await getLimiter(scope).limit(key);
+  } catch {
+    // O fallback local preserva o limite sem depender das credenciais de produção.
+    if (process.env.NODE_ENV === "development") {
+      result = localLimit(key, limits[scope]);
+    } else {
+      return NextResponse.json(
+        { error: "O serviço está temporariamente indisponível. Tente novamente em instantes." },
+        { status: 503, headers: { "Retry-After": "30" } },
+      );
+    }
+  }
   if (result.success) return null;
 
   const retryAfter = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
