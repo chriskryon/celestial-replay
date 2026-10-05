@@ -25,7 +25,7 @@ export function parseSingleReplay(source: string, repetitions: string, canPlay: 
 export function parsePlaylistDrafts(drafts: PlaylistDraft[], canPlay: CanPlay): ParsedPlaylistItem[] | null {
   if (drafts.length === 0) return null;
   const result = z.array(playlistLineSchema).min(1).safeParse(drafts);
-  return result.success && result.data.every((item) => canPlay(item.src))
+  return result.success && result.data.every((item) => canPlay(item.src) || isOdyseeSource(item.src))
     ? result.data.map((item) => ({ src: item.src, count: item.repetitions }))
     : null;
 }
