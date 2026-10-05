@@ -205,7 +205,7 @@ describe("usePlaybackEngine", () => {
       result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" });
     });
     act(() => {
-      result.current.engine.handlePlaybackError();
+      result.current.engine.handlePlaybackError(item.id);
     });
     act(() => {
       result.current.engine.handlePlaybackPlay(item.id);
@@ -228,7 +228,7 @@ describe("usePlaybackEngine", () => {
     result.current.playerRef.current.paused = false;
     act(() => {
       result.current.engine.handlePlaybackPlay(item.id);
-      result.current.engine.handlePlaybackError();
+      result.current.engine.handlePlaybackError(item.id);
     });
     act(() => {
       vi.advanceTimersByTime(800);
@@ -246,7 +246,7 @@ describe("usePlaybackEngine", () => {
       result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" });
     });
     act(() => {
-      result.current.engine.handlePlaybackError();
+      result.current.engine.handlePlaybackError(item.id);
     });
     act(() => {
       vi.advanceTimersByTime(800);
@@ -254,5 +254,58 @@ describe("usePlaybackEngine", () => {
 
     expect(result.current.error).toContain("YouTube");
     expect(result.current.engine.isPlaying).toBe(false);
+    expect(result.current.engine.remaining).toBe(1);
+    expect(result.current.engine.completedRepetitions).toBe(0);
+  });
+
+  it("ignores an error from the previous video after advancing", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const first: VideoItem = { id: "first", src: "https://cdn.example.com/first.mp4", repetitions: 1 };
+    const second: VideoItem = { id: "second", src: "https://cdn.example.com/second.mp4", repetitions: 3 };
+
+    act(() => result.current.engine.startQueue([first, second], { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackStarted(first.id));
+    act(() => result.current.engine.handleEnded(first.id, 1));
+    act(() => result.current.engine.handlePlaybackError(first.id));
+    act(() => vi.advanceTimersByTime(800));
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.engine.activeVideo?.id).toBe(second.id);
+    expect(result.current.engine.remaining).toBe(3);
+    expect(result.current.engine.isPlaying).toBe(true);
+  });
+
+  it("does not commit a pending error after switching to another video", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const first: VideoItem = { id: "first", src: "https://cdn.example.com/first.mp4", repetitions: 1 };
+    const second: VideoItem = { id: "second", src: "https://cdn.example.com/second.mp4", repetitions: 3 };
+
+    act(() => result.current.engine.startQueue([first, second], { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackError(first.id));
+    act(() => result.current.engine.nextVideo());
+    act(() => vi.advanceTimersByTime(800));
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.engine.activeVideo?.id).toBe(second.id);
+    expect(result.current.engine.remaining).toBe(3);
+  });
+
+  it("preserves unfinished repetitions when the current video fails and is retried", () => {
+    const { result } = renderHook(() => useTestHarness());
+    const item: VideoItem = { id: "current", src: "https://cdn.example.com/current.mp4", repetitions: 3 };
+
+    act(() => result.current.engine.startQueue([item], { playlistId: null, statusMessage: "go" }));
+    act(() => result.current.engine.handlePlaybackStarted(item.id));
+    act(() => result.current.engine.handleEnded(item.id, 3));
+    act(() => result.current.engine.handlePlaybackError(item.id));
+    act(() => vi.advanceTimersByTime(800));
+
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.engine.remaining).toBe(2);
+    expect(result.current.engine.completedRepetitions).toBe(1);
+
+    act(() => result.current.engine.retryCurrentVideo());
+    expect(result.current.error).toBeNull();
+    expect(result.current.engine.remaining).toBe(2);
   });
 });

@@ -432,16 +432,14 @@ export function usePlaybackEngine({ attemptPlay, clearResumeSession, duration, e
     else playNextVideo(false);
   };
 
-  const handlePlaybackError = () => {
-    const failedVideoId = activeVideoIdRef.current;
-    if (!failedVideoId) return;
+  const handlePlaybackError = (failedVideoId: string) => {
+    if (!activeVideo || failedVideoId !== activeVideoIdRef.current) return;
     const commitError = () => {
       if (failedVideoId !== activeVideoIdRef.current) return;
       pendingPlaybackErrorRef.current = null;
       ignoreStaleEndedRef.current = false;
       setIsPlaying(false);
       setHasPlaybackStarted(false);
-      setRemaining(0);
       setDuration(null);
       setPlayed(0);
       setLoaded(0);

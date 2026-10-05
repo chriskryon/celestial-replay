@@ -39,7 +39,7 @@ type ReplayPlayerSurfaceProps = {
   onNextRepetition: () => void;
   onNextVideo: () => void;
   onPause: (videoId: string) => void;
-  onPlaybackError: () => void;
+  onPlaybackError: (videoId: string) => void;
   onPlaybackPlay: (videoId: string) => void;
   onPlayerReady: (videoId: string) => void;
   onPreviewError: () => void;
@@ -337,7 +337,7 @@ export function ReplayPlayerSurface({
         onLoadedData={syncDuration}
         onCanPlay={syncDuration}
         onDurationChange={syncDuration}
-        onError={activeVideo ? onPlaybackError : onPreviewError}
+        onError={activeVideo ? () => onPlaybackError(activeVideo.id) : onPreviewError}
       /> : <div className="player-empty">
         <span className="player-empty-icon"><Play aria-hidden="true" size={25} /></span>
         <div>
