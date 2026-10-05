@@ -11,9 +11,9 @@ import { playbackErrorMessage } from "@/lib/playback-error";
 import { savePlaylist as persistPlaylist } from "@/lib/replay-api";
 import { makeItem, type VideoItem } from "@/lib/replay-playlist";
 import { getPlayerStatus } from "@/lib/replay-session";
-import { useAudioCache } from "@/hooks/use-audio-cache";
 import { usePlaybackEngine } from "@/hooks/use-playback-engine";
 import { usePlayerMedia } from "@/hooks/use-player-media";
+import { useResolvedMediaSource } from "@/hooks/use-resolved-media-source";
 import { useTransportShortcuts } from "@/hooks/use-transport-shortcuts";
 import { useVideoMetadata } from "@/hooks/use-video-metadata";
 
@@ -70,7 +70,7 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
     return { id: "shared-preview", src: items[0].url, repetitions: items[0].repetitions };
   }, [activeVideo, items]);
   const displayedVideo = activeVideo ?? previewVideo;
-  const { isResolving: isAudioResolving, resolvedSrc: resolvedAudioSrc } = useAudioCache(displayedVideo);
+  const { isResolving: isMediaResolving, resolvedSrc: resolvedMediaSrc } = useResolvedMediaSource(displayedVideo);
   const videoMetadata = useVideoMetadata(activeVideo?.src, previewVideo?.src);
   const playerStatus = isSessionComplete && queue.some((item) => item.skippedRepetitions) ? "Fila encerrada com vídeos pulados por erro." : getPlayerStatus({ activeVideo, error, fallbackStatus: status, hasPlaybackStarted, isPlaying, isSessionComplete, playBlocked, previewVideo, remaining });
   const progressLabel = activeIndex === null || error || isSessionComplete ? null : `Vídeo ${activeIndex + 1} de ${queue.length} · ${completedRepetitions} de ${totalRepetitions} repetições concluídas`;
@@ -124,7 +124,7 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
           hasNextVideo={hasNextVideo}
           hasPlaybackStarted={hasPlaybackStarted}
           hasPrevVideo={hasPrevVideo}
-          isAudioResolving={isAudioResolving}
+          isMediaResolving={isMediaResolving}
           isPlaying={isPlaying}
           isSessionComplete={isSessionComplete}
           loaded={loaded}
@@ -167,7 +167,7 @@ export function SharedPlaylistView({ items, name }: SharedPlaylistViewProps) {
           queue={queue}
           queueLength={queue.length}
           remaining={remaining}
-          resolvedAudioSrc={resolvedAudioSrc}
+          resolvedMediaSrc={resolvedMediaSrc}
           totalRepetitions={totalRepetitions}
           usesNativeYoutubePlaylist={usesNativeYoutubePlaylist}
           videoAuthor={videoMetadata.authorName}

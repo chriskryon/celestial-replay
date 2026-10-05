@@ -25,8 +25,8 @@ function surfaceProps(loadVideoById: (id: string) => void): Parameters<typeof Re
     onFullscreen: noop, onVideoEnded: noop, pip: false, playbackRate: 1, played: 0,
     playerRef: { current: { api: { loadVideoById } } as unknown as HTMLVideoElement },
     playerStatus: "Iniciando", playbackNotice: null, previewVideo: null,
-    isAudioResolving: false, progressLabel: null, queue: [video], queueLength: 1,
-    remaining: 1, resolvedAudioSrc: null, totalRepetitions: 1, usesNativeYoutubePlaylist: false,
+    isMediaResolving: false, progressLabel: null, queue: [video], queueLength: 1,
+    remaining: 1, resolvedMediaSrc: null, totalRepetitions: 1, usesNativeYoutubePlaylist: false,
     videoAuthor: null, videoDurations: {}, videoTitle: null, youtubePlaylistSources: [], volume: 0.7,
   };
 }

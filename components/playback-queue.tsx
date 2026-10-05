@@ -2,8 +2,9 @@ import { ChevronDown, ExternalLink, Play, Plus, Save, Square, Trash2 } from "luc
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
-import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
+import { normalizeVideoUrlInput } from "@/lib/media-url";
 import { isPlayableItem, parseSingleReplay, type VideoItem } from "@/lib/replay-playlist";
+import { isSupportedReplaySource } from "@/lib/replay-source";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaybackQueueProps = {
@@ -117,7 +118,7 @@ export function PlaybackQueue({
             id={`queue-url-${item.id}`}
             value={item.src}
             onChange={(event) => onUpdateUpcomingItem(item.id, "src", event.target.value)}
-            aria-invalid={!isPlayableMediaUrl(item.src.trim())}
+            aria-invalid={!isSupportedReplaySource(item.src, canPlaySrc)}
           />
           <label className="sr-only" htmlFor={`queue-count-${item.id}`}>Repetições do vídeo {index + 1}</label>
           <input

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { canPlaySrc } from "@/components/react-player-client";
-import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
-import { isOdyseeSource } from "@/lib/odysee";
+import { normalizeVideoUrlInput } from "@/lib/media-url";
 import { parseFirstPlaylistLine, parsePlaylistDrafts, parsePlaylistLine, parsePlaylistLines, parseSingleReplay } from "@/lib/replay-playlist";
+import { isSupportedReplaySource } from "@/lib/replay-source";
 import { usePlaylistDraft } from "@/hooks/use-playlist-draft";
 
 type UsePlaylistComposerParams = {
@@ -42,7 +42,7 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
   const singleHint = !canSubmitSingle
     ? !source.trim()
       ? "Cole a URL do vídeo para liberar o início."
-      : !isPlayableMediaUrl(source.trim()) || (!canPlaySrc(source.trim()) && !isOdyseeSource(source.trim()))
+      : !isSupportedReplaySource(source, canPlaySrc)
         ? "Essa URL não é reproduzível aqui — use YouTube, Vimeo ou arquivo direto."
         : "Repetições: número inteiro maior que zero."
     : null;
@@ -69,7 +69,7 @@ export function usePlaylistComposer({ initialMode = "single", setError, setStatu
     const params = new URLSearchParams(window.location.search);
     const replaySource = params.get("source");
     const replayRepetitions = Number(params.get("repetitions"));
-    if (!replaySource || !isPlayableMediaUrl(replaySource) || !Number.isInteger(replayRepetitions) || replayRepetitions < 1) return;
+    if (!replaySource || !isSupportedReplaySource(replaySource, canPlaySrc) || !Number.isInteger(replayRepetitions) || replayRepetitions < 1) return;
     setMode("single");
     setSource(normalizeVideoUrlInput(replaySource));
     setRepetitions(String(replayRepetitions));

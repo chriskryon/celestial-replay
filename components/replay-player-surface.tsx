@@ -71,12 +71,12 @@ type ReplayPlayerSurfaceProps = {
   playerStatus: string;
   playbackNotice: string | null;
   previewVideo: VideoItem | null;
-  isAudioResolving: boolean;
+  isMediaResolving: boolean;
   progressLabel: string | null;
   queue: VideoItem[];
   queueLength: number;
   remaining: number;
-  resolvedAudioSrc: string | null;
+  resolvedMediaSrc: string | null;
   totalRepetitions: number;
   usesNativeYoutubePlaylist: boolean;
   videoAuthor: string | null;
@@ -99,7 +99,7 @@ export function ReplayPlayerSurface({
   hasNextVideo,
   hasPlaybackStarted,
   hasPrevVideo,
-  isAudioResolving,
+  isMediaResolving,
   isPlaying,
   isSessionComplete,
   loaded,
@@ -144,7 +144,7 @@ export function ReplayPlayerSurface({
   queue,
   queueLength,
   remaining,
-  resolvedAudioSrc,
+  resolvedMediaSrc,
   totalRepetitions,
   usesNativeYoutubePlaylist,
   videoAuthor,
@@ -229,7 +229,7 @@ export function ReplayPlayerSurface({
   const useNativeYoutubePlaylist = Boolean(activeVideo) && youtubePlaylistIds.length > 1 && usesNativeYoutubePlaylist;
   const playerSource = useNativeYoutubePlaylist
     ? youtubePlaylistSources[0]
-    : isAudioResolving ? undefined : (resolvedAudioSrc ?? displayedVideo?.src);
+    : isMediaResolving ? undefined : (resolvedMediaSrc ?? displayedVideo?.src);
   // Trocar o `src` faz o <youtube-video> derrubar e recriar o iframe. Um iframe
   // do YouTube criado com a aba oculta carrega os metadados mas fica preso em
   // buffering pra sempre, então a playlist emudecia até o usuário voltar o foco.
@@ -351,9 +351,9 @@ export function ReplayPlayerSurface({
       /> : <div className="player-empty">
         <span className="player-empty-icon"><Play aria-hidden="true" size={25} /></span>
         <div>
-          <strong>{error ? "Não foi possível carregar esta fonte" : isAudioResolving ? "Preparando áudio…" : "Cole um vídeo para preparar a repetição"}</strong>
-          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : isAudioResolving ? "Baixando a cópia local pra tocar sem gastar dados depois." : "A prévia aparece aqui antes de qualquer reprodução."}</p>
-          {!error && !isAudioResolving && <small>Nada toca sem você clicar em Iniciar.</small>}
+          <strong>{error ? "Não foi possível carregar esta fonte" : isMediaResolving ? "Preparando mídia…" : "Cole um vídeo para preparar a repetição"}</strong>
+          <p>{error ? "Tente novamente ou escolha outra fonte suportada." : isMediaResolving ? "Preparando uma fonte reproduzível para esta sessão." : "A prévia aparece aqui antes de qualquer reprodução."}</p>
+          {!error && !isMediaResolving && <small>Nada toca sem você clicar em Iniciar.</small>}
         </div>
         {error && activeVideo && <div className="player-recovery">
           <button className="secondary-button" type="button" onClick={onRetry}>Tentar novamente</button>
