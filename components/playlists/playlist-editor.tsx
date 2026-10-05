@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AudioUploadButton } from "@/components/audio-upload-button";
 import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playlists/types";
 import type { AudioFile } from "@/hooks/use-audio-library";
+import type { PlaylistVerificationItem } from "@/lib/playlist-verification";
 import { uploadDisplayNameFromUrl } from "@/lib/upload-display";
 
 type PlaylistEditorProps = {
@@ -29,10 +30,11 @@ type PlaylistEditorProps = {
   onUpdateItem: (id: string, field: "url" | "title" | "repetitions", value: string) => void;
   selected: Playlist | null;
   simpleInput: string;
+  verificationResults: PlaylistVerificationItem[];
 };
 
 export function PlaylistEditor(props: PlaylistEditorProps) {
-  const { inputMode, isSaving, isValid, items, name, onAddItem, onAddUploadedItem, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onShare, onSimpleInputChange, onUpdateItem, selected, simpleInput } = props;
+  const { inputMode, isSaving, isValid, items, name, onAddItem, onAddUploadedItem, onChangeMode, onDelete, onDuplicateItem, onMoveItem, onNameChange, onRemoveItem, onReorderItems, onSave, onShare, onSimpleInputChange, onUpdateItem, selected, simpleInput, verificationResults } = props;
   return (
     <section aria-labelledby="editor-title" className="library-editor">
       <header className="library-editor-heading">
@@ -56,6 +58,7 @@ export function PlaylistEditor(props: PlaylistEditorProps) {
           onRemoveItem={onRemoveItem}
           onReorderItems={onReorderItems}
           onUpdateItem={onUpdateItem}
+          verificationResults={verificationResults}
         />
       )}
 
@@ -85,13 +88,13 @@ function SimplePlaylistInput({ onChange, value }: { onChange: (value: string) =>
   );
 }
 
-type AdvancedPlaylistInputProps = Pick<PlaylistEditorProps, "items" | "onAddItem" | "onAddUploadedItem" | "onDuplicateItem" | "onMoveItem" | "onRemoveItem" | "onReorderItems" | "onUpdateItem">;
+type AdvancedPlaylistInputProps = Pick<PlaylistEditorProps, "items" | "onAddItem" | "onAddUploadedItem" | "onDuplicateItem" | "onMoveItem" | "onRemoveItem" | "onReorderItems" | "onUpdateItem" | "verificationResults">;
 
-function AdvancedPlaylistInput({ items, onAddItem, onAddUploadedItem, onDuplicateItem, onMoveItem, onRemoveItem, onReorderItems, onUpdateItem }: AdvancedPlaylistInputProps) {
+function AdvancedPlaylistInput({ items, onAddItem, onAddUploadedItem, onDuplicateItem, onMoveItem, onRemoveItem, onReorderItems, onUpdateItem, verificationResults }: AdvancedPlaylistInputProps) {
   return (
     <>
       <div aria-label="Vídeos da playlist" className="library-items">
-        {items.map((item, index) => <PlaylistItemEditor item={item} index={index} key={item.id} onDuplicate={onDuplicateItem} onMove={onMoveItem} onRemove={onRemoveItem} onReorder={onReorderItems} onUpdate={onUpdateItem} total={items.length} />)}
+        {items.map((item, index) => <PlaylistItemEditor item={item} index={index} key={item.id} onDuplicate={onDuplicateItem} onMove={onMoveItem} onRemove={onRemoveItem} onReorder={onReorderItems} onUpdate={onUpdateItem} total={items.length} verification={verificationResults.find((result) => result.source === item.url) ?? null} />)}
       </div>
       <div className="playlist-editor-actions">
         <button className="add-row" onClick={onAddItem} type="button"><Plus aria-hidden="true" size={17} />Adicionar vídeo</button>
@@ -110,19 +113,21 @@ type PlaylistItemEditorProps = {
   onReorder: (sourceId: string, targetId: string) => void;
   onUpdate: (id: string, field: "url" | "title" | "repetitions", value: string) => void;
   total: number;
+  verification: PlaylistVerificationItem | null;
 };
 
-function PlaylistItemEditor({ index, item, onDuplicate, onMove, onRemove, onReorder, onUpdate, total }: PlaylistItemEditorProps) {
+function PlaylistItemEditor({ index, item, onDuplicate, onMove, onRemove, onReorder, onUpdate, total, verification }: PlaylistItemEditorProps) {
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const uploadName = uploadDisplayNameFromUrl(item.url);
   return (
-    <div className="playlist-row" draggable onDragOver={(event) => event.preventDefault()} onDragStart={() => setDraggedItemId(item.id)} onDrop={() => { if (draggedItemId && draggedItemId !== item.id) onReorder(draggedItemId, item.id); setDraggedItemId(null); }}>
+    <div className={verification?.status === "unavailable" ? "playlist-row is-verification-unavailable" : "playlist-row"} draggable onDragOver={(event) => event.preventDefault()} onDragStart={() => setDraggedItemId(item.id)} onDrop={() => { if (draggedItemId && draggedItemId !== item.id) onReorder(draggedItemId, item.id); setDraggedItemId(null); }}>
       <span aria-hidden="true" className="row-number">{index + 1}</span>
       <button aria-label={`Arraste ou mova o vídeo ${index + 1}`} className="drag-handle" type="button"><GripVertical aria-hidden="true" size={16} /></button>
       <label className="sr-only" htmlFor={`library-url-${item.id}`}>URL do vídeo {index + 1}</label>
       <span className="playlist-source-field">
         {uploadName && <span className="playlist-source-label">Áudio enviado: {uploadName}</span>}
         <input autoComplete="url" id={`library-url-${item.id}`} inputMode="url" onChange={(event) => onUpdate(item.id, "url", event.target.value)} placeholder="Cole a URL do vídeo" value={item.url} />
+        {verification && <span className={`playlist-verification-state is-${verification.status}`}>{verification.message}</span>}
         <label className="sr-only" htmlFor={`library-title-${item.id}`}>Nome opcional do vídeo {index + 1}</label>
         <input id={`library-title-${item.id}`} maxLength={80} onChange={(event) => onUpdate(item.id, "title", event.target.value)} placeholder="Nome opcional" value={item.title} />
       </span>

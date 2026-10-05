@@ -6,6 +6,7 @@ import type { DraftItem, Playlist, PlaylistInputMode } from "@/components/playli
 import type { AudioFile } from "@/hooks/use-audio-library";
 import { isPlayableMediaUrl, normalizeVideoUrlInput } from "@/lib/media-url";
 import { createDraftItem, draftsFromSimple, initialDraftItem, parseSimplePlaylist, sourceDomain } from "@/lib/playlist-draft";
+import type { PlaylistVerificationItem, PlaylistVerificationTarget } from "@/lib/playlist-verification";
 
 type PlaylistSort = "recent" | "name" | "size";
 
@@ -24,6 +25,8 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
   const [search, setSearch] = useState("");
   const [domainFilter, setDomainFilter] = useState("todos");
   const [sort, setSort] = useState<PlaylistSort>("recent");
+  const [verificationByPlaylist, setVerificationByPlaylist] = useState<Record<string, PlaylistVerificationItem[]>>({});
+  const [verifyingPlaylistId, setVerifyingPlaylistId] = useState<string | null>(null);
 
   const selected = useMemo(() => playlists.find((playlist) => playlist.id === selectedId) ?? null, [playlists, selectedId]);
   const parsedSimple = useMemo(() => parseSimplePlaylist(simpleInput), [simpleInput]);
@@ -134,6 +137,35 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     setPlaylists((current) => current.map((item) => item.id === playlist.id ? { ...item, isFavorite: result.playlist.isFavorite, updatedAt: result.playlist.updatedAt } : item));
   }
 
+  async function verifyPlaylist(playlist: Playlist) {
+    const targets: PlaylistVerificationTarget[] = playlist.items.map((item) => ({ id: item.id, source: item.url }));
+    if (targets.length === 0) return;
+
+    setVerifyingPlaylistId(playlist.id);
+    setVerificationByPlaylist((current) => ({
+      ...current,
+      [playlist.id]: targets.map((target) => ({ ...target, status: "checking", message: "Verificando disponibilidade…" })),
+    }));
+
+    try {
+      const response = await fetch("/api/playlist-verification", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items: targets }),
+      });
+      const payload = await response.json().catch(() => null) as { items?: PlaylistVerificationItem[] } | null;
+      if (!response.ok || !payload?.items) throw new Error();
+      setVerificationByPlaylist((current) => ({ ...current, [playlist.id]: payload.items! }));
+    } catch {
+      setVerificationByPlaylist((current) => ({
+        ...current,
+        [playlist.id]: targets.map((target) => ({ ...target, status: "unconfirmed", message: "Não foi possível concluir o teste agora." })),
+      }));
+    } finally {
+      setVerifyingPlaylistId((current) => current === playlist.id ? null : current);
+    }
+  }
+
   return {
     availableDomains,
     create,
@@ -164,6 +196,9 @@ export function usePlaylistManager(initialPlaylists: Playlist[]) {
     simpleInput,
     sort,
     domainFilter,
+    verificationByPlaylist,
+    verifyingPlaylistId,
+    verifyPlaylist,
     addItem: () => setItems((current) => [...current, createDraftItem()]),
     addUploadedItem: (file: AudioFile) => setItems((current) => [...current, { ...createDraftItem(), url: file.url, title: file.displayName ?? "" }]),
     changeInputMode,

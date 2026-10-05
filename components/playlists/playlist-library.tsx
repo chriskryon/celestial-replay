@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Copy, Heart, ListFilter, ListMusic, Pencil, Play, Plus, Search } from "lucide-react";
+import { CircleAlert, Copy, Heart, ListFilter, ListMusic, LoaderCircle, Pencil, Play, Plus, ScanSearch, Search, ShieldCheck } from "lucide-react";
 
 import type { Playlist } from "@/components/playlists/types";
 import { sourceDomain } from "@/lib/playlist-draft";
+import type { PlaylistVerificationItem } from "@/lib/playlist-verification";
 
 type PlaylistLibraryProps = {
   availableDomains: string[];
@@ -17,13 +18,16 @@ type PlaylistLibraryProps = {
   onDomainChange: (value: string) => void;
   onSortChange: (value: "recent" | "name" | "size") => void;
   onToggleFavorite: (playlist: Playlist) => void;
+  onVerify: (playlist: Playlist) => void;
   playlists: Playlist[];
   search: string;
   selectedId: string | null;
   sort: "recent" | "name" | "size";
+  verificationByPlaylist: Record<string, PlaylistVerificationItem[]>;
+  verifyingPlaylistId: string | null;
 };
 
-export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlaylists, onCreate, onDuplicate, onEdit, onSearchChange, onDomainChange, onSortChange, onToggleFavorite, playlists, search, selectedId, sort }: PlaylistLibraryProps) {
+export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlaylists, onCreate, onDuplicate, onEdit, onSearchChange, onDomainChange, onSortChange, onToggleFavorite, onVerify, playlists, search, selectedId, sort, verificationByPlaylist, verifyingPlaylistId }: PlaylistLibraryProps) {
   return (
     <aside aria-label="Playlists salvas" className="library-list">
       <button className="new-playlist" onClick={onCreate} type="button"><Plus aria-hidden="true" size={17} />Nova playlist</button>
@@ -43,13 +47,20 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
               {filteredPlaylists.map((playlist) => (
                 <li key={playlist.id}>
                   <div className={playlist.id === selectedId ? "library-playlist is-selected" : "library-playlist"}>
+                    {(() => {
+                      const verification = playlistVerification(playlist, verificationByPlaylist[playlist.id]);
+                      const isVerifying = verifyingPlaylistId === playlist.id;
+                      return <>
                     <button onClick={() => onEdit(playlist)} type="button">
-                      <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small></span>
+                      <span><strong>{playlist.name}</strong><small>{playlistSummary(playlist)}</small><small className="library-playlist-domain">{playlistDomains(playlist)} · {playlistUpdatedAt(playlist.updatedAt)}</small><VerificationSummary verification={verification} /></span>
                       <Pencil aria-hidden="true" size={15} />
                     </button>
+                    <button aria-label={`Verificar vídeos de ${playlist.name}`} className="library-verify" disabled={isVerifying} onClick={() => onVerify(playlist)} title="Verificar vídeos" type="button"><ScanSearch aria-hidden="true" size={15} /></button>
                     <Link aria-label={`Reproduzir ${playlist.name}`} className="library-play" href={`/?playlistId=${playlist.id}&autoplay=1`} title="Reproduzir playlist"><Play aria-hidden="true" size={15} /></Link>
                     <button aria-label={playlist.isFavorite ? `Remover ${playlist.name} dos favoritos` : `Favoritar ${playlist.name}`} aria-pressed={playlist.isFavorite} className={playlist.isFavorite ? "library-favorite is-active" : "library-favorite"} onClick={() => onToggleFavorite(playlist)} title={playlist.isFavorite ? "Remover dos favoritos" : "Favoritar"} type="button"><Heart aria-hidden="true" size={15} /></button>
                     <button aria-label={`Duplicar ${playlist.name}`} className="library-duplicate" onClick={() => onDuplicate(playlist)} title="Duplicar playlist" type="button"><Copy aria-hidden="true" size={15} /></button>
+                      </>;
+                    })()}
                   </div>
                 </li>
               ))}
@@ -59,6 +70,24 @@ export function PlaylistLibrary({ availableDomains, domainFilter, filteredPlayli
       )}
     </aside>
   );
+}
+
+function playlistVerification(playlist: Playlist, results: PlaylistVerificationItem[] | undefined) {
+  const current = results?.filter((result) => playlist.items.some((item) => item.id === result.id && item.url === result.source)) ?? [];
+  if (current.length !== playlist.items.length) return { status: "idle" as const, count: 0 };
+  if (current.some((result) => result.status === "checking")) return { status: "checking" as const, count: 0 };
+  const unavailable = current.filter((result) => result.status === "unavailable").length;
+  if (unavailable > 0) return { status: "unavailable" as const, count: unavailable };
+  const ready = current.filter((result) => result.status === "ready").length;
+  return ready === current.length ? { status: "ready" as const, count: ready } : { status: "unconfirmed" as const, count: current.length - ready };
+}
+
+function VerificationSummary({ verification }: { verification: ReturnType<typeof playlistVerification> }) {
+  if (verification.status === "idle") return <small className="library-verification">Ainda não verificada</small>;
+  if (verification.status === "checking") return <small className="library-verification is-checking"><LoaderCircle aria-hidden="true" size={12} />Verificando vídeos</small>;
+  if (verification.status === "unavailable") return <small className="library-verification is-unavailable"><CircleAlert aria-hidden="true" size={12} />{verification.count} {verification.count === 1 ? "vídeo para revisar" : "vídeos para revisar"}</small>;
+  if (verification.status === "ready") return <small className="library-verification is-ready"><ShieldCheck aria-hidden="true" size={12} />{verification.count} {verification.count === 1 ? "vídeo pronto" : "vídeos prontos"}</small>;
+  return <small className="library-verification">{verification.count} {verification.count === 1 ? "resultado não confirmado" : "resultados não confirmados"}</small>;
 }
 
 function playlistSummary(playlist: Playlist) {
