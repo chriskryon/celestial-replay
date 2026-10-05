@@ -241,14 +241,17 @@ export function ReplayPlayerSurface({
   // background — por isso o src montado só muda quando a troca em si não pode
   // ser feita no player atual (fim da fila, upload, outro provider).
   const [mountedSource, setMountedSource] = useState(playerSource);
+  const requestedSourceRef = useRef(playerSource);
   useEffect(() => {
-    if (playerSource === mountedSource) return;
+    if (playerSource === requestedSourceRef.current) return;
     const nextYoutubeId = youtubeIdFromSource(playerSource);
     const node = playerRef.current as YoutubeMediaElement | null;
     if (nextYoutubeId && youtubeIdFromSource(mountedSource) && typeof node?.api?.loadVideoById === "function") {
       node.api.loadVideoById(nextYoutubeId);
+      requestedSourceRef.current = playerSource;
       return;
     }
+    requestedSourceRef.current = playerSource;
     setMountedSource(playerSource);
   }, [mountedSource, playerRef, playerSource]);
 
