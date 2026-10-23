@@ -883,3 +883,9 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 .history-day h2::first-letter { text-transform: uppercase; }
 .library-list li { display: flex; }
 .library-playlist > * { flex-shrink: 0; }
+
+/* editor de playlist: seções respiram e o cabeçalho tem fim */
+.library-editor-heading { padding-bottom: .75rem; border-bottom: 1px solid rgb(var(--sky-rgb) / .1); }
+.library-editor { gap: 1rem; }
+.playlist-source-field { gap: .4rem; }
+.library-items, .playlist-editor { gap: .75rem; }

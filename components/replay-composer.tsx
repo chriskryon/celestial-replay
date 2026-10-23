@@ -156,7 +156,7 @@ export function ReplayComposer({
       <p className="field-help repetition-help">Ex.: 3 reproduz o mesmo vídeo três vezes completas.</p>
     </> : isEditingQueue ? <div className="playlist-running-note">
       <div className="form-heading"><ListPlus aria-hidden="true" size={20} /><h2>Playlist em andamento</h2></div>
-      <p>Os próximos vídeos podem ser editados logo abaixo.</p>
+      <p>Os próximos vídeos podem ser editados na fila.</p>
       <button className="add-row" type="button" onClick={onStartNewPlaylist}>Nova playlist</button>
     </div> : <>
       <div className="playlist-heading">
