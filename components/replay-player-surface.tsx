@@ -84,6 +84,7 @@ type ReplayPlayerSurfaceProps = {
   videoTitle: string | null;
   youtubePlaylistSources: string[];
   volume: number;
+  previewRepetitions?: number;
 };
 
 export function ReplayPlayerSurface({
@@ -152,6 +153,7 @@ export function ReplayPlayerSurface({
   videoTitle,
   youtubePlaylistSources,
   volume,
+  previewRepetitions,
 }: ReplayPlayerSurfaceProps) {
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const [isMobileVolumeOpen, setIsMobileVolumeOpen] = useState(false);
@@ -257,6 +259,8 @@ export function ReplayPlayerSurface({
   const skippedVideoCount = queue.filter((item) => item.skippedRepetitions).length;
   const completeTitle = skippedVideoCount ? "Fila encerrada" : queueLength > 1 ? "Playlist concluída" : "Vídeo concluído";
 
+  const glowId = youtubeIdFromSource(displayedVideo?.src);
+  const glowImage = glowId ? `url(https://i.ytimg.com/vi/${glowId}/mqdefault.jpg)` : null;
   const playerSurfaceState = activeVideo ? "is-active" : previewVideo ? "is-preview" : "is-empty";
 
   useLayoutEffect(() => {
@@ -306,6 +310,7 @@ export function ReplayPlayerSurface({
     </div>
 
     <div className="player-stage-motion" ref={playerStageRef}>
+      {glowImage && !error && <div className="stage-glow" aria-hidden="true" style={{ backgroundImage: glowImage }} />}
       <div className="player-stage">
       {isSessionComplete && <div className="player-complete-state">
         <strong>{completeTitle}</strong>
@@ -362,6 +367,11 @@ export function ReplayPlayerSurface({
       </div>}
       </div>
     </div>
+
+    {previewVideo && !activeVideo && !error && previewRepetitions && previewRepetitions > 0 ? <div className="preview-steps" role="img" aria-label={`${previewRepetitions} ${previewRepetitions === 1 ? "execução completa" : "execuções completas"} nesta sessão`}>
+      {Array.from({ length: Math.min(previewRepetitions, 12) }, (_, step) => <i key={step} />)}
+      <span>{previewRepetitions}×</span>
+    </div> : null}
 
     {activeVideo && !error && <div className="control-bar">
       <div className="control-group control-primary"><button className="pause-button" type="button" onClick={onTogglePlay} aria-label={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"} title={isPlaying ? hasPlaybackStarted ? "Pausar" : "Iniciando" : "Continuar"}>{isPlaying && hasPlaybackStarted ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}</button></div>

@@ -276,6 +276,10 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     togglePlayback: togglePlay,
   }), [nextVideo, seekBy, toggleMute, togglePlay]);
 
+  // o céu (StarfieldCanvas) reage ao começo da reprodução e a cada repetição concluída
+  useEffect(() => { if (isPlaying && hasPlaybackStarted) window.dispatchEvent(new Event("celestial:warp")); }, [isPlaying, hasPlaybackStarted]);
+  useEffect(() => { if (completedRepetitions > 0) window.dispatchEvent(new Event("celestial:pulse")); }, [completedRepetitions]);
+
   return (
     <>
       <section className={`studio-shell${mode === "playlist" && queue.length > 0 ? " has-playback-queue" : ""}${activeVideo && !error ? " is-playing-session" : ""}`} aria-labelledby="studio-title">
@@ -405,6 +409,7 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
             usesNativeYoutubePlaylist={usesNativeYoutubePlaylist}
             youtubePlaylistSources={youtubePlaylistSources}
             volume={volume}
+            previewRepetitions={Number.parseInt(repetitions, 10) || 0}
           />
         </div>
 
