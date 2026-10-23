@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Instrument_Sans } from "next/font/google";
 import Image from "next/image";
 
 import { AuthDialogProvider } from "@/components/auth-dialog";
@@ -14,6 +15,8 @@ const socialImage = {
   height: 630,
   alt: "Celestial Replay - player de repetição de vídeos",
 };
+
+const displayFace = Instrument_Sans({ subsets: ["latin"], variable: "--font-display-face", display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
@@ -57,7 +60,7 @@ export const viewport: Viewport = { themeColor: "#080b1b", width: "device-width"
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={displayFace.variable}>
       <body>
         {/* THESIS: playback is immediate; permanence is earned through sign-in. OWN-WORLD: midnight-blue celestial field and restrained liquid-glass control surfaces. STORY: paste a source, choose exact repetitions, and see completion without ambiguity. FIRST VIEWPORT: the player and its settings share one focused workspace. FORM: operational studio, pinned celestial-liquid-glass direction. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
         <a className="skip-link" href="#main-content">Pular para o player</a>
