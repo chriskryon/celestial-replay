@@ -876,7 +876,8 @@ li button { display: grid; width: 38px; height: 38px; place-items: center; borde
 
 /* luz do vídeo atrás do palco (miniatura estática borrada, sem leitura de pixels) */
 .player-stage-motion { isolation: isolate; }
-.stage-glow { position: absolute; inset: -10% -5%; z-index: -1; background-position: center; background-size: cover; filter: blur(52px) saturate(1.5); opacity: .5; pointer-events: none; }
+.stage-glow { position: absolute; inset: -5% -2.5%; z-index: -1; background-position: center; background-size: cover; filter: blur(32px) saturate(1.2); opacity: .26; pointer-events: none; }
+@media (max-width: 760px) { .stage-glow { display: none; } }
 
 /* prévia viva: o anel do palco respira e os passos da sessão aparecem */
 @keyframes ring-pulse { 0%, 100% { opacity: .15; } 50% { opacity: .7; } }
