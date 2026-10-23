@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type FormEvent, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, type FormEvent, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { ListMusic, RotateCcw, Save, Trash2, Video, X } from "lucide-react";
 
 import { PlaybackQueue } from "@/components/playback-queue";
@@ -8,9 +8,8 @@ import { ReplayComposer } from "@/components/replay-composer";
 import { ReplayPlayerSurface } from "@/components/replay-player-surface";
 import { authClient } from "@/lib/auth-client";
 import { playbackErrorMessage } from "@/lib/playback-error";
-import { type SavedPlaylist, type VideoItem, makeDraft, makeItem } from "@/lib/replay-playlist";
+import { type VideoItem, makeDraft, makeItem } from "@/lib/replay-playlist";
 import { getPlayerStatus } from "@/lib/replay-session";
-import { loadPlaylists, savePlaylist as persistPlaylist } from "@/lib/replay-api";
 import { canSavePlaylist } from "@/lib/replay-validation";
 import { canPlaySrc } from "@/components/react-player-client";
 import { useResolvedMediaSource } from "@/hooks/use-resolved-media-source";
@@ -19,6 +18,7 @@ import { usePlayerMedia } from "@/hooks/use-player-media";
 import { usePlaylistComposer } from "@/hooks/use-playlist-composer";
 import { usePlaylistVerification } from "@/hooks/use-playlist-verification";
 import { useSessionPersistence } from "@/hooks/use-session-persistence";
+import { useSavedPlaylists } from "@/hooks/use-saved-playlists";
 import { useTransportShortcuts } from "@/hooks/use-transport-shortcuts";
 import { useQueueMetadata, useVideoMetadata } from "@/hooks/use-video-metadata";
 
@@ -57,29 +57,13 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const [saveTarget, setSaveTarget] = useState<"draft" | "queue">("draft");
   const [saveName, setSaveName] = useState("Minha playlist");
   const [saveDialogError, setSaveDialogError] = useState<string | null>(null);
-  const [savedPlaylists, setSavedPlaylists] = useState<SavedPlaylist[]>([]);
-  const [isLoadingSavedPlaylists, setIsLoadingSavedPlaylists] = useState(false);
-  const [savedPlaylistsError, setSavedPlaylistsError] = useState<string | null>(null);
   const [isImportingYoutubePlaylist, setIsImportingYoutubePlaylist] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("Cole um vídeo para preparar a repetição.");
-  const routedPlaylistIdRef = useRef<string | null>(null);
   const { canSubmitPlaylist, canSubmitSingle, draftPlaylistId, drafts, firstSimplePlaylistItem, invalidSimpleLine, isSavingPlaylist, mode, playlistHint, playlistInputMode, playlistItems, playlistName, playlistSaveMessage, repetitions, setDraftPlaylistId, setDrafts, setIsSavingPlaylist, setMode, setPlaylistInputMode, setPlaylistName, setPlaylistSaveMessage, setRepetitions, setSimplePlaylist, setSource, simplePlaylist, simplePlaylistItems, simplePlaylistLineCount, singleHint, singleReplay, source, updateDraft } = usePlaylistComposer({ initialMode, setError, setStatus });
   const { hasCurrentVerification, hasUnavailableItems, isVerifying: isVerifyingPlaylist, results: verificationResults, setVerifyBeforeStarting, verify, verifyBeforeStarting } = usePlaylistVerification({ drafts, playlistInputMode, simplePlaylist });
   const { attemptPlay, duration, goFullscreen, handleProgress, handleRateChange, handleSeeked, handleSeekSliderChange, handleSeekSliderDown, handleSeekSliderUp, handleTimeUpdate, loaded, pip, played, playbackRate, playerRef, programmaticSeekRef, rememberMediaPreferences, seekingRef, seekBy, setDuration, setLoaded, setPip, setRememberMediaPreferences, setPlaybackRate, setPlayed, setVolume, volume } = usePlayerMedia();
   const isLoggedIn = Boolean(session.data?.user);
-
-  const refreshSavedPlaylists = useCallback(async () => {
-    setIsLoadingSavedPlaylists(true);
-    setSavedPlaylistsError(null);
-    try {
-      setSavedPlaylists(await loadPlaylists());
-    } catch {
-      setSavedPlaylistsError("Não foi possível carregar suas playlists agora.");
-    } finally {
-      setIsLoadingSavedPlaylists(false);
-    }
-  }, []);
 
   // usePlaybackEngine precisa de clearResumeSession/recordCompletedVideo (de
   // useSessionPersistence), que por sua vez precisa de activeIndex/activeVideo/
@@ -138,30 +122,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
   const queueMetadata = useQueueMetadata(queue.map((item) => item.src));
 
   const playerStatus = isSessionComplete && queue.some((item) => item.skippedRepetitions) ? "Fila encerrada com vídeos pulados por erro." : getPlayerStatus({ previewVideo, activeVideo, isPlaying, hasPlaybackStarted, playBlocked, isSessionComplete, error, fallbackStatus: status, remaining });
-
-  useEffect(() => {
-    if (mode !== "playlist") return;
-    if (!isLoggedIn) {
-      setSavedPlaylists([]);
-      setSavedPlaylistsError(null);
-      return;
-    }
-    void refreshSavedPlaylists();
-  }, [isLoggedIn, mode, refreshSavedPlaylists]);
-
-  useEffect(() => {
-    if (mode !== "playlist" || savedPlaylists.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
-    const playlistId = params.get("playlistId");
-    if (!playlistId || routedPlaylistIdRef.current === playlistId) return;
-    const playlist = savedPlaylists.find((item) => item.id === playlistId);
-    if (!playlist) return;
-    routedPlaylistIdRef.current = playlistId;
-    const shouldAutoplay = params.get("autoplay") === "1";
-    loadSavedPlaylist(playlist);
-    if (shouldAutoplay) startSavedPlaylist(playlist);
-    window.history.replaceState({}, "", window.location.pathname);
-  }, [mode, savedPlaylists]);
 
   useEffect(() => {
     if (!isSaveDialogOpen) return;
@@ -223,20 +183,18 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     setIsSaveDialogOpen(true);
   };
 
-  const loadSavedPlaylist = (playlist: SavedPlaylist) => {
-    setDraftPlaylistId(playlist.id);
-    setPlaylistName(playlist.name);
-    setQueuePlaylistName(playlist.name);
-    setPlaylistInputMode("advanced");
-    setDrafts(playlist.items.map((item) => ({ id: crypto.randomUUID(), src: item.url, repetitions: String(item.repetitions) })));
-    setError(null);
-    setPlaylistSaveMessage(`Playlist “${playlist.name}” carregada. Revise ou inicie quando quiser.`);
-  };
-
-  const startSavedPlaylist = (playlist: SavedPlaylist) => {
-    const nextQueue = playlist.items.map((item) => makeItem(item.url.trim(), item.repetitions));
-    startQueue(nextQueue, { playlistId: playlist.id, playlistName: playlist.name, statusMessage: `Reproduzindo vídeo 1 de ${nextQueue.length}.` });
-  };
+  const { isLoadingSavedPlaylists, loadSavedPlaylist, persistPlaylist, refreshSavedPlaylists, savedPlaylists, savedPlaylistsError } = useSavedPlaylists({
+    isLoggedIn,
+    mode,
+    setDraftPlaylistId,
+    setDrafts,
+    setError,
+    setPlaylistInputMode,
+    setPlaylistName,
+    setPlaylistSaveMessage,
+    setQueuePlaylistName,
+    startQueue,
+  });
 
   const savePlaylist = async () => {
     const isQueue = saveTarget === "queue";
@@ -254,7 +212,6 @@ export const ReplayStudio = forwardRef<ReplayStudioHandle, ReplayStudioProps>(fu
     if (isQueue) setQueueSaveMessage(null); else setPlaylistSaveMessage(null);
     try {
       const playlist = await persistPlaylist({ name: saveName.trim(), items: entries });
-      setSavedPlaylists((items) => [playlist, ...items.filter((item) => item.id !== playlist.id)]);
       if (isQueue) {
         setQueuePlaylistName(saveName.trim());
         setActiveSavedPlaylistId(playlist.id);
